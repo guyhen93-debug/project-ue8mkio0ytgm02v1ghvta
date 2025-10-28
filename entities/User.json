@@ -1,0 +1,28 @@
+{
+  "name": "User",
+  "description": "User entity for clients and managers in the quarry system",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the user"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number of the user"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name for clients"
+    },
+    "role": {
+      "type": "string",
+      "description": "User role: client or manager",
+      "enum": ["client", "manager"]
+    },
+    "language": {
+      "type": "string",
+      "description": "Preferred language: en or he",
+      "enum": ["en", "he"]
+    }
+  }
+}

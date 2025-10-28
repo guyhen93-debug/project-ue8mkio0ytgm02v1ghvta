@@ -40,24 +40,7 @@
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --radius: 0.5rem;
-    --shadow-x: 0px;
-    --shadow-y: 1px;
-    --shadow-blur: 2px;
-    --shadow-spread: 0px;
-    --shadow-opacity: 0.18;
-    --shadow-color: hsl(0 0% 0%);
-    --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
-    --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
-    --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
-    --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
-    --shadow-md: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.18);
-    --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
-    --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
-    --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
-    --tracking-normal: 0em;
-    --spacing: 0.25rem;
   }
-
 }
 
 @layer base {
@@ -67,5 +50,128 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Geist', sans-serif;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    font-family: 'Heebo', 'Geist', sans-serif;
+  }
+
+  [dir="rtl"] .rtl\:text-right {
+    text-align: right;
+  }
+
+  [dir="rtl"] .rtl\:ml-auto {
+    margin-left: auto;
+  }
+
+  [dir="rtl"] .rtl\:mr-auto {
+    margin-right: auto;
+  }
+}
+
+@layer components {
+  /* Company Branding */
+  .piter-yellow {
+    @apply bg-yellow-500 text-black;
+  }
+
+  .piter-yellow:hover {
+    @apply bg-yellow-600;
+  }
+
+  .industrial-card {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+  }
+
+  .industrial-card:hover {
+    @apply shadow-md;
+  }
+
+  /* Status Colors */
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .status-approved {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status-rejected {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .status-completed {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  /* Mobile Optimizations */
+  .mobile-container {
+    @apply max-w-md mx-auto;
+  }
+
+  .mobile-padding {
+    @apply px-4 py-6;
+  }
+
+  /* Animations */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Custom scrollbar for mobile */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .hover\:shadow-md:hover {
+    box-shadow: none;
+  }
+  
+  .hover\:bg-yellow-600:hover {
+    background-color: rgb(202 138 4);
   }
 }

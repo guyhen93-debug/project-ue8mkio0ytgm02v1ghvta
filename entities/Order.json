@@ -1,0 +1,49 @@
+{
+  "name": "Order",
+  "description": "Delivery order for quarry materials",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID of the client who created the order"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "client_company": {
+      "type": "string",
+      "description": "Company name of the client"
+    },
+    "product": {
+      "type": "string",
+      "description": "Selected quarry material",
+      "enum": ["sand_0_3", "sesame_4_9_5", "lentil_9_5_19", "polia_19_25", "granite_10_60"]
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity in tons"
+    },
+    "delivery_date": {
+      "type": "string",
+      "description": "Requested delivery date and time"
+    },
+    "delivery_type": {
+      "type": "string",
+      "description": "Type of delivery",
+      "enum": ["self_transport", "external"]
+    },
+    "delivery_location": {
+      "type": "string",
+      "description": "Delivery address"
+    },
+    "status": {
+      "type": "string",
+      "description": "Order status",
+      "enum": ["pending", "approved", "rejected", "completed"]
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or comments"
+    }
+  }
+}
