@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthUser {
   id: string;
@@ -78,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const foundUser = mockUsers.find(u => u.email === email && u.password === password);
       
@@ -95,7 +96,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setUser(authUser);
         localStorage.setItem('currentUser', JSON.stringify(authUser));
-        setIsLoading(false);
+        
+        // Small delay to show success message before redirect
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+        
         return true;
       }
       

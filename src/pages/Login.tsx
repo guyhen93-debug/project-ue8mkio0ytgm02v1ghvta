@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -13,38 +13,49 @@ import { Loader2 } from 'lucide-react';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const { t } = useLanguage();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user, login, isLoading } = useAuth();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !isLoading) {
+      const redirectPath = user.role === 'client' ? '/client' : '/manager';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
 
     try {
       const success = await login(email, password);
       if (success) {
-        // Navigation will be handled by the auth context and protected routes
         toast({
           title: t('welcome_back'),
           description: t('login_to_continue'),
         });
+        
+        // Navigation will happen automatically via useEffect
       } else {
         toast({
-          title: 'Login Failed',
-          description: 'Invalid email or password. Please try again.',
+          title: t('login_failed'),
+          description: t('invalid_credentials'),
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'An error occurred during login. Please try again.',
+        description: t('login_error'),
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -55,67 +66,110 @@ const Login: React.FC = () => {
     { email: 'david@piternoufi.com', password: 'manager123', role: 'Manager' }
   ];
 
+  if (isLoading) {
+    return (
+      <Layout showBottomNav={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <img 
+                src="/favicon.ico" 
+                alt="Piter Noufi" 
+                className="w-12 h-12"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling.style.display = 'block';
+                }}
+              />
+              <span className="text-black font-bold text-2xl hidden">PN</span>
+            </div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('loading')}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout showBottomNav={false}>
-      <div className="px-4 py-8">
+      <div className="px-4 py-8 min-h-screen bg-gray-50">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-black font-bold text-2xl">PN</span>
+          <div className="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <img 
+              src="/favicon.ico" 
+              alt="Piter Noufi" 
+              className="w-12 h-12"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling.style.display = 'block';
+              }}
+            />
+            <span className="text-black font-bold text-2xl hidden">PN</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {t('welcome_back')}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg">
             {t('login_to_continue')}
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('login')}</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your dashboard
+        <Card className="shadow-lg border-0">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">{t('login')}</CardTitle>
+            <CardDescription className="text-base">
+              {t('enter_credentials')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email_or_phone')}</Label>
+                <Label htmlFor="email" className="text-base font-semibold">
+                  {t('email_or_phone')}
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder={t('enter_email')}
+                  className="h-12 text-base"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">{t('password')}</Label>
+                <Label htmlFor="password" className="text-base font-semibold">
+                  {t('password')}
+                </Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={t('enter_password')}
+                  className="h-12 text-base"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black"
-                disabled={isLoading}
+                className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-lg shadow-lg"
+                disabled={isSubmitting}
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 {t('login')}
               </Button>
 
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full text-gray-600"
+                className="w-full text-gray-600 text-base"
+                disabled={isSubmitting}
               >
                 {t('forgot_password')}
               </Button>
@@ -124,14 +178,14 @@ const Login: React.FC = () => {
         </Card>
 
         {/* Demo Credentials */}
-        <Card className="mt-6">
+        <Card className="mt-6 shadow-lg border-0">
           <CardHeader>
-            <CardTitle className="text-sm">Demo Credentials</CardTitle>
+            <CardTitle className="text-lg">{t('demo_credentials')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {demoCredentials.map((cred, index) => (
-              <div key={index} className="text-xs bg-gray-50 p-2 rounded">
-                <div className="font-medium">{cred.role}: {cred.email}</div>
+              <div key={index} className="text-sm bg-gray-50 p-3 rounded-lg">
+                <div className="font-semibold text-gray-900">{cred.role}: {cred.email}</div>
                 <div className="text-gray-600">Password: {cred.password}</div>
               </div>
             ))}
