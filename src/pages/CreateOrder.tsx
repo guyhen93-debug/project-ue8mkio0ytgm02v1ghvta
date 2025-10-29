@@ -5,15 +5,19 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+
+// Import form components
+import ProductSelector from '@/components/order/ProductSelector';
+import QuantityInput from '@/components/order/QuantityInput';
+import DeliveryDateInput from '@/components/order/DeliveryDateInput';
+import TimeSlotSelector from '@/components/order/TimeSlotSelector';
+import DeliveryTypeSelector from '@/components/order/DeliveryTypeSelector';
+import TruckAccessCheckbox from '@/components/order/TruckAccessCheckbox';
+import DeliveryLocationInput from '@/components/order/DeliveryLocationInput';
+import NotesInput from '@/components/order/NotesInput';
 
 const CreateOrder: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -31,19 +35,6 @@ const CreateOrder: React.FC = () => {
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
-
-  const products = [
-    { value: 'sand_0_3', label: t('sand_0_3') },
-    { value: 'sesame_4_9_5', label: t('sesame_4_9_5') },
-    { value: 'lentil_9_5_19', label: t('lentil_9_5_19') },
-    { value: 'polia_19_25', label: t('polia_19_25') },
-    { value: 'granite_10_60', label: t('granite_10_60') }
-  ];
-
-  const timeSlots = [
-    { value: 'morning', label: t('morning_shift') },
-    { value: 'afternoon', label: t('afternoon_shift') }
-  ];
 
   const handleQuantityChange = (value: string) => {
     setFormData({ ...formData, quantity: value });
@@ -64,38 +55,6 @@ const CreateOrder: React.FC = () => {
       setShowMinimumError(true);
     } else {
       setShowMinimumError(false);
-    }
-  };
-
-  const shareLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const locationString = `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`;
-          setFormData({ 
-            ...formData, 
-            delivery_location: formData.delivery_location + (formData.delivery_location ? '\n' : '') + locationString 
-          });
-          toast({
-            title: language === 'he' ? 'מיקום נשתף' : 'Location Shared',
-            description: language === 'he' ? 'המיקום שלך נוסף לכתובת האספקה' : 'Your location has been added to the delivery address',
-          });
-        },
-        (error) => {
-          toast({
-            title: language === 'he' ? 'שגיאה בשיתוף מיקום' : 'Location Error',
-            description: language === 'he' ? 'לא ניתן לגשת למיקום שלך' : 'Unable to access your location',
-            variant: 'destructive',
-          });
-        }
-      );
-    } else {
-      toast({
-        title: language === 'he' ? 'שיתוף מיקום לא נתמך' : 'Location Not Supported',
-        description: language === 'he' ? 'הדפדפן שלך לא תומך בשיתוף מיקום' : 'Your browser does not support location sharing',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -186,163 +145,46 @@ const CreateOrder: React.FC = () => {
               <CardTitle className="text-xl font-bold">{t('order_details')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Product Selection */}
-              <div className="space-y-3">
-                <Label htmlFor="product" className="text-base font-bold">
-                  {t('product')} *
-                </Label>
-                <Select
-                  value={formData.product}
-                  onValueChange={(value) => setFormData({ ...formData, product: value })}
-                >
-                  <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder={t('select_product')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.value} value={product.value}>
-                        {product.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ProductSelector
+                value={formData.product}
+                onChange={(value) => setFormData({ ...formData, product: value })}
+              />
 
-              {/* Quantity */}
-              <div className="space-y-3">
-                <Label htmlFor="quantity" className="text-base font-bold">
-                  {t('quantity')} *
-                </Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={formData.quantity}
-                  onChange={(e) => handleQuantityChange(e.target.value)}
-                  placeholder={t('enter_quantity')}
-                  className="h-12 text-base"
-                  required
-                />
-                {showMinimumError && (
-                  <p className="text-red-600 text-sm font-semibold">
-                    {t('minimum_quantity_required')}
-                  </p>
-                )}
-              </div>
+              <QuantityInput
+                value={formData.quantity}
+                onChange={handleQuantityChange}
+                showMinimumError={showMinimumError}
+              />
 
-              {/* Delivery Date */}
-              <div className="space-y-3">
-                <Label htmlFor="delivery_date" className="text-base font-bold">
-                  {t('delivery_date')} *
-                </Label>
-                <Input
-                  id="delivery_date"
-                  type="date"
-                  value={formData.delivery_date}
-                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="h-12 text-base"
-                  required
-                />
-              </div>
+              <DeliveryDateInput
+                value={formData.delivery_date}
+                onChange={(value) => setFormData({ ...formData, delivery_date: value })}
+              />
 
-              {/* Time Selection */}
-              <div className="space-y-3">
-                <Label className="text-base font-bold">{t('time')} *</Label>
-                <RadioGroup
-                  value={formData.delivery_time}
-                  onValueChange={(value) => setFormData({ ...formData, delivery_time: value })}
-                  className="space-y-3"
-                >
-                  {timeSlots.map((slot) => (
-                    <div key={slot.value} className="flex items-center space-x-3">
-                      <RadioGroupItem value={slot.value} id={slot.value} />
-                      <Label htmlFor={slot.value} className="text-base font-semibold">
-                        {slot.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
+              <TimeSlotSelector
+                value={formData.delivery_time}
+                onChange={(value) => setFormData({ ...formData, delivery_time: value })}
+              />
 
-              {/* Delivery Type */}
-              <div className="space-y-3">
-                <Label className="text-base font-bold">{t('delivery_type')} *</Label>
-                <RadioGroup
-                  value={formData.delivery_type}
-                  onValueChange={handleDeliveryTypeChange}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="self_transport" id="self_transport" />
-                    <Label htmlFor="self_transport" className="text-base font-semibold">
-                      {t('self_transport')}
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="external" id="external" />
-                    <Label htmlFor="external" className="text-base font-semibold">
-                      {t('external')}
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
+              <DeliveryTypeSelector
+                value={formData.delivery_type}
+                onChange={handleDeliveryTypeChange}
+              />
 
-              {/* Truck Access Checkbox */}
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-                <Checkbox
-                  id="truck_access"
-                  checked={formData.has_truck_access}
-                  onCheckedChange={(checked) => setFormData({ ...formData, has_truck_access: checked as boolean })}
-                />
-                <Label htmlFor="truck_access" className="text-base font-semibold">
-                  {t('truck_access')}
-                </Label>
-              </div>
+              <TruckAccessCheckbox
+                checked={formData.has_truck_access}
+                onChange={(checked) => setFormData({ ...formData, has_truck_access: checked })}
+              />
 
-              {/* Delivery Location */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="delivery_location" className="text-base font-bold">
-                    {t('delivery_location')} *
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={shareLocation}
-                    className="text-sm"
-                  >
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {t('share_location')}
-                  </Button>
-                </div>
-                <Textarea
-                  id="delivery_location"
-                  value={formData.delivery_location}
-                  onChange={(e) => setFormData({ ...formData, delivery_location: e.target.value })}
-                  placeholder={t('enter_address')}
-                  rows={4}
-                  className="text-base"
-                  required
-                />
-              </div>
+              <DeliveryLocationInput
+                value={formData.delivery_location}
+                onChange={(value) => setFormData({ ...formData, delivery_location: value })}
+              />
 
-              {/* Notes */}
-              <div className="space-y-3">
-                <Label htmlFor="notes" className="text-base font-bold">
-                  {t('additional_notes')}
-                </Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder={t('special_instructions')}
-                  rows={3}
-                  className="text-base"
-                />
-              </div>
+              <NotesInput
+                value={formData.notes}
+                onChange={(value) => setFormData({ ...formData, notes: value })}
+              />
             </CardContent>
           </Card>
 
