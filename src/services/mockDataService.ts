@@ -1,6 +1,7 @@
 // Mock data service to replace entity calls for MVP
 interface MockOrder {
   id: string;
+  order_number: string;
   client_id: string;
   client_name: string;
   client_company: string;
@@ -30,18 +31,26 @@ interface MockNotification {
 class MockDataService {
   private orders: MockOrder[] = [];
   private notifications: MockNotification[] = [];
+  private orderCounter: number = 1000; // Start from 1000 for better looking order numbers
 
   constructor() {
     this.initializeData();
   }
 
   private initializeData() {
+    // Load counter from localStorage
+    const storedCounter = localStorage.getItem('orderCounter');
+    if (storedCounter) {
+      this.orderCounter = parseInt(storedCounter, 10);
+    }
+
     // Initialize with sample data
     const now = new Date().toISOString();
     
     this.orders = [
       {
         id: '1',
+        order_number: 'PN-1001',
         client_id: '1',
         client_name: 'John Smith',
         client_company: 'Smith Construction Ltd.',
@@ -57,6 +66,7 @@ class MockDataService {
       },
       {
         id: '2',
+        order_number: 'PN-1002',
         client_id: '2',
         client_name: 'Ahmed Hassan',
         client_company: 'BuildCo Industries',
@@ -72,6 +82,7 @@ class MockDataService {
       },
       {
         id: '3',
+        order_number: 'PN-1003',
         client_id: '1',
         client_name: 'John Smith',
         client_company: 'Smith Construction Ltd.',
@@ -93,7 +104,7 @@ class MockDataService {
         user_id: '1',
         order_id: '1',
         title: 'Order Approved',
-        message: 'Your sand order #123456 has been approved for delivery on Jan 15',
+        message: 'Your sand order PN-1001 has been approved for delivery on Jan 15',
         type: 'order_approved',
         read: false,
         created_at: now,
@@ -104,7 +115,7 @@ class MockDataService {
         user_id: '1',
         order_id: '3',
         title: 'Order Completed',
-        message: 'Your lentil order #789012 has been marked as completed',
+        message: 'Your lentil order PN-1003 has been marked as completed',
         type: 'order_completed',
         read: true,
         created_at: now,
@@ -118,7 +129,12 @@ class MockDataService {
     
     if (storedOrders) {
       try {
-        this.orders = JSON.parse(storedOrders);
+        const parsedOrders = JSON.parse(storedOrders);
+        // Ensure all orders have order_number
+        this.orders = parsedOrders.map((order: any) => ({
+          ...order,
+          order_number: order.order_number || `PN-${this.generateOrderNumber()}`
+        }));
       } catch (e) {
         console.error('Error loading stored orders:', e);
       }
@@ -131,6 +147,17 @@ class MockDataService {
         console.error('Error loading stored notifications:', e);
       }
     }
+
+    // Update counter to be higher than existing orders
+    const maxOrderNumber = Math.max(
+      ...this.orders.map(order => {
+        const match = order.order_number.match(/PN-(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      }),
+      this.orderCounter
+    );
+    this.orderCounter = maxOrderNumber + 1;
+    this.saveCounter();
   }
 
   private saveToStorage() {
@@ -138,8 +165,19 @@ class MockDataService {
     localStorage.setItem('mockNotifications', JSON.stringify(this.notifications));
   }
 
+  private saveCounter() {
+    localStorage.setItem('orderCounter', this.orderCounter.toString());
+  }
+
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9);
+  }
+
+  private generateOrderNumber(): string {
+    const orderNumber = `PN-${this.orderCounter}`;
+    this.orderCounter++;
+    this.saveCounter();
+    return orderNumber;
   }
 
   // Order methods
@@ -166,11 +204,12 @@ class MockDataService {
     return result;
   }
 
-  async createOrder(orderData: Omit<MockOrder, 'id' | 'created_at' | 'updated_at'>): Promise<MockOrder> {
+  async createOrder(orderData: Omit<MockOrder, 'id' | 'order_number' | 'created_at' | 'updated_at'>): Promise<MockOrder> {
     const now = new Date().toISOString();
     const newOrder: MockOrder = {
       ...orderData,
       id: this.generateId(),
+      order_number: this.generateOrderNumber(),
       created_at: now,
       updated_at: now
     };
@@ -244,6 +283,11 @@ class MockDataService {
     
     this.saveToStorage();
     return this.notifications[index];
+  }
+
+  // Get unread notification count for a user
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return this.notifications.filter(n => n.user_id === userId && !n.read).length;
   }
 }
 

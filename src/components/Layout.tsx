@@ -25,7 +25,16 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">PN</span>
+              <img 
+                src="/favicon.ico" 
+                alt="Piter Noufi" 
+                className="w-6 h-6"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling.style.display = 'block';
+                }}
+              />
+              <span className="text-black font-bold text-sm hidden">PN</span>
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">

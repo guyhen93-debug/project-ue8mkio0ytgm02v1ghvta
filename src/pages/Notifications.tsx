@@ -76,9 +76,9 @@ const Notifications: React.FC = () => {
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
     if (diffInHours < 1) {
-      return 'Just now';
+      return t('just_now');
     } else if (diffInHours < 24) {
-      return `${diffInHours}h ago`;
+      return `${diffInHours}${t('hours_ago')}`;
     } else {
       return date.toLocaleDateString('en-US', {
         month: 'short',
@@ -119,7 +119,7 @@ const Notifications: React.FC = () => {
             </h1>
             {unreadCount > 0 && (
               <Badge className="bg-red-100 text-red-800">
-                {unreadCount} new
+                {unreadCount} {t('new')}
               </Badge>
             )}
           </div>
@@ -130,7 +130,7 @@ const Notifications: React.FC = () => {
               onClick={markAllAsRead}
               className="text-xs"
             >
-              Mark all read
+              {t('mark_all_read')}
             </Button>
           )}
         </div>
@@ -142,10 +142,10 @@ const Notifications: React.FC = () => {
               <CardContent className="p-8 text-center">
                 <BellOff className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No notifications
+                  {t('no_notifications')}
                 </h3>
                 <p className="text-gray-600">
-                  You're all caught up! New notifications will appear here.
+                  {t('all_caught_up')}
                 </p>
               </CardContent>
             </Card>

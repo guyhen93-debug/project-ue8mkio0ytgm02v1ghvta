@@ -18,7 +18,7 @@ const Login: React.FC = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Immediate redirect if already logged in
   useEffect(() => {
     if (user && !isLoading) {
       const redirectPath = user.role === 'client' ? '/client' : '/manager';
@@ -37,10 +37,12 @@ const Login: React.FC = () => {
       if (success) {
         toast({
           title: t('welcome_back'),
-          description: t('login_to_continue'),
+          description: t('login_success'),
         });
         
-        // Navigation will happen automatically via useEffect
+        // Immediate redirect after successful login
+        const redirectPath = user?.role === 'client' ? '/client' : '/manager';
+        navigate(redirectPath, { replace: true });
       } else {
         toast({
           title: t('login_failed'),
@@ -50,7 +52,7 @@ const Login: React.FC = () => {
       }
     } catch (error) {
       toast({
-        title: 'Error',
+        title: t('error'),
         description: t('login_error'),
         variant: 'destructive',
       });
@@ -61,9 +63,9 @@ const Login: React.FC = () => {
 
   // Demo credentials info
   const demoCredentials = [
-    { email: 'john@construction.com', password: 'client123', role: 'Client' },
-    { email: 'ahmed@buildco.com', password: 'client123', role: 'Client' },
-    { email: 'david@piternoufi.com', password: 'manager123', role: 'Manager' }
+    { email: 'john@construction.com', password: 'client123', role: t('client') },
+    { email: 'ahmed@buildco.com', password: 'client123', role: t('client') },
+    { email: 'david@piternoufi.com', password: 'manager123', role: t('manager') }
   ];
 
   if (isLoading) {
@@ -186,7 +188,7 @@ const Login: React.FC = () => {
             {demoCredentials.map((cred, index) => (
               <div key={index} className="text-sm bg-gray-50 p-3 rounded-lg">
                 <div className="font-semibold text-gray-900">{cred.role}: {cred.email}</div>
-                <div className="text-gray-600">Password: {cred.password}</div>
+                <div className="text-gray-600">{t('password')}: {cred.password}</div>
               </div>
             ))}
           </CardContent>

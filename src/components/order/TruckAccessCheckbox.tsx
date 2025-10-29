@@ -12,7 +12,7 @@ const TruckAccessCheckbox: React.FC<TruckAccessCheckboxProps> = ({ checked, onCh
   const { t } = useLanguage();
 
   return (
-    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+    <div className="flex items-center p-4 bg-gray-50 rounded-lg" style={{ gap: '12px' }}>
       <Checkbox
         id="truck_access"
         checked={checked}

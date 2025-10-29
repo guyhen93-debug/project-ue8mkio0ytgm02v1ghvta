@@ -28,19 +28,61 @@ const CreateOrder: React.FC = () => {
     delivery_type: 'self_transport',
     delivery_location: '',
     notes: '',
-    has_truck_access: true
+    has_truck_access: false // Default to unchecked
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMinimumError, setShowMinimumError] = useState(false);
+  const [dateError, setDateError] = useState('');
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
+  const validateDateTime = (date: string, time: string) => {
+    if (!date) return '';
+    
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check if date is in the past
+    if (selectedDate < today) {
+      return t('past_date_error');
+    }
+    
+    // Check if it's today and time has passed
+    const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      const currentHour = now.getHours();
+      const selectedHour = time === 'morning' ? 9 : 14;
+      
+      if (currentHour >= selectedHour) {
+        return t('time_passed_error');
+      }
+    }
+    
+    return '';
+  };
+
   const handleQuantityChange = (value: string) => {
-    setFormData({ ...formData, quantity: value });
+    let processedValue = value;
+    
+    // For external delivery, enforce multiples of 20
+    if (formData.delivery_type === 'external' && value) {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        const remainder = numValue % 20;
+        if (remainder !== 0) {
+          processedValue = (Math.ceil(numValue / 20) * 20).toString();
+        }
+      }
+    }
+    
+    setFormData({ ...formData, quantity: processedValue });
     
     // Check minimum quantity for external delivery
-    if (formData.delivery_type === 'external' && parseFloat(value) < 20 && value !== '') {
+    if (formData.delivery_type === 'external' && parseFloat(processedValue) < 20 && processedValue !== '') {
       setShowMinimumError(true);
     } else {
       setShowMinimumError(false);
@@ -50,6 +92,15 @@ const CreateOrder: React.FC = () => {
   const handleDeliveryTypeChange = (value: string) => {
     setFormData({ ...formData, delivery_type: value });
     
+    // Adjust quantity for external delivery to nearest multiple of 20
+    if (value === 'external' && formData.quantity) {
+      const numValue = parseFloat(formData.quantity);
+      if (!isNaN(numValue) && numValue > 0) {
+        const adjustedValue = Math.ceil(numValue / 20) * 20;
+        setFormData(prev => ({ ...prev, quantity: adjustedValue.toString(), delivery_type: value }));
+      }
+    }
+    
     // Check minimum quantity when delivery type changes
     if (value === 'external' && formData.quantity && parseFloat(formData.quantity) < 20) {
       setShowMinimumError(true);
@@ -58,14 +109,37 @@ const CreateOrder: React.FC = () => {
     }
   };
 
+  const handleDateChange = (value: string) => {
+    setFormData({ ...formData, delivery_date: value });
+    const error = validateDateTime(value, formData.delivery_time);
+    setDateError(error);
+  };
+
+  const handleTimeChange = (value: string) => {
+    setFormData({ ...formData, delivery_time: value });
+    const error = validateDateTime(formData.delivery_date, value);
+    setDateError(error);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
+    // Validate date and time
+    const dateTimeError = validateDateTime(formData.delivery_date, formData.delivery_time);
+    if (dateTimeError) {
+      toast({
+        title: t('invalid_date_time'),
+        description: dateTimeError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validate minimum quantity for external delivery
     if (formData.delivery_type === 'external' && parseFloat(formData.quantity) < 20) {
       toast({
-        title: language === 'he' ? 'כמות לא מספיקה' : 'Insufficient Quantity',
+        title: t('insufficient_quantity'),
         description: t('minimum_quantity_required'),
         variant: 'destructive',
       });
@@ -92,20 +166,20 @@ const CreateOrder: React.FC = () => {
         delivery_type: formData.delivery_type,
         delivery_location: formData.delivery_location,
         status: 'pending',
-        notes: formData.notes + (formData.has_truck_access ? '' : '\n' + (language === 'he' ? 'אין מקום לפול טריילר - דאבל בלבד' : 'No full trailer access - double only'))
+        notes: formData.notes + (formData.has_truck_access ? '' : '\n' + t('no_truck_access_note'))
       });
 
       toast({
         title: t('order_submitted'),
-        description: t('order_submitted'),
+        description: t('order_submitted_description'),
       });
 
       navigate('/client');
     } catch (error) {
       console.error('Error creating order:', error);
       toast({
-        title: language === 'he' ? 'שגיאה' : 'Error',
-        description: language === 'he' ? 'נכשל בשליחת ההזמנה. אנא נסו שוב.' : 'Failed to submit order. Please try again.',
+        title: t('error'),
+        description: t('order_submission_failed'),
         variant: 'destructive',
       });
     } finally {
@@ -118,6 +192,7 @@ const CreateOrder: React.FC = () => {
            formData.quantity && 
            formData.delivery_date && 
            formData.delivery_location.trim() &&
+           !dateError &&
            !(formData.delivery_type === 'external' && parseFloat(formData.quantity) < 20);
   };
 
@@ -158,12 +233,17 @@ const CreateOrder: React.FC = () => {
 
               <DeliveryDateInput
                 value={formData.delivery_date}
-                onChange={(value) => setFormData({ ...formData, delivery_date: value })}
+                onChange={handleDateChange}
               />
+              {dateError && (
+                <p className="text-red-600 text-sm font-semibold -mt-3">
+                  {dateError}
+                </p>
+              )}
 
               <TimeSlotSelector
                 value={formData.delivery_time}
-                onChange={(value) => setFormData({ ...formData, delivery_time: value })}
+                onChange={handleTimeChange}
               />
 
               <DeliveryTypeSelector

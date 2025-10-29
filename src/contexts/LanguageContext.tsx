@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface LanguageContextType {
   language: 'en' | 'he';
   setLanguage: (lang: 'en' | 'he') => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string>) => string;
   isRTL: boolean;
 }
 
@@ -25,6 +25,9 @@ const translations = {
     'login_failed': 'Login Failed',
     'invalid_credentials': 'Invalid email or password. Please try again.',
     'login_error': 'An error occurred during login. Please try again.',
+    'login_success': 'Login successful! Redirecting...',
+    'client': 'Client',
+    'manager': 'Manager',
     
     // Navigation
     'home': 'Home',
@@ -46,6 +49,7 @@ const translations = {
     'status': 'Status',
     'submit_order': 'Submit Order',
     'order_submitted': 'Order submitted successfully. Awaiting manager approval.',
+    'order_submitted_description': 'Your order has been submitted and is awaiting manager approval.',
     'select_product': 'Select a product',
     'enter_quantity': 'Enter quantity in tons',
     'time': 'Time',
@@ -59,6 +63,13 @@ const translations = {
     'truck_access': 'Full trailer truck access available',
     'share_location': 'Share Location',
     'has_notes': 'Has notes...',
+    'notes': 'Notes',
+    'no_truck_access_note': 'No full trailer access - double only',
+    'past_date_error': 'Cannot select a date in the past',
+    'time_passed_error': 'Selected time slot has already passed for today',
+    'invalid_date_time': 'Invalid Date/Time',
+    'insufficient_quantity': 'Insufficient Quantity',
+    'order_submission_failed': 'Failed to submit order. Please try again.',
     
     // Products
     'sand_0_3': 'Sand (0-3 mm)',
@@ -78,6 +89,9 @@ const translations = {
     'completed': 'Completed',
     'awaiting_approval': 'Awaiting Approval',
     'delivered': 'Delivered',
+    'order_approved': 'Order Approved',
+    'order_rejected': 'Order Rejected',
+    'order_completed': 'Order Completed',
     
     // Common
     'tons': 'tons',
@@ -91,8 +105,10 @@ const translations = {
     'filter': 'Filter',
     'sort': 'Sort',
     'all_orders': 'All Orders',
+    'all_status': 'All Status',
     'my_orders': 'My Orders',
     'no_orders': 'No orders found',
+    'no_orders_match_filter': 'No orders match the current filter',
     'loading': 'Loading...',
     'save': 'Save',
     'cancel': 'Cancel',
@@ -103,6 +119,7 @@ const translations = {
     'update_status': 'Update Status',
     'order_updated': 'Order status updated successfully',
     'notification_sent': 'Notification sent to client',
+    'order_update_failed': 'Failed to update order status',
     'total_orders': 'Total Orders',
     'order_number': 'Order #',
     'created': 'Created',
@@ -123,6 +140,8 @@ const translations = {
     'just_now': 'Just now',
     'hours_ago': 'h ago',
     'new': 'new',
+    'error': 'Error',
+    'order_status_notification': 'Your order {{order_number}} has been {{status}}',
   },
   he: {
     // Auth
@@ -139,6 +158,9 @@ const translations = {
     'login_failed': 'התחברות נכשלה',
     'invalid_credentials': 'אימייל או סיסמה שגויים. אנא נסו שוב.',
     'login_error': 'אירעה שגיאה במהלך ההתחברות. אנא נסו שוב.',
+    'login_success': 'התחברות הצליחה! מפנה...',
+    'client': 'לקוח',
+    'manager': 'מנהל',
     
     // Navigation
     'home': 'בית',
@@ -160,6 +182,7 @@ const translations = {
     'status': 'סטטוס',
     'submit_order': 'שלח הזמנה',
     'order_submitted': 'ההזמנה נשלחה בהצלחה. ממתינה לאישור מנהל.',
+    'order_submitted_description': 'ההזמנה שלכם נשלחה וממתינה לאישור מנהל.',
     'select_product': 'בחר מוצר',
     'enter_quantity': 'הזן כמות בטון',
     'time': 'זמן',
@@ -173,6 +196,13 @@ const translations = {
     'truck_access': 'יש מקום לפריקת פול טריילר (עגלה)',
     'share_location': 'שתף מיקום',
     'has_notes': 'יש הערות...',
+    'notes': 'הערות',
+    'no_truck_access_note': 'אין מקום לפול טריילר - דאבל בלבד',
+    'past_date_error': 'לא ניתן לבחור תאריך בעבר',
+    'time_passed_error': 'משמרת הזמן שנבחרה כבר עברה להיום',
+    'invalid_date_time': 'תאריך/שעה לא תקינים',
+    'insufficient_quantity': 'כמות לא מספיקה',
+    'order_submission_failed': 'נכשל בשליחת ההזמנה. אנא נסו שוב.',
     
     // Products
     'sand_0_3': 'חול (0-3 מ"מ)',
@@ -192,6 +222,9 @@ const translations = {
     'completed': 'הושלם',
     'awaiting_approval': 'ממתין לאישור',
     'delivered': 'סופקה',
+    'order_approved': 'הזמנה אושרה',
+    'order_rejected': 'הזמנה נדחתה',
+    'order_completed': 'הזמנה הושלמה',
     
     // Common
     'tons': 'טון',
@@ -205,8 +238,10 @@ const translations = {
     'filter': 'סינון',
     'sort': 'מיון',
     'all_orders': 'כל ההזמנות',
+    'all_status': 'כל הסטטוסים',
     'my_orders': 'ההזמנות שלי',
     'no_orders': 'לא נמצאו הזמנות',
+    'no_orders_match_filter': 'אין הזמנות התואמות לסינון הנוכחי',
     'loading': 'טוען...',
     'save': 'שמור',
     'cancel': 'ביטול',
@@ -217,6 +252,7 @@ const translations = {
     'update_status': 'עדכן סטטוס',
     'order_updated': 'סטטוס ההזמנה עודכן בהצלחה',
     'notification_sent': 'התראה נשלחה ללקוח',
+    'order_update_failed': 'נכשל בעדכון סטטוס ההזמנה',
     'total_orders': 'סה"כ הזמנות',
     'order_number': 'הזמנה מס\'',
     'created': 'נוצר',
@@ -237,6 +273,8 @@ const translations = {
     'just_now': 'עכשיו',
     'hours_ago': 'שעות',
     'new': 'חדש',
+    'error': 'שגיאה',
+    'order_status_notification': 'ההזמנה שלכם {{order_number}} {{status}}',
   }
 };
 
@@ -256,8 +294,17 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.documentElement.lang = language;
   }, [language]);
 
-  const t = (key: string): string => {
-    return translations[language][key] || key;
+  const t = (key: string, params?: Record<string, string>): string => {
+    let translation = translations[language][key] || key;
+    
+    // Simple template replacement for parameters
+    if (params) {
+      Object.keys(params).forEach(param => {
+        translation = translation.replace(new RegExp(`{{${param}}}`, 'g'), params[param]);
+      });
+    }
+    
+    return translation;
   };
 
   const isRTL = language === 'he';

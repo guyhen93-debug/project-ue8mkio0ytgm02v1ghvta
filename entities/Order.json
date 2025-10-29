@@ -2,6 +2,10 @@
   "name": "Order",
   "description": "Delivery order for quarry materials",
   "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "Unique sequential order number (e.g., PN-1001)"
+    },
     "client_id": {
       "type": "string",
       "description": "ID of the client who created the order"

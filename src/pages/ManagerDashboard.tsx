@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Layout } from '@/components/Layout';
@@ -6,19 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
-import { Package, Calendar, MapPin, Truck, Building, Eye } from 'lucide-react';
+import { Package, Calendar, MapPin, Truck, Building, Plus } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const { user } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadOrders();
@@ -58,8 +58,8 @@ const ManagerDashboard: React.FC = () => {
         await mockDataService.createNotification({
           user_id: order.client_id,
           order_id: orderId,
-          title: `Order ${newStatus}`,
-          message: `Your order #${orderId.slice(-6)} has been ${newStatus}`,
+          title: t(`order_${newStatus}`),
+          message: t('order_status_notification', { order_number: order.order_number, status: t(newStatus) }),
           type: `order_${newStatus}`,
           read: false
         });
@@ -75,8 +75,8 @@ const ManagerDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error updating order:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update order status.',
+        title: t('error'),
+        description: t('order_update_failed'),
         variant: 'destructive',
       });
     }
@@ -99,6 +99,11 @@ const ManagerDashboard: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getNotesPreview = (notes: string) => {
+    if (!notes || notes.trim() === '') return '';
+    return notes.length > 50 ? notes.substring(0, 50) + '...' : notes;
   };
 
   const getStatusCounts = () => {
@@ -132,12 +137,23 @@ const ManagerDashboard: React.FC = () => {
   return (
     <Layout title={t('all_orders')}>
       <div className="px-4 py-6">
+        {/* Create New Order Button */}
+        <div className="mb-6">
+          <Button
+            onClick={() => navigate('/create-order')}
+            className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-base shadow-lg"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            {t('create_new_order')}
+          </Button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-gray-900">{statusCounts.total}</div>
-              <div className="text-sm text-gray-600">Total Orders</div>
+              <div className="text-sm text-gray-600">{t('total_orders')}</div>
             </CardContent>
           </Card>
           <Card>
@@ -158,7 +174,7 @@ const ManagerDashboard: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">{t('all_status')}</SelectItem>
                   <SelectItem value="pending">{t('pending')}</SelectItem>
                   <SelectItem value="approved">{t('approved')}</SelectItem>
                   <SelectItem value="rejected">{t('rejected')}</SelectItem>
@@ -179,7 +195,7 @@ const ManagerDashboard: React.FC = () => {
                   {t('no_orders')}
                 </h3>
                 <p className="text-gray-600">
-                  No orders match the current filter
+                  {t('no_orders_match_filter')}
                 </p>
               </CardContent>
             </Card>
@@ -193,7 +209,7 @@ const ManagerDashboard: React.FC = () => {
                         {t(order.product)}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
-                        {order.client_name} • {order.client_company}
+                        {order.order_number} • {order.client_name} • {order.client_company}
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>
@@ -224,6 +240,14 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Notes Preview */}
+                  {order.notes && order.notes.trim() && (
+                    <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                      <span className="font-medium">{t('notes')}: </span>
+                      {getNotesPreview(order.notes)}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 pt-3 border-t">
                     <Select
                       value={order.status}
@@ -239,59 +263,6 @@ const ManagerDashboard: React.FC = () => {
                         <SelectItem value="completed">{t('completed')}</SelectItem>
                       </SelectContent>
                     </Select>
-
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          {t('view')}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Order Details</DialogTitle>
-                        </DialogHeader>
-                        {selectedOrder && (
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="font-medium text-gray-900">Client Information</h4>
-                              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                                <div className="flex items-center gap-2">
-                                  <Building className="h-4 w-4" />
-                                  <span>{selectedOrder.client_name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Building className="h-4 w-4" />
-                                  <span>{selectedOrder.client_company}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h4 className="font-medium text-gray-900">Order Information</h4>
-                              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                                <p><strong>Product:</strong> {t(selectedOrder.product)}</p>
-                                <p><strong>Quantity:</strong> {selectedOrder.quantity} {t('tons')}</p>
-                                <p><strong>Delivery Date:</strong> {formatDate(selectedOrder.delivery_date)}</p>
-                                <p><strong>Delivery Type:</strong> {t(selectedOrder.delivery_type)}</p>
-                                <p><strong>Location:</strong> {selectedOrder.delivery_location}</p>
-                                {selectedOrder.notes && (
-                                  <p><strong>Notes:</strong> {selectedOrder.notes}</p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="text-xs text-gray-500 pt-2 border-t">
-                              Order #{selectedOrder.id.slice(-6)} • Created {new Date(selectedOrder.created_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
                   </div>
                 </CardContent>
               </Card>
