@@ -59,7 +59,7 @@ const ManagerDashboard: React.FC = () => {
           user_id: order.client_id,
           order_id: orderId,
           title: t(`order_${newStatus}`),
-          message: t('order_status_notification', { order_number: order.order_number, status: t(newStatus) }),
+          message: t('order_status_notification', { orderNumber: order.order_number, status: t(newStatus) }),
           type: `order_${newStatus}`,
           read: false
         });
@@ -99,11 +99,6 @@ const ManagerDashboard: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const getNotesPreview = (notes: string) => {
-    if (!notes || notes.trim() === '') return '';
-    return notes.length > 50 ? notes.substring(0, 50) + '...' : notes;
   };
 
   const getStatusCounts = () => {
@@ -195,7 +190,7 @@ const ManagerDashboard: React.FC = () => {
                   {t('no_orders')}
                 </h3>
                 <p className="text-gray-600">
-                  {t('no_orders_match_filter')}
+                  {t('no_orders_filter')}
                 </p>
               </CardContent>
             </Card>
@@ -209,7 +204,10 @@ const ManagerDashboard: React.FC = () => {
                         {t(order.product)}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
-                        {order.order_number} • {order.client_name} • {order.client_company}
+                        {order.client_name} • {order.client_company}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {t('order_number')}{order.order_number}
                       </p>
                     </div>
                     <Badge className={getStatusColor(order.status)}>
@@ -240,11 +238,12 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Notes Preview */}
+                  {/* Notes Section */}
                   {order.notes && order.notes.trim() && (
-                    <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                      <span className="font-medium">{t('notes')}: </span>
-                      {getNotesPreview(order.notes)}
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-gray-700">
+                        <strong>{t('notes')}:</strong> {order.notes_preview || order.notes}
+                      </p>
                     </div>
                   )}
 

@@ -21,7 +21,7 @@ const Login: React.FC = () => {
   // Immediate redirect if already logged in
   useEffect(() => {
     if (user && !isLoading) {
-      const redirectPath = user.role === 'client' ? '/client' : '/manager';
+      const redirectPath = user.role === 'manager' ? '/manager' : '/client';
       navigate(redirectPath, { replace: true });
     }
   }, [user, isLoading, navigate]);
@@ -35,14 +35,8 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        toast({
-          title: t('welcome_back'),
-          description: t('login_success'),
-        });
-        
-        // Immediate redirect after successful login
-        const redirectPath = user?.role === 'client' ? '/client' : '/manager';
-        navigate(redirectPath, { replace: true });
+        // Don't show toast, just navigate immediately
+        // Navigation will happen automatically via useEffect
       } else {
         toast({
           title: t('login_failed'),

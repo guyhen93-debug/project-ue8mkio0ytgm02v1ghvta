@@ -7,9 +7,15 @@ interface QuantityInputProps {
   value: string;
   onChange: (value: string) => void;
   showMinimumError: boolean;
+  showMultipleError?: boolean;
 }
 
-const QuantityInput: React.FC<QuantityInputProps> = ({ value, onChange, showMinimumError }) => {
+const QuantityInput: React.FC<QuantityInputProps> = ({ 
+  value, 
+  onChange, 
+  showMinimumError, 
+  showMultipleError = false 
+}) => {
   const { t } = useLanguage();
 
   return (
@@ -30,7 +36,12 @@ const QuantityInput: React.FC<QuantityInputProps> = ({ value, onChange, showMini
       />
       {showMinimumError && (
         <p className="text-red-600 text-sm font-semibold">
-          {t('minimum_quantity_required')}
+          {t('minimum_quantity_external')}
+        </p>
+      )}
+      {showMultipleError && (
+        <p className="text-red-600 text-sm font-semibold">
+          {t('quantity_multiple_twenty')}
         </p>
       )}
     </div>

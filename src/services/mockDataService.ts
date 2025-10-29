@@ -1,7 +1,7 @@
 // Mock data service to replace entity calls for MVP
 interface MockOrder {
   id: string;
-  order_number: string;
+  order_number: number;
   client_id: string;
   client_name: string;
   client_company: string;
@@ -12,6 +12,7 @@ interface MockOrder {
   delivery_location: string;
   status: string;
   notes?: string;
+  notes_preview?: string;
   created_at: string;
   updated_at: string;
 }
@@ -50,23 +51,24 @@ class MockDataService {
     this.orders = [
       {
         id: '1',
-        order_number: 'PN-1001',
+        order_number: 1001,
         client_id: '1',
         client_name: 'John Smith',
         client_company: 'Smith Construction Ltd.',
         product: 'sand_0_3',
-        quantity: 15.5,
+        quantity: 20,
         delivery_date: '2024-01-15T09:00:00',
         delivery_type: 'external',
         delivery_location: '123 Construction Site, Tel Aviv, Israel',
         status: 'approved',
-        notes: 'Please deliver to the back entrance',
+        notes: 'Please deliver to the back entrance. Contact site manager before arrival.',
+        notes_preview: 'Please deliver to the back entrance...',
         created_at: now,
         updated_at: now
       },
       {
         id: '2',
-        order_number: 'PN-1002',
+        order_number: 1002,
         client_id: '2',
         client_name: 'Ahmed Hassan',
         client_company: 'BuildCo Industries',
@@ -76,23 +78,25 @@ class MockDataService {
         delivery_type: 'self_transport',
         delivery_location: '456 Industrial Zone, Haifa, Israel',
         status: 'pending',
-        notes: 'Contact site manager before delivery',
+        notes: 'Contact site manager before delivery. Gate code: 1234',
+        notes_preview: 'Contact site manager before delivery...',
         created_at: now,
         updated_at: now
       },
       {
         id: '3',
-        order_number: 'PN-1003',
+        order_number: 1003,
         client_id: '1',
         client_name: 'John Smith',
         client_company: 'Smith Construction Ltd.',
         product: 'lentil_9_5_19',
         quantity: 8.0,
         delivery_date: '2024-01-12T11:00:00',
-        delivery_type: 'external',
+        delivery_type: 'self_transport',
         delivery_location: '789 Residential Project, Jerusalem, Israel',
         status: 'completed',
         notes: '',
+        notes_preview: '',
         created_at: now,
         updated_at: now
       }
@@ -104,7 +108,7 @@ class MockDataService {
         user_id: '1',
         order_id: '1',
         title: 'Order Approved',
-        message: 'Your sand order PN-1001 has been approved for delivery on Jan 15',
+        message: 'Your sand order #1001 has been approved for delivery on Jan 15',
         type: 'order_approved',
         read: false,
         created_at: now,
@@ -115,7 +119,7 @@ class MockDataService {
         user_id: '1',
         order_id: '3',
         title: 'Order Completed',
-        message: 'Your lentil order PN-1003 has been marked as completed',
+        message: 'Your lentil order #1003 has been marked as completed',
         type: 'order_completed',
         read: true,
         created_at: now,
@@ -129,12 +133,7 @@ class MockDataService {
     
     if (storedOrders) {
       try {
-        const parsedOrders = JSON.parse(storedOrders);
-        // Ensure all orders have order_number
-        this.orders = parsedOrders.map((order: any) => ({
-          ...order,
-          order_number: order.order_number || `PN-${this.generateOrderNumber()}`
-        }));
+        this.orders = JSON.parse(storedOrders);
       } catch (e) {
         console.error('Error loading stored orders:', e);
       }
@@ -148,24 +147,16 @@ class MockDataService {
       }
     }
 
-    // Update counter to be higher than existing orders
-    const maxOrderNumber = Math.max(
-      ...this.orders.map(order => {
-        const match = order.order_number.match(/PN-(\d+)/);
-        return match ? parseInt(match[1], 10) : 0;
-      }),
-      this.orderCounter
-    );
-    this.orderCounter = maxOrderNumber + 1;
-    this.saveCounter();
+    // Update counter to be higher than any existing order
+    if (this.orders.length > 0) {
+      const maxOrderNumber = Math.max(...this.orders.map(o => o.order_number || 0));
+      this.orderCounter = Math.max(this.orderCounter, maxOrderNumber + 1);
+    }
   }
 
   private saveToStorage() {
     localStorage.setItem('mockOrders', JSON.stringify(this.orders));
     localStorage.setItem('mockNotifications', JSON.stringify(this.notifications));
-  }
-
-  private saveCounter() {
     localStorage.setItem('orderCounter', this.orderCounter.toString());
   }
 
@@ -173,11 +164,54 @@ class MockDataService {
     return Math.random().toString(36).substr(2, 9);
   }
 
-  private generateOrderNumber(): string {
-    const orderNumber = `PN-${this.orderCounter}`;
+  private getNextOrderNumber(): number {
+    const orderNumber = this.orderCounter;
     this.orderCounter++;
-    this.saveCounter();
     return orderNumber;
+  }
+
+  private generateNotesPreview(notes: string): string {
+    if (!notes || notes.trim() === '') return '';
+    const firstLine = notes.split('\n')[0];
+    return firstLine.length > 50 ? firstLine.substring(0, 47) + '...' : firstLine;
+  }
+
+  // Validation methods
+  private validateOrderDate(deliveryDate: string, deliveryTime: string): { valid: boolean; error?: string } {
+    const now = new Date();
+    const orderDate = new Date(deliveryDate);
+    
+    // Check if date is in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    orderDate.setHours(0, 0, 0, 0);
+    
+    if (orderDate < today) {
+      return { valid: false, error: 'past_date_error' };
+    }
+    
+    // Check if it's today and time slot is in the past
+    if (orderDate.getTime() === today.getTime()) {
+      const currentHour = now.getHours();
+      if (deliveryTime === 'morning' && currentHour >= 12) {
+        return { valid: false, error: 'time_slot_passed' };
+      }
+      if (deliveryTime === 'afternoon' && currentHour >= 17) {
+        return { valid: false, error: 'after_hours_error' };
+      }
+    }
+    
+    return { valid: true };
+  }
+
+  private validateExternalDelivery(quantity: number): { valid: boolean; error?: string } {
+    if (quantity < 20) {
+      return { valid: false, error: 'minimum_quantity_external' };
+    }
+    if (quantity % 20 !== 0) {
+      return { valid: false, error: 'quantity_multiple_twenty' };
+    }
+    return { valid: true };
   }
 
   // Order methods
@@ -204,24 +238,47 @@ class MockDataService {
     return result;
   }
 
-  async createOrder(orderData: Omit<MockOrder, 'id' | 'order_number' | 'created_at' | 'updated_at'>): Promise<MockOrder> {
+  async createOrder(orderData: Omit<MockOrder, 'id' | 'order_number' | 'created_at' | 'updated_at' | 'notes_preview'>): Promise<{ success: boolean; order?: MockOrder; error?: string }> {
+    // Validate delivery date and time
+    const dateValidation = this.validateOrderDate(orderData.delivery_date.split('T')[0], orderData.delivery_date.includes('09:00') ? 'morning' : 'afternoon');
+    if (!dateValidation.valid) {
+      return { success: false, error: dateValidation.error };
+    }
+
+    // Validate external delivery requirements
+    if (orderData.delivery_type === 'external') {
+      const externalValidation = this.validateExternalDelivery(orderData.quantity);
+      if (!externalValidation.valid) {
+        return { success: false, error: externalValidation.error };
+      }
+    }
+
     const now = new Date().toISOString();
+    const orderNumber = this.getNextOrderNumber();
+    const notesPreview = this.generateNotesPreview(orderData.notes || '');
+    
     const newOrder: MockOrder = {
       ...orderData,
       id: this.generateId(),
-      order_number: this.generateOrderNumber(),
+      order_number: orderNumber,
+      notes_preview: notesPreview,
       created_at: now,
       updated_at: now
     };
     
     this.orders.push(newOrder);
     this.saveToStorage();
-    return newOrder;
+    return { success: true, order: newOrder };
   }
 
   async updateOrder(id: string, updates: Partial<MockOrder>): Promise<MockOrder | null> {
     const index = this.orders.findIndex(order => order.id === id);
     if (index === -1) return null;
+    
+    // Update notes preview if notes are being updated
+    if (updates.notes !== undefined) {
+      updates.notes_preview = this.generateNotesPreview(updates.notes);
+    }
     
     this.orders[index] = {
       ...this.orders[index],
@@ -285,9 +342,10 @@ class MockDataService {
     return this.notifications[index];
   }
 
-  // Get unread notification count for a user
+  // Badge count methods
   async getUnreadNotificationCount(userId: string): Promise<number> {
-    return this.notifications.filter(n => n.user_id === userId && !n.read).length;
+    const userNotifications = await this.getNotifications({ user_id: userId });
+    return userNotifications.filter(n => !n.read).length;
   }
 }
 

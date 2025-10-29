@@ -171,7 +171,7 @@ const Notifications: React.FC = () => {
                         <h4 className={`text-sm font-medium ${
                           !notification.read ? 'text-gray-900' : 'text-gray-700'
                         }`}>
-                          {notification.title}
+                          {t(notification.title) || notification.title}
                         </h4>
                         {!notification.read && (
                           <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>

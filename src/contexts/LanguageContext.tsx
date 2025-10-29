@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface LanguageContextType {
   language: 'en' | 'he';
   setLanguage: (lang: 'en' | 'he') => void;
-  t: (key: string, params?: Record<string, string>) => string;
+  t: (key: string, params?: Record<string, any>) => string;
   isRTL: boolean;
 }
 
@@ -25,7 +25,6 @@ const translations = {
     'login_failed': 'Login Failed',
     'invalid_credentials': 'Invalid email or password. Please try again.',
     'login_error': 'An error occurred during login. Please try again.',
-    'login_success': 'Login successful! Redirecting...',
     'client': 'Client',
     'manager': 'Manager',
     
@@ -36,6 +35,7 @@ const translations = {
     'profile': 'Profile',
     'dashboard': 'Dashboard',
     'orders': 'Orders',
+    'inbox': 'Inbox',
     
     // Orders
     'create_order': 'Create Order',
@@ -48,8 +48,8 @@ const translations = {
     'delivery_location': 'Delivery Location',
     'status': 'Status',
     'submit_order': 'Submit Order',
-    'order_submitted': 'Order submitted successfully. Awaiting manager approval.',
-    'order_submitted_description': 'Your order has been submitted and is awaiting manager approval.',
+    'order_submitted': 'Order Submitted',
+    'order_submitted_description': 'Order submitted successfully. Awaiting manager approval.',
     'select_product': 'Select a product',
     'enter_quantity': 'Enter quantity in tons',
     'time': 'Time',
@@ -57,19 +57,16 @@ const translations = {
     'additional_notes': 'Additional Notes',
     'special_instructions': 'Any special instructions or notes',
     'start_creating_order': 'Start by creating your first order',
-    'minimum_quantity_required': 'External delivery requires minimum 20 tons.',
+    'minimum_quantity_external': 'External delivery requires minimum 20 tons.',
+    'quantity_multiple_twenty': 'External delivery quantity must be in multiples of 20 tons.',
     'morning_shift': 'Morning (07:00–12:00)',
     'afternoon_shift': 'Afternoon (12:00–17:00)',
     'truck_access': 'Full trailer truck access available',
     'share_location': 'Share Location',
     'has_notes': 'Has notes...',
     'notes': 'Notes',
-    'no_truck_access_note': 'No full trailer access - double only',
-    'past_date_error': 'Cannot select a date in the past',
-    'time_passed_error': 'Selected time slot has already passed for today',
-    'invalid_date_time': 'Invalid Date/Time',
-    'insufficient_quantity': 'Insufficient Quantity',
-    'order_submission_failed': 'Failed to submit order. Please try again.',
+    'order_number': 'Order #',
+    'no_trailer_access_note': 'No full trailer access - double only',
     
     // Products
     'sand_0_3': 'Sand (0-3 mm)',
@@ -89,9 +86,16 @@ const translations = {
     'completed': 'Completed',
     'awaiting_approval': 'Awaiting Approval',
     'delivered': 'Delivered',
-    'order_approved': 'Order Approved',
-    'order_rejected': 'Order Rejected',
-    'order_completed': 'Order Completed',
+    
+    // Validation & Errors
+    'validation_error': 'Validation Error',
+    'error': 'Error',
+    'past_date_error': 'Cannot schedule delivery for a past date.',
+    'morning_slot_passed': 'Morning time slot has already passed for today.',
+    'after_hours_error': 'Selected time slot is outside operating hours (07:00-17:00).',
+    'order_submission_failed': 'Failed to submit order. Please try again.',
+    'order_update_failed': 'Failed to update order status.',
+    'unknown_error': 'An unknown error occurred.',
     
     // Common
     'tons': 'tons',
@@ -108,7 +112,7 @@ const translations = {
     'all_status': 'All Status',
     'my_orders': 'My Orders',
     'no_orders': 'No orders found',
-    'no_orders_match_filter': 'No orders match the current filter',
+    'no_orders_filter': 'No orders match the current filter',
     'loading': 'Loading...',
     'save': 'Save',
     'cancel': 'Cancel',
@@ -119,9 +123,7 @@ const translations = {
     'update_status': 'Update Status',
     'order_updated': 'Order status updated successfully',
     'notification_sent': 'Notification sent to client',
-    'order_update_failed': 'Failed to update order status',
     'total_orders': 'Total Orders',
-    'order_number': 'Order #',
     'created': 'Created',
     'customer': 'Customer',
     'settings': 'Settings',
@@ -140,8 +142,12 @@ const translations = {
     'just_now': 'Just now',
     'hours_ago': 'h ago',
     'new': 'new',
-    'error': 'Error',
-    'order_status_notification': 'Your order {{order_number}} has been {{status}}',
+    
+    // Dynamic notifications
+    'order_approved': 'Order Approved',
+    'order_rejected': 'Order Rejected',
+    'order_completed': 'Order Completed',
+    'order_status_notification': 'Your order #{orderNumber} has been {status}',
   },
   he: {
     // Auth
@@ -158,7 +164,6 @@ const translations = {
     'login_failed': 'התחברות נכשלה',
     'invalid_credentials': 'אימייל או סיסמה שגויים. אנא נסו שוב.',
     'login_error': 'אירעה שגיאה במהלך ההתחברות. אנא נסו שוב.',
-    'login_success': 'התחברות הצליחה! מפנה...',
     'client': 'לקוח',
     'manager': 'מנהל',
     
@@ -169,6 +174,7 @@ const translations = {
     'profile': 'פרופיל',
     'dashboard': 'דשבורד',
     'orders': 'הזמנות',
+    'inbox': 'תיבת דואר',
     
     // Orders
     'create_order': 'יצירת הזמנה',
@@ -181,8 +187,8 @@ const translations = {
     'delivery_location': 'מיקום אספקה',
     'status': 'סטטוס',
     'submit_order': 'שלח הזמנה',
-    'order_submitted': 'ההזמנה נשלחה בהצלחה. ממתינה לאישור מנהל.',
-    'order_submitted_description': 'ההזמנה שלכם נשלחה וממתינה לאישור מנהל.',
+    'order_submitted': 'הזמנה נשלחה',
+    'order_submitted_description': 'ההזמנה נשלחה בהצלחה. ממתינה לאישור מנהל.',
     'select_product': 'בחר מוצר',
     'enter_quantity': 'הזן כמות בטון',
     'time': 'זמן',
@@ -190,19 +196,16 @@ const translations = {
     'additional_notes': 'הערות נוספות',
     'special_instructions': 'הנחיות מיוחדות או הערות',
     'start_creating_order': 'התחל ביצירת ההזמנה הראשונה שלך',
-    'minimum_quantity_required': 'הזמנה בהובלה חיצונית מחייבת מינימום של 20 טון.',
+    'minimum_quantity_external': 'הזמנה בהובלה חיצונית מחייבת מינימום של 20 טון.',
+    'quantity_multiple_twenty': 'כמות בהובלה חיצונית חייבת להיות בכפולות של 20 טון.',
     'morning_shift': 'בוקר (07:00–12:00)',
     'afternoon_shift': 'צהריים (12:00–17:00)',
     'truck_access': 'יש מקום לפריקת פול טריילר (עגלה)',
     'share_location': 'שתף מיקום',
     'has_notes': 'יש הערות...',
     'notes': 'הערות',
-    'no_truck_access_note': 'אין מקום לפול טריילר - דאבל בלבד',
-    'past_date_error': 'לא ניתן לבחור תאריך בעבר',
-    'time_passed_error': 'משמרת הזמן שנבחרה כבר עברה להיום',
-    'invalid_date_time': 'תאריך/שעה לא תקינים',
-    'insufficient_quantity': 'כמות לא מספיקה',
-    'order_submission_failed': 'נכשל בשליחת ההזמנה. אנא נסו שוב.',
+    'order_number': 'הזמנה מס\'',
+    'no_trailer_access_note': 'אין מקום לפול טריילר - דאבל בלבד',
     
     // Products
     'sand_0_3': 'חול (0-3 מ"מ)',
@@ -222,9 +225,16 @@ const translations = {
     'completed': 'הושלם',
     'awaiting_approval': 'ממתין לאישור',
     'delivered': 'סופקה',
-    'order_approved': 'הזמנה אושרה',
-    'order_rejected': 'הזמנה נדחתה',
-    'order_completed': 'הזמנה הושלמה',
+    
+    // Validation & Errors
+    'validation_error': 'שגיאת אימות',
+    'error': 'שגיאה',
+    'past_date_error': 'לא ניתן לתזמן אספקה לתאריך שעבר.',
+    'morning_slot_passed': 'משמרת הבוקר כבר עברה להיום.',
+    'after_hours_error': 'המשמרת הנבחרת מחוץ לשעות הפעילות (07:00-17:00).',
+    'order_submission_failed': 'נכשל בשליחת ההזמנה. אנא נסו שוב.',
+    'order_update_failed': 'נכשל בעדכון סטטוס ההזמנה.',
+    'unknown_error': 'אירעה שגיאה לא ידועה.',
     
     // Common
     'tons': 'טון',
@@ -241,7 +251,7 @@ const translations = {
     'all_status': 'כל הסטטוסים',
     'my_orders': 'ההזמנות שלי',
     'no_orders': 'לא נמצאו הזמנות',
-    'no_orders_match_filter': 'אין הזמנות התואמות לסינון הנוכחי',
+    'no_orders_filter': 'אין הזמנות התואמות לסינון הנוכחי',
     'loading': 'טוען...',
     'save': 'שמור',
     'cancel': 'ביטול',
@@ -252,9 +262,7 @@ const translations = {
     'update_status': 'עדכן סטטוס',
     'order_updated': 'סטטוס ההזמנה עודכן בהצלחה',
     'notification_sent': 'התראה נשלחה ללקוח',
-    'order_update_failed': 'נכשל בעדכון סטטוס ההזמנה',
     'total_orders': 'סה"כ הזמנות',
-    'order_number': 'הזמנה מס\'',
     'created': 'נוצר',
     'customer': 'לקוח',
     'settings': 'הגדרות',
@@ -273,13 +281,17 @@ const translations = {
     'just_now': 'עכשיו',
     'hours_ago': 'שעות',
     'new': 'חדש',
-    'error': 'שגיאה',
-    'order_status_notification': 'ההזמנה שלכם {{order_number}} {{status}}',
+    
+    // Dynamic notifications
+    'order_approved': 'הזמנה אושרה',
+    'order_rejected': 'הזמנה נדחתה',
+    'order_completed': 'הזמנה הושלמה',
+    'order_status_notification': 'הזמנה מס\' {orderNumber} {status}',
   }
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<'en' | 'he'>('en');
+  const [language, setLanguage] = useState<'en' | 'he'>('he'); // Default to Hebrew
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') as 'en' | 'he';
@@ -294,13 +306,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.documentElement.lang = language;
   }, [language]);
 
-  const t = (key: string, params?: Record<string, string>): string => {
+  const t = (key: string, params?: Record<string, any>): string => {
     let translation = translations[language][key] || key;
     
-    // Simple template replacement for parameters
+    // Handle parameter substitution
     if (params) {
       Object.keys(params).forEach(param => {
-        translation = translation.replace(new RegExp(`{{${param}}}`, 'g'), params[param]);
+        translation = translation.replace(`{${param}}`, params[param]);
       });
     }
     
