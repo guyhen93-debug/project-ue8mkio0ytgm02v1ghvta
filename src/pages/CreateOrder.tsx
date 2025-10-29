@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { Order, Notification } from '@/entities';
+import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -46,7 +46,7 @@ const CreateOrder: React.FC = () => {
     try {
       const deliveryDateTime = `${formData.delivery_date}T${formData.delivery_time}`;
       
-      await Order.create({
+      await mockDataService.createOrder({
         client_id: user.id,
         client_name: user.name,
         client_company: user.company,

@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Notification } from '@/entities';
+import { mockDataService } from '@/services/mockDataService';
 import { Bell, BellOff, CheckCircle, XCircle, Package } from 'lucide-react';
 
 const Notifications: React.FC = () => {
@@ -21,7 +21,7 @@ const Notifications: React.FC = () => {
   const loadNotifications = async () => {
     try {
       if (user) {
-        const userNotifications = await Notification.filter(
+        const userNotifications = await mockDataService.getNotifications(
           { user_id: user.id }, 
           '-created_at'
         );
@@ -36,7 +36,7 @@ const Notifications: React.FC = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await Notification.update(notificationId, { read: true });
+      await mockDataService.updateNotification(notificationId, { read: true });
       setNotifications(notifications.map(n => 
         n.id === notificationId ? { ...n, read: true } : n
       ));
@@ -49,7 +49,7 @@ const Notifications: React.FC = () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.read);
       for (const notification of unreadNotifications) {
-        await Notification.update(notification.id, { read: true });
+        await mockDataService.updateNotification(notification.id, { read: true });
       }
       setNotifications(notifications.map(n => ({ ...n, read: true })));
     } catch (error) {

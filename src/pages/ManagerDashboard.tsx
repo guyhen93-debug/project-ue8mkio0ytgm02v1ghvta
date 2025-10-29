@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Order, Notification } from '@/entities';
+import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
-import { Package, Calendar, MapPin, Truck, Building, Phone, Eye } from 'lucide-react';
+import { Package, Calendar, MapPin, Truck, Building, Eye } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -30,7 +30,7 @@ const ManagerDashboard: React.FC = () => {
 
   const loadOrders = async () => {
     try {
-      const allOrders = await Order.list('-created_at');
+      const allOrders = await mockDataService.getOrders({}, '-created_at');
       setOrders(allOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -49,13 +49,13 @@ const ManagerDashboard: React.FC = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await Order.update(orderId, { status: newStatus });
+      await mockDataService.updateOrder(orderId, { status: newStatus });
       
       // Find the order to get client info
       const order = orders.find(o => o.id === orderId);
       if (order) {
         // Create notification for client
-        await Notification.create({
+        await mockDataService.createNotification({
           user_id: order.client_id,
           order_id: orderId,
           title: `Order ${newStatus}`,

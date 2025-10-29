@@ -6,7 +6,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Order } from '@/entities';
+import { mockDataService } from '@/services/mockDataService';
 import { Plus, Package, Calendar, MapPin, Truck } from 'lucide-react';
 
 const ClientDashboard: React.FC = () => {
@@ -23,7 +23,7 @@ const ClientDashboard: React.FC = () => {
   const loadOrders = async () => {
     try {
       if (user) {
-        const userOrders = await Order.filter({ client_id: user.id }, '-created_at');
+        const userOrders = await mockDataService.getOrders({ client_id: user.id }, '-created_at');
         setOrders(userOrders);
       }
     } catch (error) {
