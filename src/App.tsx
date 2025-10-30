@@ -12,6 +12,7 @@ import ClientDashboard from "./pages/ClientDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import CreateOrder from "./pages/CreateOrder";
 import Notifications from "./pages/Notifications";
+import Inbox from "./pages/Inbox";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -39,13 +40,18 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/create-order" element={
-                <ProtectedRoute role="client">
+                <ProtectedRoute>
                   <CreateOrder />
                 </ProtectedRoute>
               } />
               <Route path="/notifications" element={
                 <ProtectedRoute>
                   <Notifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/inbox" element={
+                <ProtectedRoute>
+                  <Inbox />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={

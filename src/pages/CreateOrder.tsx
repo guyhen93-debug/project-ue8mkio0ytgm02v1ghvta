@@ -18,6 +18,7 @@ import DeliveryTypeSelector from '@/components/order/DeliveryTypeSelector';
 import TruckAccessCheckbox from '@/components/order/TruckAccessCheckbox';
 import DeliveryLocationInput from '@/components/order/DeliveryLocationInput';
 import NotesInput from '@/components/order/NotesInput';
+import QuarryCrossingSelector from '@/components/order/QuarryCrossingSelector';
 
 const CreateOrder: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -28,11 +29,13 @@ const CreateOrder: React.FC = () => {
     delivery_type: 'self_transport',
     delivery_location: '',
     notes: '',
-    has_truck_access: false // Default to unchecked
+    has_truck_access: false, // Default to unchecked
+    quarry_or_crossing: 'default'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMinimumError, setShowMinimumError] = useState(false);
   const [showMultipleError, setShowMultipleError] = useState(false);
+  const [showDistanceError, setShowDistanceError] = useState(false);
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
@@ -59,6 +62,7 @@ const CreateOrder: React.FC = () => {
   const handleQuantityChange = (value: string) => {
     setFormData({ ...formData, quantity: value });
     validateQuantityForExternal(value, formData.delivery_type);
+    setShowDistanceError(false); // Reset distance error when quantity changes
   };
 
   const handleDeliveryTypeChange = (value: string) => {
@@ -82,11 +86,11 @@ const CreateOrder: React.FC = () => {
     // Check if it's today and time slot is in the past or after hours
     if (orderDate.getTime() === today.getTime()) {
       const currentHour = now.getHours();
+      if (currentHour >= 17) {
+        return { valid: false, error: t('after_hours_error') };
+      }
       if (time === 'morning' && currentHour >= 12) {
         return { valid: false, error: t('morning_slot_passed') };
-      }
-      if (time === 'afternoon' && currentHour >= 17) {
-        return { valid: false, error: t('after_hours_error') };
       }
     }
     
@@ -149,7 +153,8 @@ const CreateOrder: React.FC = () => {
         delivery_type: formData.delivery_type,
         delivery_location: formData.delivery_location,
         status: 'pending',
-        notes: formData.notes + (formData.has_truck_access ? '' : '\n' + t('no_trailer_access_note'))
+        notes: formData.notes + (formData.has_truck_access ? '' : '\n' + t('no_trailer_access_note')),
+        quarry_or_crossing: formData.quarry_or_crossing
       });
 
       if (result.success) {
@@ -183,7 +188,8 @@ const CreateOrder: React.FC = () => {
            formData.delivery_date && 
            formData.delivery_location.trim() &&
            !showMinimumError &&
-           !showMultipleError;
+           !showMultipleError &&
+           !showDistanceError;
   };
 
   return (
@@ -235,6 +241,11 @@ const CreateOrder: React.FC = () => {
               <DeliveryTypeSelector
                 value={formData.delivery_type}
                 onChange={handleDeliveryTypeChange}
+              />
+
+              <QuarryCrossingSelector
+                value={formData.quarry_or_crossing}
+                onChange={(value) => setFormData({ ...formData, quarry_or_crossing: value })}
               />
 
               <TruckAccessCheckbox

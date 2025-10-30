@@ -6,16 +6,24 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
-import { Package, Calendar, MapPin, Truck, Building, Plus } from 'lucide-react';
+import { Package, Calendar, MapPin, Truck, Building, Plus, Minus } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [quarryFilter, setQuarryFilter] = useState('all');
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [reduceAmount, setReduceAmount] = useState('');
+  const [reductionReason, setReductionReason] = useState('');
+  const [showReduceDialog, setShowReduceDialog] = useState(false);
   const { user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -26,7 +34,7 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, statusFilter]);
+  }, [orders, statusFilter, quarryFilter]);
 
   const loadOrders = async () => {
     try {
@@ -40,11 +48,17 @@ const ManagerDashboard: React.FC = () => {
   };
 
   const filterOrders = () => {
-    if (statusFilter === 'all') {
-      setFilteredOrders(orders);
-    } else {
-      setFilteredOrders(orders.filter(order => order.status === statusFilter));
+    let result = [...orders];
+    
+    if (statusFilter !== 'all') {
+      result = result.filter(order => order.status === statusFilter);
     }
+    
+    if (quarryFilter !== 'all') {
+      result = result.filter(order => order.quarry_or_crossing === quarryFilter);
+    }
+    
+    setFilteredOrders(result);
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -77,6 +91,44 @@ const ManagerDashboard: React.FC = () => {
       toast({
         title: t('error'),
         description: t('order_update_failed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleReduceQuantity = async () => {
+    if (!selectedOrder || !reduceAmount || !reductionReason) return;
+
+    try {
+      const result = await mockDataService.reduceOrderQuantity(
+        selectedOrder.id,
+        parseInt(reduceAmount),
+        reductionReason,
+        user.id
+      );
+
+      if (result.success) {
+        toast({
+          title: t('quantity_reduced'),
+          description: t('quantity_reduction_success'),
+        });
+        setShowReduceDialog(false);
+        setReduceAmount('');
+        setReductionReason('');
+        setSelectedOrder(null);
+        await loadOrders();
+      } else {
+        toast({
+          title: t('error'),
+          description: t(result.error || 'unknown_error'),
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error reducing quantity:', error);
+      toast({
+        title: t('error'),
+        description: t('unknown_error'),
         variant: 'destructive',
       });
     }
@@ -159,23 +211,39 @@ const ManagerDashboard: React.FC = () => {
           </Card>
         </div>
 
-        {/* Filter */}
+        {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-700">{t('filter')}:</span>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('all_status')}</SelectItem>
-                  <SelectItem value="pending">{t('pending')}</SelectItem>
-                  <SelectItem value="approved">{t('approved')}</SelectItem>
-                  <SelectItem value="rejected">{t('rejected')}</SelectItem>
-                  <SelectItem value="completed">{t('completed')}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-700">{t('status')}:</span>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('all_status')}</SelectItem>
+                    <SelectItem value="pending">{t('pending')}</SelectItem>
+                    <SelectItem value="approved">{t('approved')}</SelectItem>
+                    <SelectItem value="rejected">{t('rejected')}</SelectItem>
+                    <SelectItem value="completed">{t('completed')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-700">{t('quarry_crossing')}:</span>
+                <Select value={quarryFilter} onValueChange={setQuarryFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="default">{t('default_quarry')}</SelectItem>
+                    <SelectItem value="shifolei_har">{t('shifolei_har')}</SelectItem>
+                    <SelectItem value="yitzhak_rabin">{t('yitzhak_rabin')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -238,6 +306,14 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Distance info */}
+                  {order.distance_km && (
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">{t('distance')}: </span>
+                      {order.distance_km} {t('km')}
+                    </div>
+                  )}
+
                   {/* Notes Section */}
                   {order.notes && order.notes.trim() && (
                     <div className="pt-2 border-t">
@@ -262,12 +338,72 @@ const ManagerDashboard: React.FC = () => {
                         <SelectItem value="completed">{t('completed')}</SelectItem>
                       </SelectContent>
                     </Select>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowReduceDialog(true);
+                      }}
+                    >
+                      <Minus className="h-4 w-4 mr-1" />
+                      {t('reduce_quantity')}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))
           )}
         </div>
+
+        {/* Reduce Quantity Dialog */}
+        <Dialog open={showReduceDialog} onOpenChange={setShowReduceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('reduce_quantity')}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="reduce_amount">{t('reduce_by_tons')}</Label>
+                <Input
+                  id="reduce_amount"
+                  type="number"
+                  min="1"
+                  max={selectedOrder?.quantity || 1}
+                  value={reduceAmount}
+                  onChange={(e) => setReduceAmount(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="reduction_reason">{t('reduction_reason')}</Label>
+                <Input
+                  id="reduction_reason"
+                  value={reductionReason}
+                  onChange={(e) => setReductionReason(e.target.value)}
+                  placeholder={t('reduction_reason')}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleReduceQuantity}
+                  disabled={!reduceAmount || !reductionReason}
+                  className="flex-1"
+                >
+                  {t('confirm_reduction')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReduceDialog(false)}
+                  className="flex-1"
+                >
+                  {t('cancel')}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
