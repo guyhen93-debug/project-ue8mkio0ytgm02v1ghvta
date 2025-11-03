@@ -5,18 +5,16 @@ interface MockOrder {
   client_id: string;
   client_name: string;
   client_company: string;
+  site_id?: string;
+  unlinked_site?: boolean;
   product: string;
   quantity: number;
   delivery_date: string;
   delivery_type: string;
-  delivery_location: string;
   status: string;
   notes?: string;
   notes_preview?: string;
-  distance_km?: number;
   quarry_or_crossing?: string;
-  cancellable_by_client?: boolean;
-  created_by_admin_adjustment?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -54,10 +52,33 @@ interface MockProduct {
   image_url: string;
 }
 
+interface MockClient {
+  id: string;
+  name: string;
+  category: 'manager' | 'client';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MockSite {
+  id: string;
+  client_id: string;
+  site_name: string;
+  region_type: 'eilat' | 'outside_eilat';
+  contact_name: string;
+  contact_phone: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 class MockDataService {
   private orders: MockOrder[] = [];
   private notifications: MockNotification[] = [];
   private messages: MockMessage[] = [];
+  private clients: MockClient[] = [];
+  private sites: MockSite[] = [];
   private orderCounter: number = 1000;
   
   // Product data with descriptions and images
@@ -69,7 +90,7 @@ class MockDataService {
       size_label: '0-4 מ"מ',
       description_en: 'Quarry sand 0-4 mm - high quality, suitable for construction work.',
       description_he: 'חול מחצבה (0-4 מ"מ) - איכותי, מותאם לעבודות בנייה.',
-      image_url: '/favicon.ico' // Using favicon as placeholder
+      image_url: '/favicon.ico'
     },
     {
       id: 'sesame_4_9_5',
@@ -109,13 +130,6 @@ class MockDataService {
     }
   ];
 
-  // Quarry reference location (Eilat area)
-  private quarryLocation = {
-    lat: 29.5581,
-    lng: 34.9482,
-    name: 'Eilat Quarries (Piternoufi main site)'
-  };
-
   constructor() {
     this.initializeData();
   }
@@ -130,46 +144,118 @@ class MockDataService {
     // Initialize with sample data
     const now = new Date().toISOString();
     
+    // Initialize clients
+    this.clients = [
+      {
+        id: 'c1',
+        name: 'דן עבודות עפר',
+        category: 'client',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: 'c2',
+        name: 'ארד בנייה',
+        category: 'client',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: 'c3',
+        name: 'שפיר הנדסה',
+        category: 'client',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      }
+    ];
+
+    // Initialize sites
+    this.sites = [
+      {
+        id: 's1',
+        client_id: 'c1',
+        site_name: 'אתר שדרות ירושלים (אילת)',
+        region_type: 'eilat',
+        contact_name: 'אבי כהן',
+        contact_phone: '050-1234567',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: 's2',
+        client_id: 'c1',
+        site_name: 'אתר צוקי ים (ליטבתה)',
+        region_type: 'outside_eilat',
+        contact_name: 'דניאל לוי',
+        contact_phone: '052-6543210',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: 's3',
+        client_id: 'c2',
+        site_name: 'אתר נווה מדבר (אילת)',
+        region_type: 'eilat',
+        contact_name: 'משה מימון',
+        contact_phone: '054-9988776',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: 's4',
+        client_id: 'c3',
+        site_name: 'אתר סולל בונה צפון',
+        region_type: 'outside_eilat',
+        contact_name: '',
+        contact_phone: '',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      }
+    ];
+    
     this.orders = [
       {
         id: '1',
         order_number: 1001,
-        client_id: '1',
-        client_name: 'John Smith',
-        client_company: 'Smith Construction Ltd.',
+        client_id: 'c1',
+        client_name: 'דן עבודות עפר',
+        client_company: 'דן עבודות עפר',
+        site_id: 's1',
+        unlinked_site: false,
         product: 'p_new_sand_0_4',
         quantity: 20,
         delivery_date: '2024-01-15T09:00:00',
         delivery_type: 'external',
-        delivery_location: '123 Construction Site, Tel Aviv, Israel',
         status: 'approved',
         notes: 'Please deliver to the back entrance. Contact site manager before arrival.',
         notes_preview: 'Please deliver to the back entrance...',
-        distance_km: 25.5,
         quarry_or_crossing: 'default',
-        cancellable_by_client: true,
-        created_by_admin_adjustment: false,
         created_at: now,
         updated_at: now
       },
       {
         id: '2',
         order_number: 1002,
-        client_id: '2',
-        client_name: 'Ahmed Hassan',
-        client_company: 'BuildCo Industries',
+        client_id: 'c2',
+        client_name: 'ארד בנייה',
+        client_company: 'ארד בנייה',
+        site_id: 's3',
+        unlinked_site: false,
         product: 'granite_10_60',
         quantity: 25.0,
         delivery_date: '2024-01-18T14:30:00',
         delivery_type: 'self_transport',
-        delivery_location: '456 Industrial Zone, Haifa, Israel',
         status: 'pending',
         notes: 'Contact site manager before delivery. Gate code: 1234',
         notes_preview: 'Contact site manager before delivery...',
-        distance_km: 45.2,
         quarry_or_crossing: 'yitzhak_rabin',
-        cancellable_by_client: true,
-        created_by_admin_adjustment: false,
         created_at: now,
         updated_at: now
       }
@@ -193,8 +279,8 @@ class MockDataService {
       {
         id: '1',
         order_id: '1',
-        from_user_id: '3', // Manager
-        to_user_id: '1',   // Client
+        from_user_id: '3',
+        to_user_id: '1',
         content: 'Your order has been approved. Delivery scheduled for tomorrow morning.',
         read: false,
         created_at: now,
@@ -206,6 +292,8 @@ class MockDataService {
     const storedOrders = localStorage.getItem('mockOrders');
     const storedNotifications = localStorage.getItem('mockNotifications');
     const storedMessages = localStorage.getItem('mockMessages');
+    const storedClients = localStorage.getItem('mockClients');
+    const storedSites = localStorage.getItem('mockSites');
     
     if (storedOrders) {
       try {
@@ -231,6 +319,22 @@ class MockDataService {
       }
     }
 
+    if (storedClients) {
+      try {
+        this.clients = JSON.parse(storedClients);
+      } catch (e) {
+        console.error('Error loading stored clients:', e);
+      }
+    }
+
+    if (storedSites) {
+      try {
+        this.sites = JSON.parse(storedSites);
+      } catch (e) {
+        console.error('Error loading stored sites:', e);
+      }
+    }
+
     // Update counter to be higher than any existing order
     if (this.orders.length > 0) {
       const maxOrderNumber = Math.max(...this.orders.map(o => o.order_number || 0));
@@ -242,6 +346,8 @@ class MockDataService {
     localStorage.setItem('mockOrders', JSON.stringify(this.orders));
     localStorage.setItem('mockNotifications', JSON.stringify(this.notifications));
     localStorage.setItem('mockMessages', JSON.stringify(this.messages));
+    localStorage.setItem('mockClients', JSON.stringify(this.clients));
+    localStorage.setItem('mockSites', JSON.stringify(this.sites));
     localStorage.setItem('orderCounter', this.orderCounter.toString());
   }
 
@@ -261,65 +367,6 @@ class MockDataService {
     return firstLine.length > 50 ? firstLine.substring(0, 47) + '...' : firstLine;
   }
 
-  // Distance calculation using Haversine formula
-  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c * 1.2; // Apply 1.2 multiplier for road distance approximation
-  }
-
-  // Geocoding simulation (in real app, use Google Maps API)
-  private async geocodeAddress(address: string): Promise<{lat: number, lng: number} | null> {
-    // Simple simulation - in real app, use proper geocoding API
-    const cityCoordinates: Record<string, {lat: number, lng: number}> = {
-      'tel aviv': { lat: 32.0853, lng: 34.7818 },
-      'haifa': { lat: 32.7940, lng: 34.9896 },
-      'jerusalem': { lat: 31.7683, lng: 35.2137 },
-      'beer sheva': { lat: 31.2518, lng: 34.7915 },
-      'eilat': { lat: 29.5581, lng: 34.9482 }
-    };
-
-    const addressLower = address.toLowerCase();
-    for (const [city, coords] of Object.entries(cityCoordinates)) {
-      if (addressLower.includes(city)) {
-        return coords;
-      }
-    }
-    
-    // Default to Tel Aviv if no match found
-    return cityCoordinates['tel aviv'];
-  }
-
-  // Calculate distance for order
-  async calculateOrderDistance(deliveryLocation: string, quarryType: string = 'default'): Promise<{distance_km: number, method_used: string}> {
-    try {
-      const deliveryCoords = await this.geocodeAddress(deliveryLocation);
-      if (!deliveryCoords) {
-        return { distance_km: 30, method_used: 'default' }; // Default fallback
-      }
-
-      const distance = this.calculateDistance(
-        this.quarryLocation.lat,
-        this.quarryLocation.lng,
-        deliveryCoords.lat,
-        deliveryCoords.lng
-      );
-
-      return {
-        distance_km: Math.round(distance * 10) / 10, // Round to 1 decimal
-        method_used: 'haversine'
-      };
-    } catch (error) {
-      console.error('Distance calculation error:', error);
-      return { distance_km: 30, method_used: 'default' };
-    }
-  }
-
   // Validation methods
   private validateOrderDate(deliveryDate: string, deliveryTime: string): { valid: boolean; error?: string } {
     const now = new Date();
@@ -331,14 +378,14 @@ class MockDataService {
     orderDate.setHours(0, 0, 0, 0);
     
     if (orderDate < today) {
-      return { valid: false, error: 'past_date_error' };
+      return { valid: false, error: 'past_date' };
     }
     
     // Check if it's today and time slot is in the past or after hours
     if (orderDate.getTime() === today.getTime()) {
       const currentHour = now.getHours();
       if (currentHour >= 17) {
-        return { valid: false, error: 'after_hours_error' };
+        return { valid: false, error: 'invalid_time' };
       }
       if (deliveryTime === 'morning' && currentHour >= 12) {
         return { valid: false, error: 'morning_slot_passed' };
@@ -358,9 +405,10 @@ class MockDataService {
     return { valid: true };
   }
 
-  private validateDistanceMinimum(distance: number, quantity: number): { valid: boolean; error?: string } {
-    if (distance >= 43 && quantity < 40) {
-      return { valid: false, error: 'distance_minimum_40' };
+  private validateOutsideEilatDelivery(siteId: string, deliveryType: string, quantity: number): { valid: boolean; error?: string } {
+    const site = this.sites.find(s => s.id === siteId);
+    if (site && site.region_type === 'outside_eilat' && deliveryType === 'external' && quantity < 40) {
+      return { valid: false, error: 'outside_eilat_min' };
     }
     return { valid: true };
   }
@@ -372,6 +420,133 @@ class MockDataService {
 
   async getProductPreview(productId: string): Promise<MockProduct | null> {
     return this.products.find(p => p.id === productId) || null;
+  }
+
+  // Client methods
+  async getClients(filter?: any, sort?: string): Promise<MockClient[]> {
+    let result = [...this.clients];
+    
+    if (filter) {
+      result = result.filter(client => {
+        return Object.keys(filter).every(key => client[key] === filter[key]);
+      });
+    }
+    
+    if (sort) {
+      const isDesc = sort.startsWith('-');
+      const field = isDesc ? sort.substring(1) : sort;
+      result.sort((a, b) => {
+        const aVal = a[field];
+        const bVal = b[field];
+        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        return isDesc ? -comparison : comparison;
+      });
+    }
+    
+    return result;
+  }
+
+  async createClient(clientData: Omit<MockClient, 'id' | 'created_at' | 'updated_at'>): Promise<MockClient> {
+    const now = new Date().toISOString();
+    const newClient: MockClient = {
+      ...clientData,
+      id: this.generateId(),
+      created_at: now,
+      updated_at: now
+    };
+    
+    this.clients.push(newClient);
+    this.saveToStorage();
+    return newClient;
+  }
+
+  async updateClient(id: string, updates: Partial<MockClient>): Promise<MockClient | null> {
+    const index = this.clients.findIndex(client => client.id === id);
+    if (index === -1) return null;
+    
+    this.clients[index] = {
+      ...this.clients[index],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    
+    this.saveToStorage();
+    return this.clients[index];
+  }
+
+  async deleteClient(id: string): Promise<boolean> {
+    const index = this.clients.findIndex(client => client.id === id);
+    if (index === -1) return false;
+    
+    this.clients.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Site methods
+  async getSites(filter?: any, sort?: string): Promise<MockSite[]> {
+    let result = [...this.sites];
+    
+    if (filter) {
+      result = result.filter(site => {
+        return Object.keys(filter).every(key => site[key] === filter[key]);
+      });
+    }
+    
+    if (sort) {
+      const isDesc = sort.startsWith('-');
+      const field = isDesc ? sort.substring(1) : sort;
+      result.sort((a, b) => {
+        const aVal = a[field];
+        const bVal = b[field];
+        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        return isDesc ? -comparison : comparison;
+      });
+    }
+    
+    return result;
+  }
+
+  async createSite(siteData: Omit<MockSite, 'id' | 'created_at' | 'updated_at'>): Promise<MockSite> {
+    const now = new Date().toISOString();
+    const newSite: MockSite = {
+      ...siteData,
+      id: this.generateId(),
+      created_at: now,
+      updated_at: now
+    };
+    
+    this.sites.push(newSite);
+    this.saveToStorage();
+    return newSite;
+  }
+
+  async updateSite(id: string, updates: Partial<MockSite>): Promise<MockSite | null> {
+    const index = this.sites.findIndex(site => site.id === id);
+    if (index === -1) return null;
+    
+    this.sites[index] = {
+      ...this.sites[index],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    
+    this.saveToStorage();
+    return this.sites[index];
+  }
+
+  async deleteSite(id: string): Promise<boolean> {
+    const index = this.sites.findIndex(site => site.id === id);
+    if (index === -1) return false;
+    
+    this.sites.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Get site by ID
+  async getSiteById(id: string): Promise<MockSite | null> {
+    return this.sites.find(site => site.id === id) || null;
   }
 
   // Order methods
@@ -398,16 +573,13 @@ class MockDataService {
     return result;
   }
 
-  async createOrder(orderData: Omit<MockOrder, 'id' | 'order_number' | 'created_at' | 'updated_at' | 'notes_preview' | 'distance_km' | 'cancellable_by_client' | 'created_by_admin_adjustment'>): Promise<{ success: boolean; order?: MockOrder; error?: string }> {
+  async createOrder(orderData: Omit<MockOrder, 'id' | 'order_number' | 'created_at' | 'updated_at' | 'notes_preview' | 'unlinked_site'>): Promise<{ success: boolean; order?: MockOrder; error?: string }> {
     // Validate delivery date and time
     const dateValidation = this.validateOrderDate(orderData.delivery_date.split('T')[0], orderData.delivery_date.includes('09:00') ? 'morning' : 'afternoon');
     if (!dateValidation.valid) {
       return { success: false, error: dateValidation.error };
     }
 
-    // Calculate distance
-    const distanceResult = await this.calculateOrderDistance(orderData.delivery_location, orderData.quarry_or_crossing);
-    
     // Validate external delivery requirements
     if (orderData.delivery_type === 'external') {
       const externalValidation = this.validateExternalDelivery(orderData.quantity);
@@ -416,10 +588,12 @@ class MockDataService {
       }
     }
 
-    // Validate distance-based minimum (43km = 40 tons minimum)
-    const distanceValidation = this.validateDistanceMinimum(distanceResult.distance_km, orderData.quantity);
-    if (!distanceValidation.valid) {
-      return { success: false, error: distanceValidation.error };
+    // Validate outside Eilat delivery requirements
+    if (orderData.site_id) {
+      const outsideEilatValidation = this.validateOutsideEilatDelivery(orderData.site_id, orderData.delivery_type, orderData.quantity);
+      if (!outsideEilatValidation.valid) {
+        return { success: false, error: outsideEilatValidation.error };
+      }
     }
 
     const now = new Date().toISOString();
@@ -431,9 +605,7 @@ class MockDataService {
       id: this.generateId(),
       order_number: orderNumber,
       notes_preview: notesPreview,
-      distance_km: distanceResult.distance_km,
-      cancellable_by_client: true,
-      created_by_admin_adjustment: false,
+      unlinked_site: !orderData.site_id,
       created_at: now,
       updated_at: now
     };
@@ -476,7 +648,6 @@ class MockDataService {
     // Update order quantity
     order.quantity -= reduceByTons;
     order.updated_at = new Date().toISOString();
-    order.created_by_admin_adjustment = true;
 
     // Create notification for order owner
     await this.createNotification({

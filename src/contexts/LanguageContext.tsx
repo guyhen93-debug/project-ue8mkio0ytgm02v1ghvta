@@ -177,6 +177,33 @@ const translations = {
     'distance': 'Distance',
     'km': 'km',
     
+    // New site-related translations
+    'sites': 'Sites',
+    'site_name': 'Site Name',
+    'region_type': 'Region Type',
+    'contact_name': 'Contact Name',
+    'contact_phone': 'Contact Phone',
+    'select_site': 'Select a site',
+    'select_client': 'Select a client',
+    'eilat': 'Eilat',
+    'outside_eilat': 'Outside Eilat',
+    'admin_panel': 'Admin Panel',
+    'clients_management': 'Clients Management',
+    'sites_management': 'Sites Management',
+    'add_client': 'Add Client',
+    'add_site': 'Add Site',
+    'edit_client': 'Edit Client',
+    'edit_site': 'Edit Site',
+    'client_category': 'Category',
+    'is_active': 'Active',
+    'site_contact': 'Site Contact',
+    
+    // New error messages
+    'outside_eilat_min': 'For sites outside Eilat, a minimum of 40 tons is required for external delivery.',
+    'unlinked_site': 'This site is not linked to an active client.',
+    'past_date': 'Cannot order for a past date.',
+    'invalid_time': 'Orders allowed only between 07:00–17:00.',
+    
     // Dynamic notifications
     'order_approved': 'Order Approved',
     'order_rejected': 'Order Rejected',
@@ -239,7 +266,7 @@ const translations = {
     'share_location': 'שתף מיקום',
     'has_notes': 'יש הערות...',
     'notes': 'הערות',
-    'order_number': 'הזמנה מס\'',
+    'order_number': 'הזמנה מס\' ',
     'no_trailer_access_note': 'אין מקום לפול טריילר - דאבל בלבד',
     'quarry_crossing': 'מחצבה/מעבר',
     'select_quarry': 'בחר מחצבה או מעבר',
@@ -349,6 +376,33 @@ const translations = {
     'new': 'חדש',
     'distance': 'מרחק',
     'km': 'ק"מ',
+    
+    // New site-related translations
+    'sites': 'אתרים',
+    'site_name': 'שם האתר',
+    'region_type': 'סוג אזור',
+    'contact_name': 'שם איש קשר',
+    'contact_phone': 'טלפון איש קשר',
+    'select_site': 'בחר אתר',
+    'select_client': 'בחר לקוח',
+    'eilat': 'אילת',
+    'outside_eilat': 'מחוץ לאילת',
+    'admin_panel': 'פאנל ניהול',
+    'clients_management': 'ניהול לקוחות',
+    'sites_management': 'ניהול אתרים',
+    'add_client': 'הוסף לקוח',
+    'add_site': 'הוסף אתר',
+    'edit_client': 'ערוך לקוח',
+    'edit_site': 'ערוך אתר',
+    'client_category': 'קטגוריה',
+    'is_active': 'פעיל',
+    'site_contact': 'איש קשר באתר',
+    
+    // New error messages
+    'outside_eilat_min': 'לאתרים שמחוץ לאילת נדרש מינימום של 40 טון בהובלה חיצונית.',
+    'unlinked_site': 'אתר זה אינו משויך ללקוח פעיל.',
+    'past_date': 'לא ניתן להזמין לתאריך עבר.',
+    'invalid_time': 'ניתן להזמין רק בין השעות 07:00–17:00.',
     
     // Dynamic notifications
     'order_approved': 'הזמנה אושרה',

@@ -15,6 +15,7 @@ import Notifications from "./pages/Notifications";
 import Inbox from "./pages/Inbox";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,11 @@ const App = () => (
               <Route path="/manager" element={
                 <ProtectedRoute role="manager">
                   <ManagerDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute role="manager">
+                  <AdminPanel />
                 </ProtectedRoute>
               } />
               <Route path="/create-order" element={

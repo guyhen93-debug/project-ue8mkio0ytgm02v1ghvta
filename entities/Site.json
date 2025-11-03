@@ -1,0 +1,31 @@
+{
+  "name": "Site",
+  "description": "Construction sites belonging to clients",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID of the client that owns this site"
+    },
+    "site_name": {
+      "type": "string",
+      "description": "Name of the construction site"
+    },
+    "region_type": {
+      "type": "string",
+      "description": "Region type for delivery rules",
+      "enum": ["eilat", "outside_eilat"]
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Site contact person name"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Site contact phone number"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Whether the site is active"
+    }
+  }
+}

@@ -16,9 +16,10 @@ import DeliveryDateInput from '@/components/order/DeliveryDateInput';
 import TimeSlotSelector from '@/components/order/TimeSlotSelector';
 import DeliveryTypeSelector from '@/components/order/DeliveryTypeSelector';
 import TruckAccessCheckbox from '@/components/order/TruckAccessCheckbox';
-import DeliveryLocationInput from '@/components/order/DeliveryLocationInput';
 import NotesInput from '@/components/order/NotesInput';
 import QuarryCrossingSelector from '@/components/order/QuarryCrossingSelector';
+import ClientSelector from '@/components/order/ClientSelector';
+import SiteSelector from '@/components/order/SiteSelector';
 
 const CreateOrder: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -27,15 +28,17 @@ const CreateOrder: React.FC = () => {
     delivery_date: '',
     delivery_time: 'morning',
     delivery_type: 'self_transport',
-    delivery_location: '',
+    client_id: '',
+    site_id: '',
     notes: '',
-    has_truck_access: false, // Default to unchecked
+    has_truck_access: false,
     quarry_or_crossing: 'default'
   });
+  const [selectedSite, setSelectedSite] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMinimumError, setShowMinimumError] = useState(false);
   const [showMultipleError, setShowMultipleError] = useState(false);
-  const [showDistanceError, setShowDistanceError] = useState(false);
+  const [showOutsideEilatError, setShowOutsideEilatError] = useState(false);
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
@@ -59,15 +62,40 @@ const CreateOrder: React.FC = () => {
     }
   };
 
+  const validateOutsideEilatDelivery = (quantity: string, deliveryType: string, site: any) => {
+    if (site && site.region_type === 'outside_eilat' && deliveryType === 'external' && quantity) {
+      const qty = parseFloat(quantity);
+      if (qty < 40) {
+        setShowOutsideEilatError(true);
+      } else {
+        setShowOutsideEilatError(false);
+      }
+    } else {
+      setShowOutsideEilatError(false);
+    }
+  };
+
   const handleQuantityChange = (value: string) => {
     setFormData({ ...formData, quantity: value });
     validateQuantityForExternal(value, formData.delivery_type);
-    setShowDistanceError(false); // Reset distance error when quantity changes
+    validateOutsideEilatDelivery(value, formData.delivery_type, selectedSite);
   };
 
   const handleDeliveryTypeChange = (value: string) => {
     setFormData({ ...formData, delivery_type: value });
     validateQuantityForExternal(formData.quantity, value);
+    validateOutsideEilatDelivery(formData.quantity, value, selectedSite);
+  };
+
+  const handleSiteSelect = (site: any) => {
+    setSelectedSite(site);
+    validateOutsideEilatDelivery(formData.quantity, formData.delivery_type, site);
+  };
+
+  const handleClientChange = (clientId: string) => {
+    setFormData({ ...formData, client_id: clientId, site_id: '' });
+    setSelectedSite(null);
+    setShowOutsideEilatError(false);
   };
 
   const validateDateTime = (date: string, time: string): { valid: boolean; error?: string } => {
@@ -80,14 +108,14 @@ const CreateOrder: React.FC = () => {
     orderDate.setHours(0, 0, 0, 0);
     
     if (orderDate < today) {
-      return { valid: false, error: t('past_date_error') };
+      return { valid: false, error: t('past_date') };
     }
     
     // Check if it's today and time slot is in the past or after hours
     if (orderDate.getTime() === today.getTime()) {
       const currentHour = now.getHours();
       if (currentHour >= 17) {
-        return { valid: false, error: t('after_hours_error') };
+        return { valid: false, error: t('invalid_time') };
       }
       if (time === 'morning' && currentHour >= 12) {
         return { valid: false, error: t('morning_slot_passed') };
@@ -133,6 +161,19 @@ const CreateOrder: React.FC = () => {
       }
     }
 
+    // Validate outside Eilat delivery requirements
+    if (selectedSite && selectedSite.region_type === 'outside_eilat' && formData.delivery_type === 'external') {
+      const qty = parseFloat(formData.quantity);
+      if (qty < 40) {
+        toast({
+          title: t('validation_error'),
+          description: t('outside_eilat_min'),
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -143,15 +184,20 @@ const CreateOrder: React.FC = () => {
       
       const deliveryDateTime = `${formData.delivery_date}T${timeMapping[formData.delivery_time]}:00`;
       
+      // For managers, use selected client; for clients, use their own ID
+      const clientId = user.role === 'manager' ? formData.client_id : user.id;
+      const clientName = user.role === 'manager' ? 'Manager Order' : user.name;
+      const clientCompany = user.role === 'manager' ? 'Piter Noufi' : user.company;
+      
       const result = await mockDataService.createOrder({
-        client_id: user.id,
-        client_name: user.name,
-        client_company: user.company,
+        client_id: clientId,
+        client_name: clientName,
+        client_company: clientCompany,
+        site_id: formData.site_id,
         product: formData.product,
         quantity: parseFloat(formData.quantity),
         delivery_date: deliveryDateTime,
         delivery_type: formData.delivery_type,
-        delivery_location: formData.delivery_location,
         status: 'pending',
         notes: formData.notes + (formData.has_truck_access ? '' : '\n' + t('no_trailer_access_note')),
         quarry_or_crossing: formData.quarry_or_crossing
@@ -162,7 +208,7 @@ const CreateOrder: React.FC = () => {
           title: t('order_submitted'),
           description: t('order_submitted_description'),
         });
-        navigate('/client');
+        navigate(user.role === 'manager' ? '/manager' : '/client');
       } else {
         toast({
           title: t('validation_error'),
@@ -183,13 +229,20 @@ const CreateOrder: React.FC = () => {
   };
 
   const isFormValid = () => {
-    return formData.product && 
-           formData.quantity && 
-           formData.delivery_date && 
-           formData.delivery_location.trim() &&
-           !showMinimumError &&
-           !showMultipleError &&
-           !showDistanceError;
+    const baseValid = formData.product && 
+                     formData.quantity && 
+                     formData.delivery_date && 
+                     formData.site_id &&
+                     !showMinimumError &&
+                     !showMultipleError &&
+                     !showOutsideEilatError;
+    
+    // For managers, also require client selection
+    if (user?.role === 'manager') {
+      return baseValid && formData.client_id;
+    }
+    
+    return baseValid;
   };
 
   return (
@@ -200,7 +253,7 @@ const CreateOrder: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/client')}
+            onClick={() => navigate(user?.role === 'manager' ? '/manager' : '/client')}
             className="p-2 hover:bg-white rounded-xl"
           >
             <ArrowLeft className="h-6 w-6" />
@@ -216,6 +269,21 @@ const CreateOrder: React.FC = () => {
               <CardTitle className="text-xl font-bold">{t('order_details')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Manager-only client selector */}
+              {user?.role === 'manager' && (
+                <ClientSelector
+                  value={formData.client_id}
+                  onChange={handleClientChange}
+                />
+              )}
+
+              <SiteSelector
+                value={formData.site_id}
+                onChange={(value) => setFormData({ ...formData, site_id: value })}
+                selectedClientId={user?.role === 'manager' ? formData.client_id : user?.id}
+                onSiteSelect={handleSiteSelect}
+              />
+
               <ProductSelector
                 value={formData.product}
                 onChange={(value) => setFormData({ ...formData, product: value })}
@@ -226,6 +294,7 @@ const CreateOrder: React.FC = () => {
                 onChange={handleQuantityChange}
                 showMinimumError={showMinimumError}
                 showMultipleError={showMultipleError}
+                showOutsideEilatError={showOutsideEilatError}
               />
 
               <DeliveryDateInput
@@ -253,11 +322,6 @@ const CreateOrder: React.FC = () => {
                 onChange={(checked) => setFormData({ ...formData, has_truck_access: checked })}
               />
 
-              <DeliveryLocationInput
-                value={formData.delivery_location}
-                onChange={(value) => setFormData({ ...formData, delivery_location: value })}
-              />
-
               <NotesInput
                 value={formData.notes}
                 onChange={(value) => setFormData({ ...formData, notes: value })}
@@ -281,7 +345,7 @@ const CreateOrder: React.FC = () => {
               type="button"
               variant="outline"
               className="w-full h-12 font-bold text-base"
-              onClick={() => navigate('/client')}
+              onClick={() => navigate(user?.role === 'manager' ? '/manager' : '/client')}
             >
               {t('cancel')}
             </Button>

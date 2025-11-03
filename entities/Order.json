@@ -18,10 +18,18 @@
       "type": "string",
       "description": "Company name of the client"
     },
+    "site_id": {
+      "type": "string",
+      "description": "ID of the delivery site"
+    },
+    "unlinked_site": {
+      "type": "boolean",
+      "description": "True for legacy orders without site linkage"
+    },
     "product": {
       "type": "string",
       "description": "Selected quarry material",
-      "enum": ["sand_0_3", "sesame_4_9_5", "lentil_9_5_19", "polia_19_25", "granite_10_60"]
+      "enum": ["p_new_sand_0_4", "sesame_4_9_5", "lentil_9_5_19", "polia_19_25", "granite_10_60"]
     },
     "quantity": {
       "type": "number",
@@ -36,10 +44,6 @@
       "description": "Type of delivery",
       "enum": ["self_transport", "external"]
     },
-    "delivery_location": {
-      "type": "string",
-      "description": "Delivery address"
-    },
     "status": {
       "type": "string",
       "description": "Order status",
@@ -52,6 +56,11 @@
     "notes_preview": {
       "type": "string",
       "description": "First line of notes for preview display"
+    },
+    "quarry_or_crossing": {
+      "type": "string",
+      "description": "Selected quarry or crossing",
+      "enum": ["default", "shifolei_har", "yitzhak_rabin"]
     }
   }
 }

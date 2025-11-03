@@ -8,13 +8,15 @@ interface QuantityInputProps {
   onChange: (value: string) => void;
   showMinimumError: boolean;
   showMultipleError?: boolean;
+  showOutsideEilatError?: boolean;
 }
 
 const QuantityInput: React.FC<QuantityInputProps> = ({ 
   value, 
   onChange, 
   showMinimumError, 
-  showMultipleError = false 
+  showMultipleError = false,
+  showOutsideEilatError = false
 }) => {
   const { t } = useLanguage();
 
@@ -42,6 +44,11 @@ const QuantityInput: React.FC<QuantityInputProps> = ({
       {showMultipleError && (
         <p className="text-red-600 text-sm font-semibold">
           {t('quantity_multiple_twenty')}
+        </p>
+      )}
+      {showOutsideEilatError && (
+        <p className="text-red-600 text-sm font-semibold">
+          {t('outside_eilat_min')}
         </p>
       )}
     </div>

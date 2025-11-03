@@ -1,0 +1,19 @@
+{
+  "name": "Client",
+  "description": "Client companies that can place orders",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Client company name"
+    },
+    "category": {
+      "type": "string",
+      "description": "Client category",
+      "enum": ["manager", "client"]
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Whether the client is active"
+    }
+  }
+}
