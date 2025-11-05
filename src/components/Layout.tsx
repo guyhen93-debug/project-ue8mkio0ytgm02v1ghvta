@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LanguageToggle } from './LanguageToggle';
-import { BottomNavigation } from './BottomNavigation';
+import { Home, MessageCircle, Bell, User, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   showBottomNav?: boolean;
+  className?: string;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
