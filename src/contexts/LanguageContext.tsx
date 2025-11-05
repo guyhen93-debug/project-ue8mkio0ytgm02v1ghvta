@@ -153,7 +153,7 @@ const translations = {
     'ok': 'OK',
     'close': 'Close',
     'update_status': 'Update Status',
-    'order_updated': 'Order status updated successfully',
+    'order_updated': 'Order Updated',
     'notification_sent': 'Notification sent to client',
     'total_orders': 'Total Orders',
     'created': 'Created',
@@ -188,16 +188,45 @@ const translations = {
     'eilat': 'Eilat',
     'outside_eilat': 'Outside Eilat',
     'admin_panel': 'Admin Panel',
-    'clients_management': 'Clients Management',
-    'sites_management': 'Sites Management',
+
+    // Client management translations
+    'clients_management': 'Client Management',
     'add_client': 'Add Client',
-    'add_site': 'Add Site',
     'edit_client': 'Edit Client',
+    'client_name': 'Client Name',
+    'client_category': 'Client Category',
+    'is_active': 'Is Active',
+    'active': 'Active',
+    'inactive': 'Inactive',
+    'client_created': 'Client Created',
+    'client_created_successfully': 'Client created successfully',
+    'client_updated': 'Client Updated',
+    'client_updated_successfully': 'Client updated successfully',
+    'client_deleted': 'Client Deleted',
+    'client_deleted_successfully': 'Client deleted successfully',
+    'confirm_delete_client': 'Are you sure you want to delete this client?',
+
+    // Site management translations
+    'sites_management': 'Site Management',
+    'add_site': 'Add Site',
     'edit_site': 'Edit Site',
-    'client_category': 'Category',
-    'is_active': 'Active',
-    'site_contact': 'Site Contact',
-    
+    'site_created': 'Site Created',
+    'site_created_successfully': 'Site created successfully',
+    'site_updated': 'Site Updated',
+    'site_updated_successfully': 'Site updated successfully',
+    'site_deleted': 'Site Deleted',
+    'site_deleted_successfully': 'Site deleted successfully',
+    'confirm_delete_site': 'Are you sure you want to delete this site?',
+
+    // Admin panel translations
+    'manage_all_system_data': 'Manage all system data and configurations',
+    'access_denied': 'Access Denied',
+    'manager_only_access': 'This area is restricted to managers only',
+    'search_orders': 'Search orders...',
+    'all_statuses': 'All Statuses',
+    'no_orders_found': 'No orders found',
+    'no_orders_yet': 'No orders yet',
+
     // New error messages
     'outside_eilat_min': 'For sites outside Eilat, a minimum of 40 tons is required for external delivery.',
     'unlinked_site': 'This site is not linked to an active client.',
@@ -312,7 +341,7 @@ const translations = {
     'start_creating_order': 'התחל ביצירת ההזמנה הראשונה שלך',
     'minimum_quantity_external': 'הזמנה בהובלה חיצונית מחייבת מינימום של 20 טון.',
     'quantity_multiple_twenty': 'כמות בהובלה חיצונית חייבת להיות בכפולות של 20 טון.',
-    'distance_minimum_40': 'לאספקות החל מ-43 ק"מ ומעלה מהמחצבה, המינימום להזמנה הוא 40 טון.',
+    'distance_minimum_40': 'לאספקות החל מ-43 ק"м ומעלה מהמחצבה, המינימום להזמנה הוא 40 טון.',
     'morning_shift': 'בוקר (07:00–12:00)',
     'afternoon_shift': 'צהריים (12:00–17:00)',
     'truck_access': 'יש מקום לפריקת פול טריילר (עגלה)',
@@ -382,7 +411,7 @@ const translations = {
     
     // Common
     'tons': 'טון',
-    'client_name': 'שם לקוח',
+    'client_name': 'שם הלקוח',
     'company': 'חברה',
     'phone': 'טלפון',
     'name': 'שם',
@@ -406,7 +435,7 @@ const translations = {
     'ok': 'אישור',
     'close': 'סגור',
     'update_status': 'עדכן סטטוס',
-    'order_updated': 'סטטוס ההזמנה עודכן בהצלחה',
+    'order_updated': 'הזמנה עודכנה',
     'notification_sent': 'התראה נשלחה ללקוח',
     'total_orders': 'סה"כ הזמנות',
     'created': 'נוצר',
@@ -441,22 +470,51 @@ const translations = {
     'eilat': 'אילת',
     'outside_eilat': 'מחוץ לאילת',
     'admin_panel': 'פאנל ניהול',
+
+    // Client management translations
     'clients_management': 'ניהול לקוחות',
-    'sites_management': 'ניהול אתרים',
     'add_client': 'הוסף לקוח',
-    'add_site': 'הוסף אתר',
     'edit_client': 'ערוך לקוח',
-    'edit_site': 'ערוך אתר',
-    'client_category': 'קטגוריה',
+    'client_name': 'שם הלקוח',
+    'client_category': 'קטגוריית לקוח',
     'is_active': 'פעיל',
-    'site_contact': 'איש קשר באתר',
-    
+    'active': 'פעיל',
+    'inactive': 'לא פעיל',
+    'client_created': 'לקוח נוצר',
+    'client_created_successfully': 'הלקוח נוצר בהצלחה',
+    'client_updated': 'לקוח עודכן',
+    'client_updated_successfully': 'הלקוח עודכן בהצלחה',
+    'client_deleted': 'לקוח נמחק',
+    'client_deleted_successfully': 'הלקוח נמחק בהצלחה',
+    'confirm_delete_client': 'האם אתה בטוח שברצונך למחוק את הלקוח הזה?',
+
+    // Site management translations
+    'sites_management': 'ניהול אתרים',
+    'add_site': 'הוסף אתר',
+    'edit_site': 'ערוך אתר',
+    'site_created': 'אתר נוצר',
+    'site_created_successfully': 'האתר נוצר בהצלחה',
+    'site_updated': 'אתר עודכן',
+    'site_updated_successfully': 'האתר עודכן בהצלחה',
+    'site_deleted': 'אתר נמחק',
+    'site_deleted_successfully': 'האתר נמחק בהצלחה',
+    'confirm_delete_site': 'האם אתה בטוח שברצונך למחוק את האתר הזה?',
+
+    // Admin panel translations
+    'manage_all_system_data': 'נהל את כל נתוני המערכת והתצורות',
+    'access_denied': 'גישה נדחתה',
+    'manager_only_access': 'אזור זה מוגבל למנהלים בלבד',
+    'search_orders': 'חפש הזמנות...',
+    'all_statuses': 'כל הסטטוסים',
+    'no_orders_found': 'לא נמצאו הזמנות',
+    'no_orders_yet': 'אין הזמנות עדיין',
+
     // New error messages
     'outside_eilat_min': 'לאתרים שמחוץ לאילת נדרש מינימום של 40 טון בהובלה חיצונית.',
     'unlinked_site': 'אתר זה אינו משויך ללקוח פעיל.',
     'past_date': 'לא ניתן להזמין לתאריך עבר.',
     'invalid_time': 'ניתן להזמין רק בין השעות 07:00–17:00.',
-    
+
     // Dynamic notifications
     'order_approved': 'הזמנה אושרה',
     'order_rejected': 'הזמנה נדחתה',

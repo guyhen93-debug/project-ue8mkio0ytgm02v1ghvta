@@ -150,7 +150,7 @@ const ClientManagement: React.FC = () => {
         <CardContent>
           <div className="space-y-3">
             {clients.map((client) => (
-              <div key={client.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={client.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-medium">{client.name}</h4>
                   <div className="flex items-center gap-2 mt-1">

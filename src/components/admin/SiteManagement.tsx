@@ -37,7 +37,7 @@ const SiteManagement: React.FC = () => {
     try {
       const [siteList, clientList] = await Promise.all([
         mockDataService.getSites({}, 'site_name'),
-        mockDataService.getClients({ is_active: true }, 'name')
+        mockDataService.getClients({ category: 'client' }, 'name')
       ]);
       setSites(siteList);
       setClients(clientList);
@@ -169,7 +169,7 @@ const SiteManagement: React.FC = () => {
         <CardContent>
           <div className="space-y-3">
             {sites.map((site) => (
-              <div key={site.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={site.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-medium">{site.site_name}</h4>
                   <p className="text-sm text-gray-600">{getClientName(site.client_id)}</p>
@@ -228,7 +228,7 @@ const SiteManagement: React.FC = () => {
                   <SelectValue placeholder={t('select_client')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.filter(c => c.category === 'client').map((client) => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>
