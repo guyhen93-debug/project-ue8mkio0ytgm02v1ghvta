@@ -14,9 +14,10 @@ import { toast } from '@/hooks/use-toast';
 import { Settings, Users, MapPin, Package, Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const AdminPanel: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -147,14 +148,18 @@ const AdminPanel: React.FC = () => {
   return (
     <Layout title={t('admin_panel')}>
       <div className="p-4 space-y-6">
-        {/* Header */}
-        <div>
+        {/* Header - Fix 6: RTL alignment */}
+        <div className={cn(isRTL ? "text-right" : "text-left")}>
           <h1 className="text-3xl font-bold text-gray-900">{t('admin_panel')}</h1>
           <p className="text-gray-600 mt-2">{t('manage_all_system_data')}</p>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          {/* Fix 6: RTL alignment for tabs */}
+          <TabsList className={cn(
+            "grid w-full grid-cols-4",
+            isRTL ? "text-right" : "text-left"
+          )}>
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               {t('orders')}
@@ -177,16 +182,22 @@ const AdminPanel: React.FC = () => {
           <TabsContent value="orders" className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className={cn(
+                  "absolute top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4",
+                  isRTL ? "right-3" : "left-3"
+                )} />
                 <Input
                   placeholder={t('search_orders')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className={cn(isRTL ? "pr-10 text-right" : "pl-10 text-left")}
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className={cn(
+                  "w-full sm:w-48",
+                  isRTL ? "text-right" : "text-left"
+                )}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +225,10 @@ const AdminPanel: React.FC = () => {
                   <Card key={order.id}>
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                        <div className="flex-1 space-y-2">
+                        <div className={cn(
+                          "flex-1 space-y-2",
+                          isRTL ? "text-right" : "text-left"
+                        )}>
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">
                               {t('order_number')}{order.id.slice(-6)}
@@ -227,16 +241,19 @@ const AdminPanel: React.FC = () => {
                             {t('customer')}: {order.created_by}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {t('product')}: {t(order.product_id)} • {order.quantity} {t('tons')}
+                            {t('product')}: {t(order.product_id)} {order.quantity} {t('tons')}
                           </p>
                           <p className="text-sm text-gray-600">
                             {format(new Date(order.created_at), 'PPP', { 
                               locale: language === 'he' ? he : enUS 
                             })}
                           </p>
+                          {/* Fix 4: Translate Notes label */}
                           {order.notes && (
                             <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                              {order.notes}
+                              <span className="font-medium">
+                                {isRTL ? "הערות:" : "Notes:"}
+                              </span> {order.notes}
                             </p>
                           )}
                         </div>
@@ -297,9 +314,12 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Clients Management */}
+          {/* Fix 7: Display existing clients */}
           <TabsContent value="clients" className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className={cn(
+              "flex justify-between items-center",
+              isRTL ? "text-right" : "text-left"
+            )}>
               <h2 className="text-xl font-semibold">{t('clients_management')}</h2>
               <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
                 <Plus className="w-4 h-4 mr-2" />
@@ -312,7 +332,7 @@ const AdminPanel: React.FC = () => {
                 <CardContent className="p-8 text-center">
                   <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t('no_clients_found')}
+                    No clients found
                   </h3>
                 </CardContent>
               </Card>
@@ -321,11 +341,15 @@ const AdminPanel: React.FC = () => {
                 {clients.map((client) => (
                   <Card key={client.id}>
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
+                      <div className={cn(
+                        "flex justify-between items-start",
+                        isRTL ? "text-right" : "text-left"
+                      )}>
                         <div>
                           <h3 className="font-semibold">{client.name}</h3>
                           <p className="text-sm text-gray-600">{client.email}</p>
                           <p className="text-sm text-gray-600">{client.phone}</p>
+                          <p className="text-sm text-gray-600">{client.company}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
@@ -343,9 +367,12 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Sites Management */}
+          {/* Fix 7: Display existing sites */}
           <TabsContent value="sites" className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className={cn(
+              "flex justify-between items-center",
+              isRTL ? "text-right" : "text-left"
+            )}>
               <h2 className="text-xl font-semibold">{t('sites_management')}</h2>
               <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
                 <Plus className="w-4 h-4 mr-2" />
@@ -358,7 +385,7 @@ const AdminPanel: React.FC = () => {
                 <CardContent className="p-8 text-center">
                   <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t('no_sites_found')}
+                    No sites found
                   </h3>
                 </CardContent>
               </Card>
@@ -367,11 +394,16 @@ const AdminPanel: React.FC = () => {
                 {sites.map((site) => (
                   <Card key={site.id}>
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
+                      <div className={cn(
+                        "flex justify-between items-start",
+                        isRTL ? "text-right" : "text-left"
+                      )}>
                         <div>
                           <h3 className="font-semibold">{site.name}</h3>
                           <p className="text-sm text-gray-600">{site.address}</p>
                           <p className="text-sm text-gray-600">{t(site.region_type)}</p>
+                          <p className="text-sm text-gray-600">{site.contact_name}</p>
+                          <p className="text-sm text-gray-600">{site.contact_phone}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
@@ -391,7 +423,10 @@ const AdminPanel: React.FC = () => {
 
           {/* Products Management */}
           <TabsContent value="products" className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className={cn(
+              "flex justify-between items-center",
+              isRTL ? "text-right" : "text-left"
+            )}>
               <h2 className="text-xl font-semibold">{t('product_management')}</h2>
               <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
                 <Plus className="w-4 h-4 mr-2" />

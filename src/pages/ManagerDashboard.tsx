@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const ManagerDashboard: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
@@ -137,31 +138,47 @@ const ManagerDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">{t('all_orders')}</h1>
             <p className="text-gray-600">{t('total_orders')}: {orders.length}</p>
           </div>
-          <Button 
-            onClick={() => navigate('/admin')}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium w-full sm:w-auto"
-          >
-            {t('admin_panel')}
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {/* Fix 3: Add Create Order button for admin */}
+            <Button 
+              onClick={() => navigate('/create-order')}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('create_order')}
+            </Button>
+            <Button 
+              onClick={() => navigate('/admin')}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"
+            >
+              {t('admin_panel')}
+            </Button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Filters - Fix 1: Improved placeholders and RTL/LTR alignment */}
+        <div className={cn(
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
+          isRTL ? "text-right" : "text-left"
+        )}>
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className={cn(
+              "absolute top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4",
+              isRTL ? "right-3" : "left-3"
+            )} />
             <Input
               placeholder={t('search_orders')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className={cn(isRTL ? "pr-10 text-right" : "pl-10 text-left")}
             />
           </div>
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('all_statuses')} />
+            <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
+              <SelectValue placeholder={t('filter_by_status')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>
@@ -174,8 +191,8 @@ const ManagerDashboard: React.FC = () => {
 
           {/* Quarry Filter */}
           <Select value={quarryFilter} onValueChange={setQuarryFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('quarry_crossing')} />
+            <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
+              <SelectValue placeholder={isRTL ? "סינון לפי מחצבה/מעבר" : "Filter by Quarry/Crossing"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>
@@ -238,15 +255,21 @@ const ManagerDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Product */}
-                  <div className="flex items-center gap-2">
+                  {/* Product - Fix 2: Remove extra dot and align properly */}
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Package className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">{t(order.product_id)}</span>
-                    <span className="text-gray-600">• {order.quantity} {t('tons')}</span>
+                    <span className="text-gray-600">{order.quantity} {t('tons')}</span>
                   </div>
 
                   {/* Delivery Date & Time */}
-                  <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Calendar className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">
                       {formatDeliveryTime(order.delivery_date, order.time_slot)}
@@ -255,32 +278,47 @@ const ManagerDashboard: React.FC = () => {
 
                   {/* Site Name */}
                   {order.site_name && (
-                    <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "flex items-center gap-2",
+                      isRTL ? "text-right" : "text-left"
+                    )}>
                       <MapPin className="w-4 h-4 text-gray-500" />
                       <span className="text-gray-700">{order.site_name}</span>
                     </div>
                   )}
 
                   {/* Delivery Type */}
-                  <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Clock className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">{t(order.delivery_type)}</span>
                   </div>
 
                   {/* Quarry */}
                   {order.quarry && (
-                    <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "flex items-center gap-2",
+                      isRTL ? "text-right" : "text-left"
+                    )}>
                       <MapPin className="w-4 h-4 text-gray-500" />
                       <span className="text-gray-700">{t(order.quarry)}</span>
                     </div>
                   )}
 
-                  {/* Notes - Show full text */}
+                  {/* Notes - Fix 4: Translate Notes label */}
                   {order.notes && (
-                    <div className="flex items-start gap-2">
+                    <div className={cn(
+                      "flex items-start gap-2",
+                      isRTL ? "text-right" : "text-left"
+                    )}>
                       <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-600 leading-relaxed">
+                        <span className="text-sm font-medium text-gray-700">
+                          {isRTL ? "הערות:" : "Notes:"}
+                        </span>
+                        <p className="text-sm text-gray-600 leading-relaxed mt-1">
                           {order.notes}
                         </p>
                       </div>

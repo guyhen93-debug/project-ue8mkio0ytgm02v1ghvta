@@ -121,7 +121,7 @@ const Login: React.FC = () => {
                 />
               </div>
 
-              {/* Password */}
+              {/* Password - Fix 10: Always position eye icon on the left */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
@@ -136,11 +136,12 @@ const Login: React.FC = () => {
                     placeholder={t('enter_password')}
                     required
                   />
+                  {/* Fix 10: Always position on the left regardless of RTL/LTR */}
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute left-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (

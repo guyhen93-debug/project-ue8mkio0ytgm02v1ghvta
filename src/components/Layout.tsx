@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Notification } from '@/entities';
 import { Home, MessageCircle, Bell, User, Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -21,7 +22,32 @@ export const Layout: React.FC<LayoutProps> = ({
   const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // Load unread counts
+  useEffect(() => {
+    if (user?.email) {
+      loadUnreadCounts();
+    }
+  }, [user?.email]);
+
+  const loadUnreadCounts = async () => {
+    try {
+      // Load unread notifications
+      const notifications = await Notification.filter({
+        recipient_email: user?.email,
+        is_read: false
+      });
+      setUnreadNotifications(notifications.length);
+
+      // For messages, we'll simulate unread count (in real app, this would come from a messages entity)
+      // For now, set to 0 to demonstrate the fix
+      setUnreadMessages(0);
+    } catch (error) {
+      console.error('Error loading unread counts:', error);
+    }
+  };
 
   const navItems = [
     {
@@ -35,14 +61,14 @@ export const Layout: React.FC<LayoutProps> = ({
       label: t('inbox'),
       path: '/inbox',
       active: location.pathname === '/inbox',
-      badge: unreadCount > 0 ? unreadCount : undefined
+      badge: unreadMessages > 0 ? unreadMessages : undefined // Fix 5: Only show badge when > 0
     },
     {
       icon: Bell,
       label: t('notifications'),
       path: '/notifications',
       active: location.pathname === '/notifications',
-      badge: unreadCount > 0 ? unreadCount : undefined
+      badge: unreadNotifications > 0 ? unreadNotifications : undefined // Fix 5: Only show badge when > 0
     },
     {
       icon: User,
@@ -55,7 +81,7 @@ export const Layout: React.FC<LayoutProps> = ({
   if (user?.role === 'manager') {
     navItems.splice(3, 0, {
       icon: Settings,
-      label: t('admin'), // This will now use the correct translation
+      label: t('admin'),
       path: '/admin',
       active: location.pathname === '/admin'
     });
@@ -91,7 +117,8 @@ export const Layout: React.FC<LayoutProps> = ({
               >
                 <item.icon className="h-5 w-5 mb-1" />
                 <span className="text-xs font-medium truncate">{item.label}</span>
-                {item.badge && item.badge > 0 && (
+                {/* Fix 5: Only show badge when count > 0 */}
+                {item.badge && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>

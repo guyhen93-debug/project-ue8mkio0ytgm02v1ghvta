@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Order } from '@/entities';
+import { Order, Site } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,8 +30,7 @@ const CreateOrder: React.FC = () => {
     delivery_date: undefined as Date | undefined,
     time_slot: '',
     delivery_type: '',
-    site_name: '',
-    delivery_location: '',
+    site_id: '', // Fix 9: Use site_id instead of manual fields
     quarry: '',
     notes: '',
     truck_access: true
@@ -39,6 +38,21 @@ const CreateOrder: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [sites, setSites] = useState<any[]>([]); // Fix 9: Load sites
+
+  // Fix 9: Load sites on component mount
+  useEffect(() => {
+    loadSites();
+  }, []);
+
+  const loadSites = async () => {
+    try {
+      const sitesData = await Site.list('-created_at');
+      setSites(sitesData);
+    } catch (error) {
+      console.error('Error loading sites:', error);
+    }
+  };
 
   const products = [
     { id: 'p_new_sand_0_4', name: t('p_new_sand_0_4') },
@@ -53,6 +67,7 @@ const CreateOrder: React.FC = () => {
     { id: 'yitzhak_rabin', name: t('yitzhak_rabin') }
   ];
 
+  // Fix 8: Proper Hebrew and English time slot labels
   const timeSlots = [
     { 
       id: 'morning', 
@@ -76,9 +91,9 @@ const CreateOrder: React.FC = () => {
       return;
     }
 
-    // Validation
+    // Validation - Fix 9: Check site_id instead of delivery_location
     if (!formData.product_id || !formData.quantity || !formData.delivery_date || 
-        !formData.time_slot || !formData.delivery_type || !formData.delivery_location) {
+        !formData.time_slot || !formData.delivery_type || !formData.site_id) {
       toast({
         title: t('validation_error'),
         description: 'Please fill in all required fields',
@@ -115,14 +130,17 @@ const CreateOrder: React.FC = () => {
     try {
       setLoading(true);
       
+      // Fix 9: Get selected site details
+      const selectedSite = sites.find(site => site.id === formData.site_id);
+      
       const orderData = {
         product_id: formData.product_id,
         quantity: parseFloat(formData.quantity),
         delivery_date: formData.delivery_date.toISOString(),
         time_slot: formData.time_slot,
         delivery_type: formData.delivery_type,
-        site_name: formData.site_name,
-        delivery_location: formData.delivery_location,
+        site_name: selectedSite?.name || '',
+        delivery_location: selectedSite?.address || '',
         quarry: formData.quarry || 'shifolei_har',
         notes: formData.notes,
         truck_access: formData.truck_access,
@@ -171,7 +189,7 @@ const CreateOrder: React.FC = () => {
                   value={formData.product_id} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, product_id: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
                     <SelectValue placeholder={t('select_product')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -197,6 +215,7 @@ const CreateOrder: React.FC = () => {
                   value={formData.quantity}
                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
                   placeholder={t('enter_quantity')}
+                  className={cn(isRTL ? "text-right" : "text-left")}
                 />
               </div>
 
@@ -212,7 +231,8 @@ const CreateOrder: React.FC = () => {
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !formData.delivery_date && "text-muted-foreground"
+                        !formData.delivery_date && "text-muted-foreground",
+                        isRTL && "text-right"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -241,7 +261,7 @@ const CreateOrder: React.FC = () => {
                 </Popover>
               </div>
 
-              {/* Time Slot */}
+              {/* Time Slot - Fix 8: RTL alignment */}
               <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
@@ -250,14 +270,17 @@ const CreateOrder: React.FC = () => {
                 <RadioGroup
                   value={formData.time_slot}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, time_slot: value }))}
-                  className={cn("grid grid-cols-1 gap-3", isRTL && "text-right")}
+                  className={cn("grid grid-cols-1 gap-3")}
                 >
                   {timeSlots.map((slot) => (
-                    <div key={slot.id} className="flex items-center space-x-2 space-x-reverse">
+                    <div key={slot.id} className={cn(
+                      "flex items-center gap-2",
+                      isRTL ? "flex-row-reverse" : "flex-row"
+                    )}>
                       <RadioGroupItem value={slot.id} id={slot.id} />
                       <Label 
                         htmlFor={slot.id} 
-                        className={cn("cursor-pointer", isRTL && "mr-2 ml-0")}
+                        className="cursor-pointer"
                       >
                         {slot.label}
                       </Label>
@@ -266,28 +289,34 @@ const CreateOrder: React.FC = () => {
                 </RadioGroup>
               </div>
 
-              {/* Delivery Type */}
+              {/* Delivery Type - Fix 8: RTL alignment */}
               <div className="space-y-3">
                 <Label>{t('delivery_type')} *</Label>
                 <RadioGroup
                   value={formData.delivery_type}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_type: value }))}
-                  className={cn("grid grid-cols-1 gap-3", isRTL && "text-right")}
+                  className={cn("grid grid-cols-1 gap-3")}
                 >
-                  <div className="flex items-center space-x-2 space-x-reverse">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "flex-row-reverse" : "flex-row"
+                  )}>
                     <RadioGroupItem value="self_transport" id="self_transport" />
                     <Label 
                       htmlFor="self_transport" 
-                      className={cn("cursor-pointer", isRTL && "mr-2 ml-0")}
+                      className="cursor-pointer"
                     >
                       {t('self_transport')}
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2 space-x-reverse">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "flex-row-reverse" : "flex-row"
+                  )}>
                     <RadioGroupItem value="external" id="external" />
                     <Label 
                       htmlFor="external" 
-                      className={cn("cursor-pointer", isRTL && "mr-2 ml-0")}
+                      className="cursor-pointer"
                     >
                       {t('external')}
                     </Label>
@@ -295,32 +324,27 @@ const CreateOrder: React.FC = () => {
                 </RadioGroup>
               </div>
 
-              {/* Site Name */}
+              {/* Fix 9: Site Selection (replace manual fields) */}
               <div className="space-y-2">
-                <Label htmlFor="site_name" className="flex items-center gap-2">
+                <Label htmlFor="site" className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  {t('site_name')}
+                  {isRTL ? "בחר אתר" : "Select Site"} *
                 </Label>
-                <Input
-                  id="site_name"
-                  value={formData.site_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, site_name: e.target.value }))}
-                  placeholder={t('site_name')}
-                />
-              </div>
-
-              {/* Delivery Location */}
-              <div className="space-y-2">
-                <Label htmlFor="delivery_location">
-                  {t('delivery_location')} *
-                </Label>
-                <Textarea
-                  id="delivery_location"
-                  value={formData.delivery_location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, delivery_location: e.target.value }))}
-                  placeholder={t('enter_address')}
-                  rows={3}
-                />
+                <Select 
+                  value={formData.site_id} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
+                >
+                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
+                    <SelectValue placeholder={isRTL ? "בחר אתר" : "Select Site"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name} - {site.address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Quarry Selection */}
@@ -332,7 +356,7 @@ const CreateOrder: React.FC = () => {
                   value={formData.quarry} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, quarry: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
                     <SelectValue placeholder={t('select_quarry')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,6 +381,7 @@ const CreateOrder: React.FC = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder={t('special_instructions')}
                   rows={3}
+                  className={cn(isRTL ? "text-right" : "text-left")}
                 />
               </div>
 
