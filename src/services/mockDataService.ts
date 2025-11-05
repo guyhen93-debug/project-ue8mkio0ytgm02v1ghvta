@@ -401,7 +401,7 @@ class MockDataService {
         console.error('Error loading stored orders:', e);
       }
     }
-    
+
     if (storedNotifications) {
       try {
         this.notifications = JSON.parse(storedNotifications);
@@ -534,6 +534,40 @@ class MockDataService {
 
   async getProductPreview(productId: string): Promise<MockProduct | null> {
     return this.products.find(p => p.id === productId) || null;
+  }
+
+  // Enhanced Product methods
+  async createProduct(productData: Omit<MockProduct, 'id'>): Promise<MockProduct> {
+    const newProduct: MockProduct = {
+      ...productData,
+      id: this.generateId()
+    };
+    
+    this.products.push(newProduct);
+    this.saveToStorage();
+    return newProduct;
+  }
+
+  async updateProduct(id: string, updates: Partial<MockProduct>): Promise<MockProduct | null> {
+    const index = this.products.findIndex(product => product.id === id);
+    if (index === -1) return null;
+    
+    this.products[index] = {
+      ...this.products[index],
+      ...updates
+    };
+    
+    this.saveToStorage();
+    return this.products[index];
+  }
+
+  async deleteProduct(id: string): Promise<boolean> {
+    const index = this.products.findIndex(product => product.id === id);
+    if (index === -1) return false;
+    
+    this.products.splice(index, 1);
+    this.saveToStorage();
+    return true;
   }
 
   // Client methods
@@ -748,6 +782,20 @@ class MockDataService {
     return this.orders[index];
   }
 
+  // Enhanced Order methods
+  async deleteOrder(id: string): Promise<boolean> {
+    const index = this.orders.findIndex(order => order.id === id);
+    if (index === -1) return false;
+    
+    // Also delete related notifications and messages
+    this.notifications = this.notifications.filter(n => n.order_id !== id);
+    this.messages = this.messages.filter(m => m.order_id !== id);
+    
+    this.orders.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
   // Admin quantity reduction
   async reduceOrderQuantity(orderId: string, reduceByTons: number, reason: string, adminUserId: string): Promise<{ success: boolean; error?: string }> {
     const order = this.orders.find(o => o.id === orderId);
@@ -829,11 +877,46 @@ class MockDataService {
     return this.messages[index];
   }
 
-  async getUnreadMessageCount(userId: string): Promise<number> {
-    return this.messages.filter(m => m.to_user_id === userId && !m.read).length;
+  // Enhanced Message methods with threading
+  async getMessageReplies(parentMessageId: string): Promise<MockMessage[]> {
+    return this.messages.filter(m => m.parent_message_id === parentMessageId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }
 
-  // Notification methods
+  async createMessageReply(replyData: {
+    parent_message_id: string;
+    order_id?: string;
+    from_user_id: string;
+    to_user_id: string;
+    content: string;
+    read: boolean;
+  }): Promise<MockMessage> {
+    const now = new Date().toISOString();
+    const newReply: MockMessage = {
+      ...replyData,
+      id: this.generateId(),
+      created_at: now,
+      updated_at: now
+    };
+    
+    this.messages.push(newReply);
+    this.saveToStorage();
+    return newReply;
+  }
+
+  async deleteMessage(id: string): Promise<boolean> {
+    const index = this.messages.findIndex(message => message.id === id);
+    if (index === -1) return false;
+    
+    // Also delete all replies to this message
+    this.messages = this.messages.filter(m => m.parent_message_id !== id);
+    
+    this.messages.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Enhanced Notification methods
   async getNotifications(filter?: any, sort?: string): Promise<MockNotification[]> {
     let result = [...this.notifications];
     
@@ -885,10 +968,23 @@ class MockDataService {
     return this.notifications[index];
   }
 
-  // Badge count methods
+  async deleteNotification(id: string): Promise<boolean> {
+    const index = this.notifications.findIndex(notification => notification.id === id);
+    if (index === -1) return false;
+    
+    this.notifications.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Badge count methods with proper zero handling
   async getUnreadNotificationCount(userId: string): Promise<number> {
-    const userNotifications = await this.getNotifications({ user_id: userId });
-    return userNotifications.filter(n => !n.read).length;
+    const userNotifications = await this.getNotifications({ user_id: userId, read: false });
+    return userNotifications.length;
+  }
+
+  async getUnreadMessageCount(userId: string): Promise<number> {
+    return this.messages.filter(m => m.to_user_id === userId && !m.read).length;
   }
 
   async getTotalUnreadCount(userId: string): Promise<number> {

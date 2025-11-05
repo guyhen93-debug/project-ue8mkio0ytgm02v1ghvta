@@ -209,6 +209,59 @@ const translations = {
     'order_rejected': 'Order Rejected',
     'order_completed': 'Order Completed',
     'order_status_notification': 'Your order #{orderNumber} has been {status}',
+
+    // Admin and CRUD translations
+    'product_management': 'Product Management',
+    'add_product': 'Add Product',
+    'edit_product': 'Edit Product',
+    'product_name_en': 'Product Name (English)',
+    'product_name_he': 'Product Name (Hebrew)',
+    'size_label': 'Size Label',
+    'description_en': 'Description (English)',
+    'description_he': 'Description (Hebrew)',
+    'image_url': 'Image URL',
+    'product_created': 'Product Created',
+    'product_created_successfully': 'Product created successfully',
+    'product_updated': 'Product Updated',
+    'product_updated_successfully': 'Product updated successfully',
+    'product_deleted': 'Product Deleted',
+    'product_deleted_successfully': 'Product deleted successfully',
+    'confirm_delete_product': 'Are you sure you want to delete this product?',
+    
+    // Order management
+    'edit_order': 'Edit Order',
+    'order_updated': 'Order Updated',
+    'order_updated_successfully': 'Order updated successfully',
+    'order_deleted': 'Order Deleted',
+    'order_deleted_successfully': 'Order deleted successfully',
+    'confirm_delete_order': 'Are you sure you want to delete this order?',
+    'save_changes': 'Save Changes',
+    
+    // Messaging
+    'reply': 'Reply',
+    'send_reply': 'Send Reply',
+    'type_reply': 'Type your reply...',
+    'reply_sent': 'Reply Sent',
+    'reply_sent_successfully': 'Reply sent successfully',
+    'reply_failed': 'Failed to send reply',
+    'message_deleted': 'Message Deleted',
+    'message_deleted_successfully': 'Message deleted successfully',
+    'confirm_delete_message': 'Are you sure you want to delete this message?',
+    'general_message': 'General Message',
+    'you': 'You',
+    'manager': 'Manager',
+    
+    // Notifications
+    'notification_deleted': 'Notification Deleted',
+    'notification_deleted_successfully': 'Notification deleted successfully',
+    'confirm_delete_notification': 'Are you sure you want to delete this notification?',
+    'new': 'New',
+    
+    // General
+    'confirm_delete': 'Confirm Delete',
+    'save_failed': 'Failed to save',
+    'delete_failed': 'Failed to delete',
+    'update_failed': 'Failed to update',
   },
   he: {
     // Auth
@@ -409,6 +462,59 @@ const translations = {
     'order_rejected': 'הזמנה נדחתה',
     'order_completed': 'הזמנה הושלמה',
     'order_status_notification': 'הזמנה מס\' {orderNumber} {status}',
+
+    // Admin and CRUD translations
+    'product_management': 'ניהול מוצרים',
+    'add_product': 'הוסף מוצר',
+    'edit_product': 'ערוך מוצר',
+    'product_name_en': 'שם המוצר (אנגלית)',
+    'product_name_he': 'שם המוצר (עברית)',
+    'size_label': 'תווית גודל',
+    'description_en': 'תיאור (אנגלית)',
+    'description_he': 'תיאור (עברית)',
+    'image_url': 'כתובת תמונה',
+    'product_created': 'מוצר נוצר',
+    'product_created_successfully': 'המוצר נוצר בהצלחה',
+    'product_updated': 'מוצר עודכן',
+    'product_updated_successfully': 'המוצר עודכן בהצלחה',
+    'product_deleted': 'מוצר נמחק',
+    'product_deleted_successfully': 'המוצר נמחק בהצלחה',
+    'confirm_delete_product': 'האם אתה בטוח שברצונך למחוק את המוצר הזה?',
+    
+    // Order management
+    'edit_order': 'ערוך הזמנה',
+    'order_updated': 'הזמנה עודכנה',
+    'order_updated_successfully': 'ההזמנה עודכנה בהצלחה',
+    'order_deleted': 'הזמנה נמחקה',
+    'order_deleted_successfully': 'ההזמנה נמחקה בהצלחה',
+    'confirm_delete_order': 'האם אתה בטוח שברצונך למחוק את ההזמנה הזו?',
+    'save_changes': 'שמור שינויים',
+    
+    // Messaging
+    'reply': 'השב',
+    'send_reply': 'שלח תגובה',
+    'type_reply': 'כתוב את התגובה שלך...',
+    'reply_sent': 'תגובה נשלחה',
+    'reply_sent_successfully': 'התגובה נשלחה בהצלחה',
+    'reply_failed': 'שליחת התגובה נכשלה',
+    'message_deleted': 'הודעה נמחקה',
+    'message_deleted_successfully': 'ההודעה נמחקה בהצלחה',
+    'confirm_delete_message': 'האם אתה בטוח שברצונך למחוק את ההודעה הזו?',
+    'general_message': 'הודעה כללית',
+    'you': 'אתה',
+    'manager': 'מנהל',
+    
+    // Notifications
+    'notification_deleted': 'התראה נמחקה',
+    'notification_deleted_successfully': 'ההתראה נמחקה בהצלחה',
+    'confirm_delete_notification': 'האם אתה בטוח שברצונך למחוק את ההתראה הזו?',
+    'new': 'חדש',
+    
+    // General
+    'confirm_delete': 'אשר מחיקה',
+    'save_failed': 'השמירה נכשלה',
+    'delete_failed': 'המחיקה נכשלה',
+    'update_failed': 'העדכון נכשל',
   }
 };
 
