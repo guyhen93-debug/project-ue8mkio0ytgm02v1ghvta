@@ -36,6 +36,7 @@ const translations = {
     'dashboard': 'Dashboard',
     'orders': 'Orders',
     'inbox': 'Inbox',
+    'admin': 'Admin',
     
     // Orders
     'create_order': 'Create Order',
@@ -94,6 +95,7 @@ const translations = {
     'completed': 'Completed',
     'awaiting_approval': 'Awaiting Approval',
     'delivered': 'Delivered',
+    'all': 'All',
     
     // Validation & Errors
     'validation_error': 'Validation Error',
@@ -126,6 +128,7 @@ const translations = {
     'reply': 'Reply',
     'message_sent': 'Message sent successfully',
     'unread_messages': 'unread messages',
+    'select_order': 'Select Order',
     
     // Common
     'tons': 'tons',
@@ -140,6 +143,7 @@ const translations = {
     'sort': 'Sort',
     'all_orders': 'All Orders',
     'all_status': 'All Status',
+    'filter_by_status': 'Filter by Status',
     'my_orders': 'My Orders',
     'no_orders': 'No orders found',
     'no_orders_filter': 'No orders match the current filter',
@@ -318,6 +322,7 @@ const translations = {
     'dashboard': 'דשבורד',
     'orders': 'הזמנות',
     'inbox': 'תיבת דואר',
+    'admin': 'ניהול',
     
     // Orders
     'create_order': 'יצירת הזמנה',
@@ -341,7 +346,7 @@ const translations = {
     'start_creating_order': 'התחל ביצירת ההזמנה הראשונה שלך',
     'minimum_quantity_external': 'הזמנה בהובלה חיצונית מחייבת מינימום של 20 טון.',
     'quantity_multiple_twenty': 'כמות בהובלה חיצונית חייבת להיות בכפולות של 20 טון.',
-    'distance_minimum_40': 'לאספקות החל מ-43 ק"м ומעלה מהמחצבה, המינימום להזמנה הוא 40 טון.',
+    'distance_minimum_40': 'לאספקות החל מ-43 ק"מ ומעלה מהמחצבה, המינימום להזמנה הוא 40 טון.',
     'morning_shift': 'בוקר (07:00–12:00)',
     'afternoon_shift': 'צהריים (12:00–17:00)',
     'truck_access': 'יש מקום לפריקת פול טריילר (עגלה)',
@@ -376,6 +381,7 @@ const translations = {
     'completed': 'הושלם',
     'awaiting_approval': 'ממתין לאישור',
     'delivered': 'סופקה',
+    'all': 'הכל',
     
     // Validation & Errors
     'validation_error': 'שגיאת אימות',
@@ -408,6 +414,7 @@ const translations = {
     'reply': 'השב',
     'message_sent': 'הודעה נשלחה בהצלחה',
     'unread_messages': 'הודעות לא נקראו',
+    'select_order': 'בחר הזמנה',
     
     // Common
     'tons': 'טון',
@@ -422,6 +429,7 @@ const translations = {
     'sort': 'מיון',
     'all_orders': 'כל ההזמנות',
     'all_status': 'כל הסטטוסים',
+    'filter_by_status': 'סינון לפי סטטוס',
     'my_orders': 'ההזמנות שלי',
     'no_orders': 'לא נמצאו הזמנות',
     'no_orders_filter': 'אין הזמנות התואמות לסינון הנוכחי',
@@ -475,7 +483,6 @@ const translations = {
     'clients_management': 'ניהול לקוחות',
     'add_client': 'הוסף לקוח',
     'edit_client': 'ערוך לקוח',
-    'client_name': 'שם הלקוח',
     'client_category': 'קטגוריית לקוח',
     'is_active': 'פעיל',
     'active': 'פעיל',
@@ -512,7 +519,6 @@ const translations = {
     // New error messages
     'outside_eilat_min': 'לאתרים שמחוץ לאילת נדרש מינימום של 40 טון בהובלה חיצונית.',
     'unlinked_site': 'אתר זה אינו משויך ללקוח פעיל.',
-    'past_date': 'לא ניתן להזמין לתאריך עבר.',
     'invalid_time': 'ניתן להזמין רק בין השעות 07:00–17:00.',
 
     // Dynamic notifications
@@ -564,7 +570,7 @@ const translations = {
     
     // Notifications
     'notification_deleted': 'התראה נמחקה',
-    'notification_deleted_successfully': 'ההתראה נמחקה בהצלחה',
+    'notification_deleted_successfully': 'התראה נמחקה בהצלחה',
     'confirm_delete_notification': 'האם אתה בטוח שברצונך למחוק את ההתראה הזו?',
     'new': 'חדש',
     

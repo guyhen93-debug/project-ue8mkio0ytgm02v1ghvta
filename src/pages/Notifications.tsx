@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Layout } from '@/components/Layout';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Notification } from '@/entities';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { mockDataService } from '@/services/mockDataService';
-import { Bell, BellOff, CheckCircle, XCircle, Package } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from '@/hooks/use-toast';
+import { Bell, X, CheckCheck, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { he, enUS } from 'date-fns/locale';
 
 const Notifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { t, language } = useLanguage();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadNotifications();
@@ -20,9 +24,10 @@ const Notifications: React.FC = () => {
 
   const loadNotifications = async () => {
     try {
-      if (user) {
-        const userNotifications = await mockDataService.getNotifications(
-          { user_id: user.id }, 
+      setLoading(true);
+      if (user?.email) {
+        const userNotifications = await Notification.filter(
+          { recipient_email: user.email }, 
           '-created_at'
         );
         setNotifications(userNotifications);
@@ -30,16 +35,14 @@ const Notifications: React.FC = () => {
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await mockDataService.updateNotification(notificationId, { read: true });
-      setNotifications(notifications.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      ));
+      await Notification.update(notificationId, { is_read: true });
+      await loadNotifications();
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -47,30 +50,39 @@ const Notifications: React.FC = () => {
 
   const markAllAsRead = async () => {
     try {
-      const unreadNotifications = notifications.filter(n => !n.read);
+      const unreadNotifications = notifications.filter(n => !n.is_read);
       for (const notification of unreadNotifications) {
-        await mockDataService.updateNotification(notification.id, { read: true });
+        await Notification.update(notification.id, { is_read: true });
       }
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      await loadNotifications();
+      toast({
+        title: t('mark_all_read'),
+        description: t('notification_sent')
+      });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
   };
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'order_approved':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'order_rejected':
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      case 'order_completed':
-        return <Package className="h-5 w-5 text-blue-600" />;
-      default:
-        return <Bell className="h-5 w-5 text-gray-600" />;
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      await Notification.delete(notificationId);
+      await loadNotifications();
+      toast({
+        title: t('notification_deleted'),
+        description: t('notification_deleted_successfully')
+      });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast({
+        title: t('error'),
+        description: t('delete_failed'),
+        variant: 'destructive'
+      });
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
@@ -80,28 +92,28 @@ const Notifications: React.FC = () => {
     } else if (diffInHours < 24) {
       return `${diffInHours}${t('hours_ago')}`;
     } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return format(date, 'MMM d', { locale: language === 'he' ? he : enUS });
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'order_approved':
+      case 'order_rejected':
+      case 'order_completed':
+        return <Bell className="w-5 h-5 text-blue-600" />;
+      default:
+        return <Bell className="w-5 h-5 text-gray-600" />;
+    }
+  };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Layout title={t('notifications')}>
-        <div className="px-4 py-8">
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('loading')}</p>
           </div>
         </div>
       </Layout>
@@ -110,90 +122,123 @@ const Notifications: React.FC = () => {
 
   return (
     <Layout title={t('notifications')}>
-      <div className="px-4 py-6">
+      <div className="p-4 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900">
-              {t('notifications')}
-            </h1>
-            {unreadCount > 0 && (
-              <Badge className="bg-red-100 text-red-800">
-                {unreadCount} {t('new')}
-              </Badge>
-            )}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('notifications')}</h1>
+            <p className="text-gray-600">
+              {notifications.filter(n => !n.is_read).length} {t('new')}
+            </p>
           </div>
-          {unreadCount > 0 && (
+          {notifications.some(n => !n.is_read) && (
             <Button
               variant="outline"
               size="sm"
               onClick={markAllAsRead}
-              className="text-xs"
+              className="flex items-center gap-2"
             >
+              <CheckCheck className="w-4 h-4" />
               {t('mark_all_read')}
             </Button>
           )}
         </div>
 
         {/* Notifications List */}
-        <div className="space-y-3">
-          {notifications.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <BellOff className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t('no_notifications')}
-                </h3>
-                <p className="text-gray-600">
-                  {t('all_caught_up')}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            notifications.map((notification) => (
-              <Card
-                key={notification.id}
-                className={`cursor-pointer transition-all ${
-                  !notification.read 
-                    ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
-                    : 'hover:shadow-md'
+        {notifications.length === 0 ? (
+          <div className="text-center py-12">
+            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {t('no_notifications')}
+            </h3>
+            <p className="text-gray-600">{t('all_caught_up')}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notification) => (
+              <Card 
+                key={notification.id} 
+                className={`transition-all hover:shadow-md ${
+                  !notification.is_read ? 'bg-blue-50 border-blue-200' : ''
                 }`}
-                onClick={() => !notification.read && markAsRead(notification.id)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className={`text-sm font-medium ${
-                          !notification.read ? 'text-gray-900' : 'text-gray-700'
-                        }`}>
-                          {t(notification.title) || notification.title}
-                        </h4>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
-                        )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      {/* Icon */}
+                      <div className="mt-1">
+                        {getNotificationIcon(notification.type)}
                       </div>
                       
-                      <p className={`text-sm ${
-                        !notification.read ? 'text-gray-700' : 'text-gray-600'
-                      }`}>
-                        {notification.message}
-                      </p>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-gray-900">
+                            {t(notification.type)}
+                          </h3>
+                          {!notification.is_read && (
+                            <Badge variant="secondary" className="text-xs">
+                              {t('new')}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {getTimeAgo(notification.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1">
+                      {!notification.is_read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => markAsRead(notification.id)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <CheckCheck className="w-4 h-4" />
+                        </Button>
+                      )}
                       
-                      <p className="text-xs text-gray-500 mt-2">
-                        {formatDate(notification.created_at)}
-                      </p>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('confirm_delete')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('confirm_delete_notification')}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteNotification(notification.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {t('delete')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

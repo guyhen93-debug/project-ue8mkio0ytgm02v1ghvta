@@ -1,74 +1,78 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockDataService } from '@/services/mockDataService';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
   id: string;
   email: string;
-  name: string;
+  full_name: string;
   role: 'client' | 'manager';
-  client_id: string;
-  client_name: string;
-  company: string;
-  assigned_site_id?: string;
-  assigned_site_name?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<User | null>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Mock users for demo
+const mockUsers: User[] = [
+  {
+    id: '1',
+    email: 'client@demo.com',
+    full_name: 'Demo Client',
+    role: 'client'
+  },
+  {
+    id: '2',
+    email: 'manager@demo.com',
+    full_name: 'Demo Manager',
+    role: 'manager'
+  }
+];
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('currentUser');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        // Validate user still exists in demo users
-        const validUser = mockDataService.getDemoUser(parsedUser.id);
-        if (validUser) {
-          setUser(validUser);
-        } else {
-          localStorage.removeItem('currentUser');
-        }
+        setUser(JSON.parse(storedUser));
       } catch (error) {
         console.error('Error parsing stored user:', error);
-        localStorage.removeItem('currentUser');
+        localStorage.removeItem('user');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const authenticatedUser = mockDataService.authenticateUser(email, password);
-      if (authenticatedUser) {
-        setUser(authenticatedUser);
-        localStorage.setItem('currentUser', JSON.stringify(authenticatedUser));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
+  const login = async (email: string, password: string): Promise<User | null> => {
+    // Mock authentication - in real app, this would call an API
+    if (password !== 'demo123') {
+      throw new Error('Invalid credentials');
     }
+
+    const foundUser = mockUsers.find(u => u.email === email);
+    if (!foundUser) {
+      throw new Error('User not found');
+    }
+
+    setUser(foundUser);
+    localStorage.setItem('user', JSON.stringify(foundUser));
+    return foundUser;
   };
 
-  const logout = () => {
+  const logout = async (): Promise<void> => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

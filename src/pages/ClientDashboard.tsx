@@ -1,68 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Layout } from '@/components/Layout';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Order } from '@/entities';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { mockDataService } from '@/services/mockDataService';
-import { Plus, Package, Calendar, MapPin, Truck } from 'lucide-react';
+import { Plus, MapPin, Calendar, Package, Clock, FileText } from 'lucide-react';
+import { format } from 'date-fns';
+import { he, enUS } from 'date-fns/locale';
 
 const ClientDashboard: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { t, language, isRTL } = useLanguage();
   const { user } = useAuth();
-  const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadOrders();
   }, [user]);
 
+  useEffect(() => {
+    filterOrders();
+  }, [orders, statusFilter]);
+
   const loadOrders = async () => {
     try {
-      if (user) {
-        const userOrders = await mockDataService.getOrders({ client_id: user.id }, '-created_at');
+      setLoading(true);
+      if (user?.email) {
+        const userOrders = await Order.filter({ created_by: user.email }, '-created_at');
         setOrders(userOrders);
       }
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  };
+
+  const filterOrders = () => {
+    let filtered = orders;
+    
+    if (statusFilter !== 'all') {
+      filtered = orders.filter(order => order.status === statusFilter);
+    }
+    
+    setFilteredOrders(filtered);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDeliveryTime = (date: string, timeSlot: string) => {
+    try {
+      const deliveryDate = new Date(date);
+      const dateStr = format(deliveryDate, 'MMMM d', { 
+        locale: language === 'he' ? he : enUS 
+      });
+      
+      const timeStr = timeSlot === 'morning' ? t('morning') : t('afternoon');
+      
+      return isRTL ? `${dateStr} • ${timeStr}` : `${dateStr} • ${timeStr}`;
+    } catch (error) {
+      return date;
+    }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Layout title={t('my_orders')}>
-        <div className="px-4 py-8 bg-gray-50 min-h-screen">
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-6 animate-pulse shadow-sm">
-                <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('loading')}</p>
           </div>
         </div>
       </Layout>
@@ -71,98 +98,128 @@ const ClientDashboard: React.FC = () => {
 
   return (
     <Layout title={t('my_orders')}>
-      <div className="px-4 py-6 bg-gray-50 min-h-screen">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card className="shadow-lg border-0">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-gray-900 mb-1">{orders.length}</div>
-              <div className="text-base font-semibold text-gray-600">{t('orders')}</div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg border-0">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-green-600 mb-1">
-                {orders.filter(o => o.status === 'approved').length}
-              </div>
-              <div className="text-base font-semibold text-gray-600">{t('approved')}</div>
-            </CardContent>
-          </Card>
+      <div className="p-4 space-y-4">
+        {/* Header with Create Order Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('my_orders')}</h1>
+            <p className="text-gray-600">{t('total_orders')}: {orders.length}</p>
+          </div>
+          <Button 
+            onClick={() => navigate('/create-order')}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t('create_order')}
+          </Button>
         </div>
 
-        {/* Create Order Button */}
-        <Button
-          onClick={() => navigate('/create-order')}
-          className="w-full mb-6 h-14 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-lg shadow-lg rounded-xl"
-          size="lg"
-        >
-          <Plus className="mr-3 h-6 w-6" />
-          {t('create_order')}
-        </Button>
+        {/* Status Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            {t('filter_by_status')}:
+          </label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('all')}</SelectItem>
+              <SelectItem value="pending">{t('pending')}</SelectItem>
+              <SelectItem value="approved">{t('approved')}</SelectItem>
+              <SelectItem value="rejected">{t('rejected')}</SelectItem>
+              <SelectItem value="completed">{t('completed')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Orders List */}
-        <div className="space-y-4">
-          {orders.length === 0 ? (
-            <Card className="shadow-lg border-0">
-              <CardContent className="p-8 text-center">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  {t('no_orders')}
-                </h3>
-                <p className="text-gray-600 mb-6 text-lg">
-                  {t('start_creating_order')}
-                </p>
-                <Button
-                  onClick={() => navigate('/create-order')}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-lg h-12 px-8 shadow-lg"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  {t('create_order')}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            orders.map((order) => (
-              <Card key={order.id} className="hover:shadow-xl transition-all duration-200 shadow-lg border-0">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl font-bold">
-                      {t(order.product)}
-                    </CardTitle>
-                    <Badge className={`${getStatusColor(order.status)} font-semibold border`}>
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {statusFilter === 'all' ? t('no_orders') : t('no_orders_filter')}
+            </h3>
+            {statusFilter === 'all' && (
+              <p className="text-gray-600 mb-6">{t('start_creating_order')}</p>
+            )}
+            {statusFilter === 'all' && (
+              <Button 
+                onClick={() => navigate('/create-order')}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('create_order')}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredOrders.map((order) => (
+              <Card key={order.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        {t('order_number')}{order.id.slice(-6)}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {format(new Date(order.created_at), 'PPP', { 
+                          locale: language === 'he' ? he : enUS 
+                        })}
+                      </p>
+                    </div>
+                    <Badge className={getStatusColor(order.status)}>
                       {t(order.status)}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 text-base text-gray-700">
-                    <Package className="h-5 w-5 text-gray-500" />
-                    <span className="font-semibold">{order.quantity} {t('tons')}</span>
+                <CardContent className="space-y-3">
+                  {/* Product */}
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">{t(order.product_id)}</span>
+                    <span className="text-gray-600">• {order.quantity} {t('tons')}</span>
                   </div>
-                  
-                  <div className="flex items-center gap-3 text-base text-gray-700">
-                    <Calendar className="h-5 w-5 text-gray-500" />
-                    <span>{formatDate(order.delivery_date)}</span>
+
+                  {/* Delivery Date & Time */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">
+                      {formatDeliveryTime(order.delivery_date, order.time_slot)}
+                    </span>
                   </div>
-                  
-                  <div className="flex items-center gap-3 text-base text-gray-700">
-                    <Truck className="h-5 w-5 text-gray-500" />
-                    <span>{t(order.delivery_type)}</span>
+
+                  {/* Site Name */}
+                  {order.site_name && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">{order.site_name}</span>
+                    </div>
+                  )}
+
+                  {/* Delivery Type */}
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">{t(order.delivery_type)}</span>
                   </div>
-                  
-                  <div className="flex items-center gap-3 text-base text-gray-700">
-                    <MapPin className="h-5 w-5 text-gray-500" />
-                    <span className="truncate">{order.delivery_location}</span>
-                  </div>
-                  
-                  <div className="text-sm text-gray-500 pt-3 border-t border-gray-100">
-                    {t('order_number')}{order.id.slice(-6)} • {new Date(order.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
-                  </div>
+
+                  {/* Notes */}
+                  {order.notes && (
+                    <div className="flex items-start gap-2">
+                      <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {order.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

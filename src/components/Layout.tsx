@@ -55,7 +55,7 @@ export const Layout: React.FC<LayoutProps> = ({
   if (user?.role === 'manager') {
     navItems.splice(3, 0, {
       icon: Settings,
-      label: t('admin'),
+      label: t('admin'), // This will now use the correct translation
       path: '/admin',
       active: location.pathname === '/admin'
     });

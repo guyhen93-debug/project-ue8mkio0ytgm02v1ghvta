@@ -1,32 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Layout } from '@/components/Layout';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Order } from '@/entities';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { mockDataService } from '@/services/mockDataService';
-import { toast } from '@/hooks/use-toast';
-import { Package, Calendar, MapPin, Truck, Building, Plus, Minus } from 'lucide-react';
+import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, Filter } from 'lucide-react';
+import { format } from 'date-fns';
+import { he, enUS } from 'date-fns/locale';
 
 const ManagerDashboard: React.FC = () => {
+  const { t, language, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [quarryFilter, setQuarryFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [reduceAmount, setReduceAmount] = useState('');
-  const [reductionReason, setReductionReason] = useState('');
-  const [showReduceDialog, setShowReduceDialog] = useState(false);
-  const { user } = useAuth();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [quarryFilter, setQuarryFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadOrders();
@@ -34,147 +30,98 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, statusFilter, quarryFilter]);
+  }, [orders, statusFilter, quarryFilter, searchTerm]);
 
   const loadOrders = async () => {
     try {
-      const allOrders = await mockDataService.getOrders({}, '-created_at');
+      setLoading(true);
+      const allOrders = await Order.list('-created_at');
       setOrders(allOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const filterOrders = () => {
-    let result = [...orders];
+    let filtered = orders;
     
+    // Status filter
     if (statusFilter !== 'all') {
-      result = result.filter(order => order.status === statusFilter);
+      filtered = filtered.filter(order => order.status === statusFilter);
     }
     
+    // Quarry filter
     if (quarryFilter !== 'all') {
-      result = result.filter(order => order.quarry_or_crossing === quarryFilter);
+      if (quarryFilter === 'shifolei_har') {
+        filtered = filtered.filter(order => order.quarry === 'shifolei_har');
+      } else if (quarryFilter === 'yitzhak_rabin') {
+        filtered = filtered.filter(order => order.quarry === 'yitzhak_rabin');
+      }
     }
     
-    setFilteredOrders(result);
-  };
-
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      await mockDataService.updateOrder(orderId, { status: newStatus });
-      
-      // Find the order to get client info
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        // Create notification for client
-        await mockDataService.createNotification({
-          user_id: order.client_id,
-          order_id: orderId,
-          title: t(`order_${newStatus}`),
-          message: t('order_status_notification', { orderNumber: order.order_number, status: t(newStatus) }),
-          type: `order_${newStatus}`,
-          read: false
-        });
-      }
-
-      // Reload orders
-      await loadOrders();
-      
-      toast({
-        title: t('order_updated'),
-        description: t('notification_sent'),
-      });
-    } catch (error) {
-      console.error('Error updating order:', error);
-      toast({
-        title: t('error'),
-        description: t('order_update_failed'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleReduceQuantity = async () => {
-    if (!selectedOrder || !reduceAmount || !reductionReason) return;
-
-    try {
-      const result = await mockDataService.reduceOrderQuantity(
-        selectedOrder.id,
-        parseInt(reduceAmount),
-        reductionReason,
-        user.id
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(order => 
+        order.id.toLowerCase().includes(term) ||
+        order.created_by.toLowerCase().includes(term) ||
+        (order.site_name && order.site_name.toLowerCase().includes(term)) ||
+        (order.notes && order.notes.toLowerCase().includes(term))
       );
-
-      if (result.success) {
-        toast({
-          title: t('quantity_reduced'),
-          description: t('quantity_reduction_success'),
-        });
-        setShowReduceDialog(false);
-        setReduceAmount('');
-        setReductionReason('');
-        setSelectedOrder(null);
-        await loadOrders();
-      } else {
-        toast({
-          title: t('error'),
-          description: t(result.error || 'unknown_error'),
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error reducing quantity:', error);
-      toast({
-        title: t('error'),
-        description: t('unknown_error'),
-        variant: 'destructive',
-      });
     }
+    
+    setFilteredOrders(filtered);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDeliveryTime = (date: string, timeSlot: string) => {
+    try {
+      const deliveryDate = new Date(date);
+      const dateStr = format(deliveryDate, 'MMMM d', { 
+        locale: language === 'he' ? he : enUS 
+      });
+      
+      const timeStr = timeSlot === 'morning' ? t('morning') : t('afternoon');
+      
+      return isRTL ? `${dateStr} • ${timeStr}` : `${dateStr} • ${timeStr}`;
+    } catch (error) {
+      return date;
+    }
   };
 
-  const getStatusCounts = () => {
-    return {
-      total: orders.length,
-      pending: orders.filter(o => o.status === 'pending').length,
-      approved: orders.filter(o => o.status === 'approved').length,
-      completed: orders.filter(o => o.status === 'completed').length
-    };
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      await Order.update(orderId, { status: newStatus });
+      await loadOrders(); // Reload orders
+      // TODO: Send notification to client
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
   };
 
-  const statusCounts = getStatusCounts();
-
-  if (isLoading) {
+  if (loading) {
     return (
       <Layout title={t('all_orders')}>
-        <div className="px-4 py-8">
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('loading')}</p>
           </div>
         </div>
       </Layout>
@@ -183,227 +130,167 @@ const ManagerDashboard: React.FC = () => {
 
   return (
     <Layout title={t('all_orders')}>
-      <div className="px-4 py-6">
-        {/* Create New Order Button */}
-        <div className="mb-6">
-          <Button
-            onClick={() => navigate('/create-order')}
-            className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-base shadow-lg"
+      <div className="p-4 space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('all_orders')}</h1>
+            <p className="text-gray-600">{t('total_orders')}: {orders.length}</p>
+          </div>
+          <Button 
+            onClick={() => navigate('/admin')}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium w-full sm:w-auto"
           >
-            <Plus className="h-5 w-5 mr-2" />
-            {t('create_new_order')}
+            {t('admin_panel')}
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">{statusCounts.total}</div>
-              <div className="text-sm text-gray-600">{t('total_orders')}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{statusCounts.pending}</div>
-              <div className="text-sm text-gray-600">{t('pending')}</div>
-            </CardContent>
-          </Card>
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder={t('search_orders')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('all_statuses')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('all')}</SelectItem>
+              <SelectItem value="pending">{t('pending')}</SelectItem>
+              <SelectItem value="approved">{t('approved')}</SelectItem>
+              <SelectItem value="rejected">{t('rejected')}</SelectItem>
+              <SelectItem value="completed">{t('completed')}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Quarry Filter */}
+          <Select value={quarryFilter} onValueChange={setQuarryFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('quarry_crossing')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('all')}</SelectItem>
+              <SelectItem value="shifolei_har">{t('shifolei_har')}</SelectItem>
+              <SelectItem value="yitzhak_rabin">{t('yitzhak_rabin')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">{t('status')}:</span>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('all_status')}</SelectItem>
-                    <SelectItem value="pending">{t('pending')}</SelectItem>
-                    <SelectItem value="approved">{t('approved')}</SelectItem>
-                    <SelectItem value="rejected">{t('rejected')}</SelectItem>
-                    <SelectItem value="completed">{t('completed')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">{t('quarry_crossing')}:</span>
-                <Select value={quarryFilter} onValueChange={setQuarryFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="default">{t('default_quarry')}</SelectItem>
-                    <SelectItem value="shifolei_har">{t('shifolei_har')}</SelectItem>
-                    <SelectItem value="yitzhak_rabin">{t('yitzhak_rabin')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Orders List */}
-        <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t('no_orders')}
-                </h3>
-                <p className="text-gray-600">
-                  {t('no_orders_filter')}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredOrders.map((order) => (
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {t('no_orders_found')}
+            </h3>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredOrders.map((order) => (
               <Card key={order.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">
-                        {t(order.product)}
+                      <CardTitle className="text-lg font-semibold">
+                        {t('order_number')}{order.id.slice(-6)}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
-                        {order.client_name} • {order.client_company}
+                        {t('customer')}: {order.created_by}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {t('order_number')}{order.order_number}
+                      <p className="text-sm text-gray-500">
+                        {format(new Date(order.created_at), 'PPP', { 
+                          locale: language === 'he' ? he : enUS 
+                        })}
                       </p>
                     </div>
-                    <Badge className={getStatusColor(order.status)}>
-                      {t(order.status)}
-                    </Badge>
+                    <div className="flex flex-col gap-2 items-end">
+                      <Badge className={getStatusColor(order.status)}>
+                        {t(order.status)}
+                      </Badge>
+                      {order.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => updateOrderStatus(order.id, 'approved')}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {t('approved')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => updateOrderStatus(order.id, 'rejected')}
+                          >
+                            {t('rejected')}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Package className="h-4 w-4" />
-                      <span>{order.quantity} {t('tons')}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDate(order.delivery_date)}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Truck className="h-4 w-4" />
-                      <span>{t(order.delivery_type)}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span className="truncate">{order.delivery_location}</span>
-                    </div>
+                  {/* Product */}
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">{t(order.product_id)}</span>
+                    <span className="text-gray-600">• {order.quantity} {t('tons')}</span>
                   </div>
 
-                  {/* Distance info */}
-                  {order.distance_km && (
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">{t('distance')}: </span>
-                      {order.distance_km} {t('km')}
+                  {/* Delivery Date & Time */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">
+                      {formatDeliveryTime(order.delivery_date, order.time_slot)}
+                    </span>
+                  </div>
+
+                  {/* Site Name */}
+                  {order.site_name && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">{order.site_name}</span>
                     </div>
                   )}
 
-                  {/* Notes Section */}
-                  {order.notes && order.notes.trim() && (
-                    <div className="pt-2 border-t">
-                      <p className="text-sm text-gray-700">
-                        <strong>{t('notes')}:</strong> {order.notes_preview || order.notes}
-                      </p>
+                  {/* Delivery Type */}
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">{t(order.delivery_type)}</span>
+                  </div>
+
+                  {/* Quarry */}
+                  {order.quarry && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">{t(order.quarry)}</span>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-3 border-t">
-                    <Select
-                      value={order.status}
-                      onValueChange={(value) => updateOrderStatus(order.id, value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">{t('pending')}</SelectItem>
-                        <SelectItem value="approved">{t('approved')}</SelectItem>
-                        <SelectItem value="rejected">{t('rejected')}</SelectItem>
-                        <SelectItem value="completed">{t('completed')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setShowReduceDialog(true);
-                      }}
-                    >
-                      <Minus className="h-4 w-4 mr-1" />
-                      {t('reduce_quantity')}
-                    </Button>
-                  </div>
+                  {/* Notes - Show full text */}
+                  {order.notes && (
+                    <div className="flex items-start gap-2">
+                      <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {order.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-
-        {/* Reduce Quantity Dialog */}
-        <Dialog open={showReduceDialog} onOpenChange={setShowReduceDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('reduce_quantity')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="reduce_amount">{t('reduce_by_tons')}</Label>
-                <Input
-                  id="reduce_amount"
-                  type="number"
-                  min="1"
-                  max={selectedOrder?.quantity || 1}
-                  value={reduceAmount}
-                  onChange={(e) => setReduceAmount(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="reduction_reason">{t('reduction_reason')}</Label>
-                <Input
-                  id="reduction_reason"
-                  value={reductionReason}
-                  onChange={(e) => setReductionReason(e.target.value)}
-                  placeholder={t('reduction_reason')}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleReduceQuantity}
-                  disabled={!reduceAmount || !reductionReason}
-                  className="flex-1"
-                >
-                  {t('confirm_reduction')}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowReduceDialog(false)}
-                  className="flex-1"
-                >
-                  {t('cancel')}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );
