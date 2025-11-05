@@ -1,31 +1,26 @@
 {
   "name": "Notification",
-  "description": "In-app notifications for order status updates",
+  "description": "A notification in the system",
   "properties": {
-    "user_id": {
+    "recipient_email": {
       "type": "string",
-      "description": "ID of the user who should receive the notification"
-    },
-    "order_id": {
-      "type": "string",
-      "description": "ID of the related order"
-    },
-    "title": {
-      "type": "string",
-      "description": "Notification title"
-    },
-    "message": {
-      "type": "string",
-      "description": "Notification message"
+      "description": "The email of the notification recipient"
     },
     "type": {
       "type": "string",
-      "description": "Type of notification",
-      "enum": ["order_approved", "order_rejected", "order_completed"]
+      "description": "The type of notification"
     },
-    "read": {
+    "message": {
+      "type": "string",
+      "description": "The notification message"
+    },
+    "is_read": {
       "type": "boolean",
       "description": "Whether the notification has been read"
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Related order ID if applicable"
     }
   }
 }

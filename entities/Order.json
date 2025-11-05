@@ -1,66 +1,50 @@
 {
   "name": "Order",
-  "description": "Delivery order for quarry materials",
+  "description": "An order in the system",
   "properties": {
-    "order_number": {
-      "type": "integer",
-      "description": "Sequential order number generated server-side"
-    },
-    "client_id": {
+    "product_id": {
       "type": "string",
-      "description": "ID of the client who created the order"
-    },
-    "client_name": {
-      "type": "string",
-      "description": "Name of the client"
-    },
-    "client_company": {
-      "type": "string",
-      "description": "Company name of the client"
-    },
-    "site_id": {
-      "type": "string",
-      "description": "ID of the delivery site"
-    },
-    "unlinked_site": {
-      "type": "boolean",
-      "description": "True for legacy orders without site linkage"
-    },
-    "product": {
-      "type": "string",
-      "description": "Selected quarry material",
-      "enum": ["p_new_sand_0_4", "sesame_4_9_5", "lentil_9_5_19", "polia_19_25", "granite_10_60"]
+      "description": "The ID of the ordered product"
     },
     "quantity": {
       "type": "number",
-      "description": "Quantity in tons"
+      "description": "The quantity ordered in tons"
     },
     "delivery_date": {
       "type": "string",
-      "description": "Requested delivery date and time"
+      "description": "The delivery date"
+    },
+    "time_slot": {
+      "type": "string",
+      "description": "The delivery time slot (morning/afternoon)"
     },
     "delivery_type": {
       "type": "string",
-      "description": "Type of delivery",
-      "enum": ["self_transport", "external"]
+      "description": "The delivery type (self_transport/external)"
     },
-    "status": {
+    "site_name": {
       "type": "string",
-      "description": "Order status",
-      "enum": ["pending", "approved", "rejected", "completed"]
+      "description": "The name of the delivery site"
+    },
+    "delivery_location": {
+      "type": "string",
+      "description": "The delivery address"
+    },
+    "quarry": {
+      "type": "string",
+      "description": "The quarry or crossing point"
     },
     "notes": {
       "type": "string",
-      "description": "Additional notes or comments"
+      "description": "Additional notes for the order"
     },
-    "notes_preview": {
-      "type": "string",
-      "description": "First line of notes for preview display"
+    "truck_access": {
+      "type": "boolean",
+      "description": "Whether there is truck access"
     },
-    "quarry_or_crossing": {
+    "status": {
       "type": "string",
-      "description": "Selected quarry or crossing",
-      "enum": ["default", "shifolei_har", "yitzhak_rabin"]
+      "description": "The order status (pending/approved/rejected/completed)"
     }
   }
 }

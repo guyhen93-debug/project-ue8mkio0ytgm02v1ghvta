@@ -1,15 +1,22 @@
 {
   "name": "Client",
-  "description": "Client companies that can place orders",
+  "description": "A client in the system",
   "properties": {
     "name": {
       "type": "string",
-      "description": "Client company name"
+      "description": "The name of the client"
     },
-    "category": {
+    "email": {
       "type": "string",
-      "description": "Client category",
-      "enum": ["manager", "client"]
+      "description": "The email address of the client"
+    },
+    "phone": {
+      "type": "string",
+      "description": "The phone number of the client"
+    },
+    "company": {
+      "type": "string",
+      "description": "The company name"
     },
     "is_active": {
       "type": "boolean",
