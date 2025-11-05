@@ -97,6 +97,18 @@ const translations = {
     'delivered': 'Delivered',
     'all': 'All',
     
+    // Filter options
+    'all_orders': 'All Orders',
+    'all_status': 'All Status',
+    'filter_by_status': 'Filter by Status',
+    
+    // Time display
+    'morning': 'Morning',
+    'afternoon': 'Afternoon',
+    
+    // Site names
+    'site_name': 'Site Name',
+    
     // Validation & Errors
     'validation_error': 'Validation Error',
     'error': 'Error',
@@ -141,9 +153,6 @@ const translations = {
     'logout': 'Logout',
     'filter': 'Filter',
     'sort': 'Sort',
-    'all_orders': 'All Orders',
-    'all_status': 'All Status',
-    'filter_by_status': 'Filter by Status',
     'my_orders': 'My Orders',
     'no_orders': 'No orders found',
     'no_orders_filter': 'No orders match the current filter',
@@ -181,9 +190,8 @@ const translations = {
     'distance': 'Distance',
     'km': 'km',
     
-    // New site-related translations
+    // Site-related translations
     'sites': 'Sites',
-    'site_name': 'Site Name',
     'region_type': 'Region Type',
     'contact_name': 'Contact Name',
     'contact_phone': 'Contact Phone',
@@ -197,7 +205,6 @@ const translations = {
     'clients_management': 'Client Management',
     'add_client': 'Add Client',
     'edit_client': 'Edit Client',
-    'client_name': 'Client Name',
     'client_category': 'Client Category',
     'is_active': 'Is Active',
     'active': 'Active',
@@ -231,10 +238,9 @@ const translations = {
     'no_orders_found': 'No orders found',
     'no_orders_yet': 'No orders yet',
 
-    // New error messages
+    // Error messages
     'outside_eilat_min': 'For sites outside Eilat, a minimum of 40 tons is required for external delivery.',
     'unlinked_site': 'This site is not linked to an active client.',
-    'past_date': 'Cannot order for a past date.',
     'invalid_time': 'Orders allowed only between 07:00–17:00.',
     
     // Dynamic notifications
@@ -243,7 +249,7 @@ const translations = {
     'order_completed': 'Order Completed',
     'order_status_notification': 'Your order #{orderNumber} has been {status}',
 
-    // Admin and CRUD translations
+    // Product management
     'product_management': 'Product Management',
     'add_product': 'Add Product',
     'edit_product': 'Edit Product',
@@ -263,7 +269,6 @@ const translations = {
     
     // Order management
     'edit_order': 'Edit Order',
-    'order_updated': 'Order Updated',
     'order_updated_successfully': 'Order updated successfully',
     'order_deleted': 'Order Deleted',
     'order_deleted_successfully': 'Order deleted successfully',
@@ -271,7 +276,6 @@ const translations = {
     'save_changes': 'Save Changes',
     
     // Messaging
-    'reply': 'Reply',
     'send_reply': 'Send Reply',
     'type_reply': 'Type your reply...',
     'reply_sent': 'Reply Sent',
@@ -282,13 +286,17 @@ const translations = {
     'confirm_delete_message': 'Are you sure you want to delete this message?',
     'general_message': 'General Message',
     'you': 'You',
-    'manager': 'Manager',
+    'from': 'From',
+    'recipient': 'Recipient',
+    'subject': 'Subject',
+    'message': 'Message',
+    'optional': 'Optional',
+    'select_message': 'Select a message to view',
     
     // Notifications
     'notification_deleted': 'Notification Deleted',
     'notification_deleted_successfully': 'Notification deleted successfully',
     'confirm_delete_notification': 'Are you sure you want to delete this notification?',
-    'new': 'New',
     
     // General
     'confirm_delete': 'Confirm Delete',
@@ -383,6 +391,18 @@ const translations = {
     'delivered': 'סופקה',
     'all': 'הכל',
     
+    // Filter options
+    'all_orders': 'כל ההזמנות',
+    'all_status': 'כל הסטטוסים',
+    'filter_by_status': 'סינון לפי סטטוס',
+    
+    // Time display
+    'morning': 'בוקר',
+    'afternoon': 'צהריים',
+    
+    // Site names
+    'site_name': 'שם האתר',
+    
     // Validation & Errors
     'validation_error': 'שגיאת אימות',
     'error': 'שגיאה',
@@ -427,9 +447,6 @@ const translations = {
     'logout': 'התנתקות',
     'filter': 'סינון',
     'sort': 'מיון',
-    'all_orders': 'כל ההזמנות',
-    'all_status': 'כל הסטטוסים',
-    'filter_by_status': 'סינון לפי סטטוס',
     'my_orders': 'ההזמנות שלי',
     'no_orders': 'לא נמצאו הזמנות',
     'no_orders_filter': 'אין הזמנות התואמות לסינון הנוכחי',
@@ -467,9 +484,8 @@ const translations = {
     'distance': 'מרחק',
     'km': 'ק"מ',
     
-    // New site-related translations
+    // Site-related translations
     'sites': 'אתרים',
-    'site_name': 'שם האתר',
     'region_type': 'סוג אזור',
     'contact_name': 'שם איש קשר',
     'contact_phone': 'טלפון איש קשר',
@@ -516,7 +532,7 @@ const translations = {
     'no_orders_found': 'לא נמצאו הזמנות',
     'no_orders_yet': 'אין הזמנות עדיין',
 
-    // New error messages
+    // Error messages
     'outside_eilat_min': 'לאתרים שמחוץ לאילת נדרש מינימום של 40 טון בהובלה חיצונית.',
     'unlinked_site': 'אתר זה אינו משויך ללקוח פעיל.',
     'invalid_time': 'ניתן להזמין רק בין השעות 07:00–17:00.',
@@ -527,7 +543,7 @@ const translations = {
     'order_completed': 'הזמנה הושלמה',
     'order_status_notification': 'הזמנה מס\' {orderNumber} {status}',
 
-    // Admin and CRUD translations
+    // Product management
     'product_management': 'ניהול מוצרים',
     'add_product': 'הוסף מוצר',
     'edit_product': 'ערוך מוצר',
@@ -547,7 +563,6 @@ const translations = {
     
     // Order management
     'edit_order': 'ערוך הזמנה',
-    'order_updated': 'הזמנה עודכנה',
     'order_updated_successfully': 'ההזמנה עודכנה בהצלחה',
     'order_deleted': 'הזמנה נמחקה',
     'order_deleted_successfully': 'ההזמנה נמחקה בהצלחה',
@@ -555,7 +570,6 @@ const translations = {
     'save_changes': 'שמור שינויים',
     
     // Messaging
-    'reply': 'השב',
     'send_reply': 'שלח תגובה',
     'type_reply': 'כתוב את התגובה שלך...',
     'reply_sent': 'תגובה נשלחה',
@@ -566,13 +580,17 @@ const translations = {
     'confirm_delete_message': 'האם אתה בטוח שברצונך למחוק את ההודעה הזו?',
     'general_message': 'הודעה כללית',
     'you': 'אתה',
-    'manager': 'מנהל',
+    'from': 'מאת',
+    'recipient': 'נמען',
+    'subject': 'נושא',
+    'message': 'הודעה',
+    'optional': 'אופציונלי',
+    'select_message': 'בחר הודעה לצפייה',
     
     // Notifications
     'notification_deleted': 'התראה נמחקה',
-    'notification_deleted_successfully': 'התראה נמחקה בהצלחה',
+    'notification_deleted_successfully': 'ההתראה נמחקה בהצלחה',
     'confirm_delete_notification': 'האם אתה בטוח שברצונך למחוק את ההתראה הזו?',
-    'new': 'חדש',
     
     // General
     'confirm_delete': 'אשר מחיקה',
