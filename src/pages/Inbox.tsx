@@ -36,7 +36,7 @@ const Inbox: React.FC = () => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [newMessage, setNewMessage] = useState({
-    order_id: '',
+    order_id: 'general', // Changed from empty string to 'general'
     recipient_email: '',
     subject: '',
     content: ''
@@ -155,18 +155,18 @@ const Inbox: React.FC = () => {
     try {
       const message: Message = {
         id: Date.now().toString(),
-        order_id: newMessage.order_id || undefined,
+        order_id: newMessage.order_id === 'general' ? undefined : newMessage.order_id, // Handle 'general' case
         sender_email: user?.email || '',
         recipient_email: newMessage.recipient_email,
         subject: newMessage.subject || t('general_message'),
         content: newMessage.content,
         is_read: false,
         created_at: new Date().toISOString(),
-        message_type: newMessage.order_id ? 'order_related' : 'general'
+        message_type: newMessage.order_id === 'general' ? 'general' : 'order_related'
       };
 
       setMessages(prev => [message, ...prev]);
-      setNewMessage({ order_id: '', recipient_email: '', subject: '', content: '' });
+      setNewMessage({ order_id: 'general', recipient_email: '', subject: '', content: '' }); // Reset to 'general'
       setShowNewMessage(false);
       
       toast({
@@ -395,7 +395,7 @@ const Inbox: React.FC = () => {
                       <SelectValue placeholder={t('select_order')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">{t('general_message')}</SelectItem>
+                      <SelectItem value="general">{t('general_message')}</SelectItem>
                       {orders.map((order) => (
                         <SelectItem key={order.id} value={order.id}>
                           {t('order_number')}{order.id.slice(-6)} - {t(order.product_id)}
