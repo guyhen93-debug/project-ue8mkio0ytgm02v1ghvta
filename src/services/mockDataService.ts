@@ -73,13 +73,61 @@ interface MockSite {
   updated_at: string;
 }
 
+// Updated demo users structure
+interface MockUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'client' | 'manager';
+  client_id: string;
+  client_name: string;
+  company: string;
+  assigned_site_id?: string;
+  assigned_site_name?: string;
+}
+
 class MockDataService {
   private orders: MockOrder[] = [];
   private notifications: MockNotification[] = [];
   private messages: MockMessage[] = [];
   private clients: MockClient[] = [];
   private sites: MockSite[] = [];
-  private orderCounter: number = 1000;
+  private orderCounter: number = 2000; // Start from 2000 for new orders
+  
+  // Updated demo users with client-site linkage
+  private demoUsers: MockUser[] = [
+    {
+      id: 'c1',
+      email: 'john@construction.com',
+      name: 'John Smith',
+      role: 'client',
+      client_id: 'c1',
+      client_name: 'דן עבודות עפר',
+      company: 'דן עבודות עפר',
+      assigned_site_id: 's1',
+      assigned_site_name: 'אתר שדרות ירושלים (אילת)'
+    },
+    {
+      id: 'c2',
+      email: 'ahmed@buildco.com',
+      name: 'Ahmed Hassan',
+      role: 'client',
+      client_id: 'c2',
+      client_name: 'ארד בנייה',
+      company: 'ארד בנייה',
+      assigned_site_id: 's3',
+      assigned_site_name: 'אתר נווה מדבר (אילת)'
+    },
+    {
+      id: 'admin',
+      email: 'david@piternoufi.com',
+      name: 'David Cohen',
+      role: 'manager',
+      client_id: 'admin',
+      client_name: 'Piter Noufi Ltd',
+      company: 'Piter Noufi Ltd'
+    }
+  ];
   
   // Product data with descriptions and images
   private products: MockProduct[] = [
@@ -138,13 +186,13 @@ class MockDataService {
     // Load counter from localStorage
     const storedCounter = localStorage.getItem('orderCounter');
     if (storedCounter) {
-      this.orderCounter = parseInt(storedCounter, 10);
+      this.orderCounter = Math.max(parseInt(storedCounter, 10), 2000);
     }
 
     // Initialize with sample data
     const now = new Date().toISOString();
     
-    // Initialize clients
+    // Initialize clients (matching demo users)
     this.clients = [
       {
         id: 'c1',
@@ -220,10 +268,11 @@ class MockDataService {
       }
     ];
     
+    // NEW SAMPLE ORDERS - properly linked to clients and sites
     this.orders = [
       {
-        id: '1',
-        order_number: 1001,
+        id: '2001',
+        order_number: 2001,
         client_id: 'c1',
         client_name: 'דן עבודות עפר',
         client_company: 'דן עבודות עפר',
@@ -231,43 +280,44 @@ class MockDataService {
         unlinked_site: false,
         product: 'p_new_sand_0_4',
         quantity: 20,
-        delivery_date: '2024-01-15T09:00:00',
+        delivery_date: '2025-01-15T09:00:00',
         delivery_type: 'external',
         status: 'approved',
-        notes: 'Please deliver to the back entrance. Contact site manager before arrival.',
-        notes_preview: 'Please deliver to the back entrance...',
+        notes: 'אספקה לאתר הראשי באילת. לתאם עם איש הקשר באתר.',
+        notes_preview: 'אספקה לאתר הראשי באילת...',
         quarry_or_crossing: 'default',
         created_at: now,
         updated_at: now
       },
       {
-        id: '2',
-        order_number: 1002,
+        id: '2002',
+        order_number: 2002,
         client_id: 'c2',
         client_name: 'ארד בנייה',
         client_company: 'ארד בנייה',
         site_id: 's3',
         unlinked_site: false,
         product: 'granite_10_60',
-        quantity: 25.0,
-        delivery_date: '2024-01-18T14:30:00',
+        quantity: 25,
+        delivery_date: '2025-01-18T14:30:00',
         delivery_type: 'self_transport',
         status: 'pending',
-        notes: 'Contact site manager before delivery. Gate code: 1234',
-        notes_preview: 'Contact site manager before delivery...',
+        notes: 'הובלה עצמית. לתאם הגעה עם איש הקשר באתר.',
+        notes_preview: 'הובלה עצמית. לתאם הגעה...',
         quarry_or_crossing: 'yitzhak_rabin',
         created_at: now,
         updated_at: now
       }
     ];
 
+    // Updated notifications for new orders
     this.notifications = [
       {
         id: '1',
-        user_id: '1',
-        order_id: '1',
+        user_id: 'c1',
+        order_id: '2001',
         title: 'order_approved',
-        message: 'Your sand order #1001 has been approved for delivery on Jan 15',
+        message: 'הזמנה מס\' 2001 אושרה לאספקה ב-15 בינואר',
         type: 'order_approved',
         read: false,
         created_at: now,
@@ -275,29 +325,78 @@ class MockDataService {
       }
     ];
 
+    // Updated messages for new orders
     this.messages = [
       {
         id: '1',
-        order_id: '1',
-        from_user_id: '3',
-        to_user_id: '1',
-        content: 'Your order has been approved. Delivery scheduled for tomorrow morning.',
+        order_id: '2001',
+        from_user_id: 'admin',
+        to_user_id: 'c1',
+        content: 'הזמנתכם אושרה. האספקה מתוזמנת למחר בבוקר.',
         read: false,
         created_at: now,
         updated_at: now
       }
     ];
 
-    // Load from localStorage if available
+    // Load from localStorage if available (but prioritize new structure)
     const storedOrders = localStorage.getItem('mockOrders');
     const storedNotifications = localStorage.getItem('mockNotifications');
     const storedMessages = localStorage.getItem('mockMessages');
     const storedClients = localStorage.getItem('mockClients');
     const storedSites = localStorage.getItem('mockSites');
     
+    // Only load stored data if it exists and is valid
     if (storedOrders) {
       try {
-        this.orders = JSON.parse(storedOrders);
+        const parsedOrders = JSON.parse(storedOrders);
+        // Filter out old orders (1001, 1002) and keep only new structure
+        this.orders = parsedOrders.filter((order: MockOrder) => 
+          order.order_number >= 2000 && order.site_id
+        );
+        // If no valid orders, use defaults
+        if (this.orders.length === 0) {
+          this.orders = [
+            {
+              id: '2001',
+              order_number: 2001,
+              client_id: 'c1',
+              client_name: 'דן עבודות עפר',
+              client_company: 'דן עבודות עפר',
+              site_id: 's1',
+              unlinked_site: false,
+              product: 'p_new_sand_0_4',
+              quantity: 20,
+              delivery_date: '2025-01-15T09:00:00',
+              delivery_type: 'external',
+              status: 'approved',
+              notes: 'אספקה לאתר הראשי באילת. לתאם עם איש הקשר באתר.',
+              notes_preview: 'אספקה לאתר הראשי באילת...',
+              quarry_or_crossing: 'default',
+              created_at: now,
+              updated_at: now
+            },
+            {
+              id: '2002',
+              order_number: 2002,
+              client_id: 'c2',
+              client_name: 'ארד בנייה',
+              client_company: 'ארד בנייה',
+              site_id: 's3',
+              unlinked_site: false,
+              product: 'granite_10_60',
+              quantity: 25,
+              delivery_date: '2025-01-18T14:30:00',
+              delivery_type: 'self_transport',
+              status: 'pending',
+              notes: 'הובלה עצמית. לתאם הגעה עם איש הקשר באתר.',
+              notes_preview: 'הובלה עצמית. לתאם הגעה...',
+              quarry_or_crossing: 'yitzhak_rabin',
+              created_at: now,
+              updated_at: now
+            }
+          ];
+        }
       } catch (e) {
         console.error('Error loading stored orders:', e);
       }
@@ -340,6 +439,21 @@ class MockDataService {
       const maxOrderNumber = Math.max(...this.orders.map(o => o.order_number || 0));
       this.orderCounter = Math.max(this.orderCounter, maxOrderNumber + 1);
     }
+  }
+
+  // Demo user authentication method
+  authenticateUser(email: string, password: string): MockUser | null {
+    // Simple demo authentication - in real app, use proper auth
+    const user = this.demoUsers.find(u => u.email === email);
+    if (user && password === 'demo123') {
+      return user;
+    }
+    return null;
+  }
+
+  // Get demo user by ID
+  getDemoUser(id: string): MockUser | null {
+    return this.demoUsers.find(u => u.id === id) || null;
   }
 
   private saveToStorage() {
