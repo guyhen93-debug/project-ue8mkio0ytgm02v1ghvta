@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { MessageCircle, X, CheckCheck, Trash2, Plus, Send, Eye, Reply } from 'lucide-react';
+import { MessageCircle, X, CheckCheck, Trash2, Plus, Send, Eye, Reply, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import MessageThreadView from '@/components/messaging/MessageThreadView';
+import NewMessageForm from '@/components/messaging/NewMessageForm';
 
 const Inbox: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
@@ -22,6 +23,7 @@ const Inbox: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showThreadDialog, setShowThreadDialog] = useState(false);
+  const [showNewMessageForm, setShowNewMessageForm] = useState(false);
 
   useEffect(() => {
     loadMessages();
@@ -32,20 +34,26 @@ const Inbox: React.FC = () => {
       setLoading(true);
       if (user?.email) {
         console.log('Loading messages for user:', user.email);
-        // Get only root messages (not replies)
-        const userMessages = await Message.filter(
-          { 
-            recipient_email: user.email,
-            parent_message_id: null // Only root messages
-          }, 
+        
+        // Try to get messages without parent_message_id filter first
+        let userMessages = await Message.filter(
+          { recipient_email: user.email }, 
           '-created_at'
         );
+        
+        // If we have messages, filter out replies on the client side
+        if (userMessages && userMessages.length > 0) {
+          userMessages = userMessages.filter(msg => !msg.parent_message_id);
+        }
+        
         console.log('Loaded messages:', userMessages.length);
         console.log('Messages data:', userMessages);
-        setMessages(userMessages);
+        setMessages(userMessages || []);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
+      // Set empty array on error to prevent infinite loading
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -119,6 +127,11 @@ const Inbox: React.FC = () => {
     loadMessages(); // Refresh to update read status and reply counts
   };
 
+  const handleNewMessage = () => {
+    setShowNewMessageForm(false);
+    loadMessages(); // Refresh messages after sending
+  };
+
   // Debug function to create a test message
   const createTestMessage = async () => {
     try {
@@ -155,17 +168,6 @@ const Inbox: React.FC = () => {
     }
   };
 
-  // Get reply count for a message
-  const getReplyCount = async (messageId: string) => {
-    try {
-      const replies = await Message.filter({ parent_message_id: messageId });
-      return replies.length;
-    } catch (error) {
-      console.error('Error getting reply count:', error);
-      return 0;
-    }
-  };
-
   if (loading) {
     return (
       <Layout title={t('inbox')}>
@@ -180,6 +182,20 @@ const Inbox: React.FC = () => {
   }
 
   const unreadCount = messages.filter(m => !m.is_read).length;
+
+  // Show new message form
+  if (showNewMessageForm) {
+    return (
+      <Layout title={isRTL ? 'הודעה חדשה' : 'New Message'}>
+        <div className="p-4">
+          <NewMessageForm
+            onSent={handleNewMessage}
+            onCancel={() => setShowNewMessageForm(false)}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title={t('inbox')}>
@@ -199,6 +215,15 @@ const Inbox: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            {/* New Message Button */}
+            <Button
+              onClick={() => setShowNewMessageForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              {isRTL ? 'הודעה חדשה' : 'New Message'}
+            </Button>
+            
             {/* Debug button - remove in production */}
             {process.env.NODE_ENV === 'development' && (
               <Button
@@ -211,6 +236,7 @@ const Inbox: React.FC = () => {
                 Test
               </Button>
             )}
+            
             {messages.some(m => !m.is_read) && (
               <Button
                 variant="outline"
@@ -232,17 +258,16 @@ const Inbox: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {t('no_messages')}
             </h3>
-            <p className="text-gray-600 mb-4">Your inbox is empty</p>
-            {/* Debug button for empty state */}
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                onClick={createTestMessage}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Test Message
-              </Button>
-            )}
+            <p className="text-gray-600 mb-4">
+              {isRTL ? 'תיבת הדואר שלך ריקה' : 'Your inbox is empty'}
+            </p>
+            <Button
+              onClick={() => setShowNewMessageForm(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              {isRTL ? 'כתוב הודעה ראשונה' : 'Write your first message'}
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -354,7 +379,7 @@ const Inbox: React.FC = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>{t('confirm_delete')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete this message?
+                              {isRTL ? 'האם אתה בטוח שברצונך למחוק הודעה זו?' : 'Are you sure you want to delete this message?'}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
