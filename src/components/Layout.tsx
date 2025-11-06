@@ -156,8 +156,8 @@ export const Layout: React.FC<LayoutProps> = ({
     {
       icon: Home,
       label: t('home'),
-      path: user?.role === 'manager' ? '/manager' : '/client',
-      active: location.pathname === (user?.role === 'manager' ? '/manager' : '/client')
+      path: user?.role === 'manager' ? '/manager-dashboard' : '/client-dashboard',
+      active: location.pathname === (user?.role === 'manager' ? '/manager-dashboard' : '/client-dashboard')
     },
     {
       icon: MessageCircle,
