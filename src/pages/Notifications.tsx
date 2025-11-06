@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { Bell, X, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, X, CheckCheck, Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 
@@ -26,11 +26,13 @@ const Notifications: React.FC = () => {
     try {
       setLoading(true);
       if (user?.email) {
+        console.log('Loading notifications for user:', user.email);
         const userNotifications = await Notification.filter(
           { recipient_email: user.email }, 
           '-created_at'
         );
         console.log('Loaded notifications:', userNotifications.length);
+        console.log('Notifications data:', userNotifications);
         setNotifications(userNotifications);
       }
     } catch (error) {
@@ -42,10 +44,12 @@ const Notifications: React.FC = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      console.log('Marking notification as read:', notificationId);
       await Notification.update(notificationId, { is_read: true });
       await loadNotifications();
       // Trigger a custom event to notify Layout component
       window.dispatchEvent(new CustomEvent('notificationRead'));
+      console.log('Notification marked as read and event dispatched');
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -54,6 +58,7 @@ const Notifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.is_read);
+      console.log('Marking all notifications as read:', unreadNotifications.length);
       for (const notification of unreadNotifications) {
         await Notification.update(notification.id, { is_read: true });
       }
@@ -86,6 +91,26 @@ const Notifications: React.FC = () => {
         description: t('delete_failed'),
         variant: 'destructive'
       });
+    }
+  };
+
+  // Debug function to create a test notification
+  const createTestNotification = async () => {
+    try {
+      await Notification.create({
+        recipient_email: user?.email,
+        type: 'order_approved',
+        message: 'הזמנה מספר 2001 אושרה בהצלחה',
+        is_read: false,
+        order_id: 'test-order-id'
+      });
+      await loadNotifications();
+      toast({
+        title: 'Test notification created',
+        description: 'A test notification has been created'
+      });
+    } catch (error) {
+      console.error('Error creating test notification:', error);
     }
   };
 
@@ -127,6 +152,8 @@ const Notifications: React.FC = () => {
     );
   }
 
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   return (
     <Layout title={t('notifications')}>
       <div className="p-4 space-y-4">
@@ -135,20 +162,34 @@ const Notifications: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t('notifications')}</h1>
             <p className="text-gray-600">
-              {notifications.filter(n => !n.is_read).length} {t('new')}
+              {unreadCount} {t('new')} • {notifications.length} {t('total')}
             </p>
           </div>
-          {notifications.some(n => !n.is_read) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={markAllAsRead}
-              className="flex items-center gap-2"
-            >
-              <CheckCheck className="w-4 h-4" />
-              {t('mark_all_read')}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {/* Debug button - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={createTestNotification}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Test
+              </Button>
+            )}
+            {notifications.some(n => !n.is_read) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={markAllAsRead}
+                className="flex items-center gap-2"
+              >
+                <CheckCheck className="w-4 h-4" />
+                {t('mark_all_read')}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Notifications List */}
@@ -158,7 +199,17 @@ const Notifications: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {t('no_notifications')}
             </h3>
-            <p className="text-gray-600">{t('all_caught_up')}</p>
+            <p className="text-gray-600 mb-4">{t('all_caught_up')}</p>
+            {/* Debug button for empty state */}
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                onClick={createTestNotification}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Test Notification
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

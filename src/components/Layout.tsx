@@ -28,46 +28,71 @@ export const Layout: React.FC<LayoutProps> = ({
   // Load unread counts
   useEffect(() => {
     if (user?.email) {
+      console.log('Loading unread counts for user:', user.email);
       loadUnreadCounts();
     }
-  }, [user?.email, location.pathname]); // Add location.pathname to refresh when navigating
+  }, [user?.email]);
+
+  // Listen for notification updates
+  useEffect(() => {
+    const handleNotificationUpdate = () => {
+      console.log('Notification update event received');
+      if (user?.email) {
+        loadUnreadCounts();
+      }
+    };
+
+    window.addEventListener('notificationRead', handleNotificationUpdate);
+    return () => {
+      window.removeEventListener('notificationRead', handleNotificationUpdate);
+    };
+  }, [user?.email]);
+
+  // Refresh when navigating to/from notifications page
+  useEffect(() => {
+    if (user?.email) {
+      console.log('Route changed to:', location.pathname);
+      // Small delay to allow for any pending operations
+      const timer = setTimeout(() => {
+        loadUnreadCounts();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, user?.email]);
 
   const loadUnreadCounts = async () => {
     try {
+      console.log('Starting to load unread counts...');
+      
       // Load notifications
       try {
+        console.log('Querying notifications for:', user?.email);
         const notifications = await Notification.filter({
           recipient_email: user?.email,
           is_read: false
         });
-        console.log('Unread notifications found:', notifications.length);
+        console.log('Raw unread notifications:', notifications);
+        console.log('Unread notifications count:', notifications.length);
         setUnreadNotifications(notifications.length);
       } catch (notificationError) {
-        console.log('Error loading notifications:', notificationError);
+        console.error('Error loading notifications:', notificationError);
         setUnreadNotifications(0);
       }
 
-      // For messages, we'll simulate unread count (in real app, this would come from a messages entity)
-      // For now, set to 0 to demonstrate the fix
+      // For messages, we'll simulate unread count
       setUnreadMessages(0);
     } catch (error) {
-      console.error('Error loading unread counts:', error);
-      // Set safe defaults
+      console.error('Error in loadUnreadCounts:', error);
       setUnreadNotifications(0);
       setUnreadMessages(0);
     }
   };
 
-  // Refresh unread counts when visiting notifications page
-  useEffect(() => {
-    if (location.pathname === '/notifications' && user?.email) {
-      // Add a small delay to allow notifications to be marked as read
-      const timer = setTimeout(() => {
-        loadUnreadCounts();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, user?.email]);
+  // Force refresh function for debugging
+  const forceRefresh = () => {
+    console.log('Force refreshing notification count...');
+    loadUnreadCounts();
+  };
 
   const navItems = [
     {
@@ -111,8 +136,17 @@ export const Layout: React.FC<LayoutProps> = ({
     <div className={`min-h-screen bg-gray-50 ${className}`}>  
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+          {/* Debug button - remove in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <button 
+              onClick={forceRefresh}
+              className="text-xs bg-gray-200 px-2 py-1 rounded"
+            >
+              Refresh ({unreadNotifications})
+            </button>
+          )}
         </div>
       </header>
 
@@ -137,8 +171,8 @@ export const Layout: React.FC<LayoutProps> = ({
               >
                 <item.icon className="h-5 w-5 mb-1" />
                 <span className="text-xs font-medium truncate">{item.label}</span>
-                {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] font-bold">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
