@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminPanel from './pages/AdminPanel';
+import Inbox from './pages/Inbox';
 
 const queryClient = new QueryClient();
 
@@ -104,13 +105,6 @@ const AuthWrapper = ({ children }) => {
 const CreateOrder = () => (
   <div style={{ padding: '2rem', textAlign: 'center' }}>
     <h1>יצירת הזמנה חדשה</h1>
-    <p>עמוד זה בפיתוח</p>
-  </div>
-);
-
-const Inbox = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1>תיבת דואר</h1>
     <p>עמוד זה בפיתוח</p>
   </div>
 );
