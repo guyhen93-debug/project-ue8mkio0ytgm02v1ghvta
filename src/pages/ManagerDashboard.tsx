@@ -4,15 +4,15 @@ import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderService } from '@/services/orderService';
+import { DataService } from '@/services/dataService';
 import { SampleDataService } from '@/services/sampleDataService';
-import { Order } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, Filter } from 'lucide-react';
+import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ const ManagerDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     loadOrders();
@@ -42,18 +43,35 @@ const ManagerDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Try to initialize sample data if no data exists
-      await SampleDataService.initializeSampleData();
+      console.log('Loading orders... Attempt:', retryCount + 1);
       
+      // Try to initialize sample data if no data exists (only on first load)
+      if (retryCount === 0) {
+        try {
+          await SampleDataService.initializeSampleData();
+        } catch (sampleError) {
+          console.log('Sample data initialization failed, continuing with existing data');
+        }
+      }
+      
+      // Load orders with the robust data service
       const allOrders = await OrderService.getOrdersWithRelations(undefined, true);
+      console.log('Loaded orders:', allOrders.length);
+      
       setOrders(allOrders);
+      setRetryCount(0); // Reset retry count on success
     } catch (error) {
-      console.error('Error loading orders with relations:', error);
-      setError('Failed to load orders. Please try again.');
+      console.error('Error loading orders:', error);
+      setError(`Failed to load orders. ${error instanceof Error ? error.message : 'Unknown error'}`);
       setOrders([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    loadOrders();
   };
 
   const filterOrders = () => {
@@ -116,12 +134,16 @@ const ManagerDashboard: React.FC = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await Order.update(orderId, { status: newStatus });
-      await loadOrders(); // Reload orders
-      toast({
-        title: t('order_updated'),
-        description: t('order_updated_successfully')
-      });
+      const result = await DataService.updateOrder(orderId, { status: newStatus });
+      if (result.success) {
+        await loadOrders(); // Reload orders
+        toast({
+          title: t('order_updated'),
+          description: t('order_updated_successfully')
+        });
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
       toast({
@@ -139,6 +161,11 @@ const ManagerDashboard: React.FC = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
             <p className="text-gray-600">{t('loading')}</p>
+            {retryCount > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Retry attempt: {retryCount}
+              </p>
+            )}
           </div>
         </div>
       </Layout>
@@ -149,15 +176,33 @@ const ManagerDashboard: React.FC = () => {
     return (
       <Layout title={t('all_orders')}>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
+          <div className="text-center max-w-md">
             <Package className="w-16 h-16 text-red-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {t('error_loading_data')}
             </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={loadOrders} className="bg-yellow-500 hover:bg-yellow-600 text-black">
-              {t('try_again')}
-            </Button>
+            <p className="text-gray-600 mb-4 text-sm">{error}</p>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                onClick={handleRetry} 
+                className="bg-yellow-500 hover:bg-yellow-600 text-black"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                {t('try_again')}
+              </Button>
+              <Button 
+                onClick={() => navigate('/create-order')}
+                variant="outline"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('create_order')}
+              </Button>
+            </div>
+            {retryCount > 0 && (
+              <p className="text-xs text-gray-500 mt-3">
+                Failed attempts: {retryCount}
+              </p>
+            )}
           </div>
         </div>
       </Layout>
@@ -174,6 +219,15 @@ const ManagerDashboard: React.FC = () => {
             <p className="text-gray-600">{t('total_orders')}: {orders.length}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={handleRetry}
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {t('refresh')}
+            </Button>
             <Button 
               onClick={() => navigate('/create-order')}
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"

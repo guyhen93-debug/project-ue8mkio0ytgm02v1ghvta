@@ -1,4 +1,4 @@
-import { Order, Site, Client } from '@/entities';
+import { DataService } from './dataService';
 
 export interface OrderValidationResult {
   isValid: boolean;
@@ -30,8 +30,9 @@ export class OrderService {
 
     // Get site information for region-based validation
     if (data.site_id) {
-      try {
-        const site = await Site.get(data.site_id);
+      const siteResult = await DataService.getSite(data.site_id);
+      if (siteResult.success && siteResult.data) {
+        const site = siteResult.data;
         
         // Apply quantity constraints for external delivery
         if (data.delivery_method === 'external') {
@@ -45,8 +46,7 @@ export class OrderService {
             errors.push('min_outside_eilat');
           }
         }
-      } catch (error) {
-        console.error('Error fetching site for validation:', error);
+      } else {
         errors.push('site_not_found');
       }
     }
@@ -69,12 +69,13 @@ export class OrderService {
   static async generateOrderNumber(): Promise<string> {
     try {
       // Get the latest order to determine next number
-      const orders = await Order.list('-created_at', 1);
+      const ordersResult = await DataService.loadOrders(undefined, true);
       
-      if (orders.length === 0) {
+      if (!ordersResult.success || !ordersResult.data || ordersResult.data.length === 0) {
         return '2001';
       }
       
+      const orders = ordersResult.data;
       const lastOrder = orders[0];
       const lastNumber = parseInt(lastOrder.order_number || '2000');
       return (lastNumber + 1).toString();
@@ -110,121 +111,21 @@ export class OrderService {
       created_by: userEmail
     };
 
-    return await Order.create(orderData);
+    const result = await DataService.createOrder(orderData);
+    if (!result.success) {
+      throw new Error(`Failed to create order: ${result.error}`);
+    }
+
+    return result.data;
   }
 
   static async getUserSites(userEmail: string): Promise<any[]> {
-    try {
-      // For now, we'll get all sites. In a real app, this would be filtered by user's client
-      const sites = await Site.filter({ is_active: true }, '-created_at');
-      return sites;
-    } catch (error) {
-      console.error('Error loading user sites:', error);
-      return [];
-    }
+    const result = await DataService.loadActiveSites();
+    return result.success ? result.data : [];
   }
 
   static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<any[]> {
-    try {
-      let orders = [];
-      
-      if (isAdmin) {
-        try {
-          orders = await Order.list('-created_at');
-        } catch (error) {
-          console.error('Error loading all orders:', error);
-          orders = [];
-        }
-      } else if (userEmail) {
-        try {
-          orders = await Order.filter({ created_by: userEmail }, '-created_at');
-        } catch (error) {
-          console.error('Error loading user orders:', error);
-          orders = [];
-        }
-      }
-
-      // If no orders found, return empty array
-      if (!orders || orders.length === 0) {
-        return [];
-      }
-
-      // Enrich orders with site and client information
-      const enrichedOrders = await Promise.all(
-        orders.map(async (order) => {
-          try {
-            let site = null;
-            let client = null;
-            let siteName = 'Unknown Site';
-            let clientName = 'Unknown Client';
-            let regionType = 'unknown';
-            let unlinkedSite = order.unlinked_site || false;
-
-            // Try to get site information if site_id exists
-            if (order.site_id && !order.unlinked_site) {
-              try {
-                site = await Site.get(order.site_id);
-                if (site) {
-                  siteName = site.site_name || 'Unknown Site';
-                  regionType = site.region_type || 'unknown';
-                  
-                  // Try to get client information
-                  if (site.client_id) {
-                    try {
-                      client = await Client.get(site.client_id);
-                      if (client) {
-                        clientName = client.name || 'Unknown Client';
-                      }
-                    } catch (clientError) {
-                      console.error('Error fetching client:', clientError);
-                    }
-                  }
-                }
-              } catch (siteError) {
-                console.error('Error fetching site:', siteError);
-                unlinkedSite = true;
-              }
-            }
-
-            // Handle legacy orders that might have site_name directly
-            if (!site && order.site_name) {
-              siteName = order.site_name;
-              unlinkedSite = true;
-            }
-
-            return {
-              ...order,
-              site_name: siteName,
-              client_name: clientName,
-              region_type: regionType,
-              unlinked_site: unlinkedSite,
-              // Ensure we have the new field names with fallbacks
-              quantity_tons: order.quantity_tons || order.quantity || 0,
-              delivery_window: order.delivery_window || order.time_slot || 'morning',
-              delivery_method: order.delivery_method || order.delivery_type || 'self'
-            };
-          } catch (error) {
-            console.error('Error enriching order:', error);
-            // Return order with safe defaults
-            return {
-              ...order,
-              site_name: order.site_name || 'Unknown Site',
-              client_name: 'Unknown Client',
-              region_type: 'unknown',
-              unlinked_site: true,
-              quantity_tons: order.quantity_tons || order.quantity || 0,
-              delivery_window: order.delivery_window || order.time_slot || 'morning',
-              delivery_method: order.delivery_method || order.delivery_type || 'self'
-            };
-          }
-        })
-      );
-
-      return enrichedOrders;
-    } catch (error) {
-      console.error('Error loading orders with relations:', error);
-      return [];
-    }
+    return await DataService.getOrdersWithRelations(userEmail, isAdmin);
   }
 
   static formatDeliveryWindow(window: string, language: string): string {
