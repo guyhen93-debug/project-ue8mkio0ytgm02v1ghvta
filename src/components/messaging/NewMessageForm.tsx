@@ -111,136 +111,146 @@ const NewMessageForm: React.FC<NewMessageFormProps> = ({
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className={cn(
-            "flex items-center gap-2",
-            isRTL ? "flex-row-reverse" : "flex-row"
-          )}>
-            <Send className="w-5 h-5" />
-            {isRTL ? 'הודעה חדשה' : 'New Message'}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Recipient Selection */}
-          <div className="space-y-2">
-            <label className={cn(
-              "text-sm font-medium text-gray-700",
-              isRTL ? "text-right" : "text-left"
+    <div className="w-full max-w-2xl mx-auto px-2 sm:px-0">
+      <Card className="w-full">
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className={cn(
+              "flex items-center gap-2 text-lg sm:text-xl",
+              isRTL ? "flex-row-reverse" : "flex-row"
             )}>
-              {isRTL ? 'נמען:' : 'To:'}
-            </label>
-            <Select 
-              value={selectedRecipient} 
-              onValueChange={setSelectedRecipient}
-              disabled={loadingRecipients || !!recipientEmail}
-            >
-              <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-                <SelectValue placeholder={
-                  loadingRecipients 
-                    ? (isRTL ? 'טוען...' : 'Loading...') 
-                    : (isRTL ? 'בחר נמען' : 'Select recipient')
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {recipients.map((recipient) => (
-                  <SelectItem key={recipient.id} value={recipient.email}>
-                    <div className={cn(
-                      "flex items-center gap-2",
-                      isRTL ? "flex-row-reverse" : "flex-row"
-                    )}>
-                      <Users className="w-4 h-4" />
-                      <span>{recipient.full_name || recipient.email}</span>
-                      {recipient.role === 'manager' && (
-                        <span className="text-xs text-blue-600">
-                          ({isRTL ? 'מנהל' : 'Manager'})
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Subject */}
-          <div className="space-y-2">
-            <label className={cn(
-              "text-sm font-medium text-gray-700",
-              isRTL ? "text-right" : "text-left"
-            )}>
-              {isRTL ? 'נושא:' : 'Subject:'}
-            </label>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder={isRTL ? 'הכנס נושא ההודעה' : 'Enter message subject'}
-              className={cn(isRTL ? "text-right" : "text-left")}
-              dir={isRTL ? 'rtl' : 'ltr'}
-              required
-            />
-          </div>
-
-          {/* Content */}
-          <div className="space-y-2">
-            <label className={cn(
-              "text-sm font-medium text-gray-700",
-              isRTL ? "text-right" : "text-left"
-            )}>
-              {isRTL ? 'תוכן ההודעה:' : 'Message:'}
-            </label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={isRTL ? 'כתוב את ההודעה שלך כאן...' : 'Write your message here...'}
-              rows={6}
-              className={cn(
-                "resize-none",
-                isRTL ? "text-right" : "text-left"
-              )}
-              dir={isRTL ? 'rtl' : 'ltr'}
-              required
-            />
-          </div>
-
-          {/* Actions */}
-          <div className={cn(
-            "flex gap-3 pt-4",
-            isRTL ? "flex-row-reverse" : "flex-row"
-          )}>
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+              {isRTL ? 'הודעה חדשה' : 'New Message'}
+            </CardTitle>
             <Button
-              type="submit"
-              disabled={!subject.trim() || !content.trim() || !selectedRecipient || isLoading}
-              className="bg-blue-600 hover:bg-blue-700 flex-1"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {isLoading ? (isRTL ? 'שולח...' : 'Sending...') : (isRTL ? 'שלח הודעה' : 'Send Message')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
+              variant="ghost"
+              size="sm"
               onClick={onCancel}
-              disabled={isLoading}
-              className="flex-1"
+              className="h-8 w-8 p-0 shrink-0"
             >
-              {t('cancel')}
+              <X className="h-4 w-4" />
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            {/* Recipient Selection */}
+            <div className="space-y-2">
+              <label className={cn(
+                "text-sm font-medium text-gray-700 block",
+                isRTL ? "text-right" : "text-left"
+              )}>
+                {isRTL ? 'נמען:' : 'To:'}
+              </label>
+              <Select 
+                value={selectedRecipient} 
+                onValueChange={setSelectedRecipient}
+                disabled={loadingRecipients || !!recipientEmail}
+              >
+                <SelectTrigger className={cn(
+                  "w-full",
+                  isRTL ? "text-right" : "text-left"
+                )}>
+                  <SelectValue placeholder={
+                    loadingRecipients 
+                      ? (isRTL ? 'טוען...' : 'Loading...') 
+                      : (isRTL ? 'בחר נמען' : 'Select recipient')
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {recipients.map((recipient) => (
+                    <SelectItem key={recipient.id} value={recipient.email}>
+                      <div className={cn(
+                        "flex items-center gap-2 w-full",
+                        isRTL ? "flex-row-reverse" : "flex-row"
+                      )}>
+                        <Users className="w-4 h-4 shrink-0" />
+                        <span className="truncate flex-1">
+                          {recipient.full_name || recipient.email}
+                        </span>
+                        {recipient.role === 'manager' && (
+                          <span className="text-xs text-blue-600 shrink-0">
+                            ({isRTL ? 'מנהל' : 'Manager'})
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-2">
+              <label className={cn(
+                "text-sm font-medium text-gray-700 block",
+                isRTL ? "text-right" : "text-left"
+              )}>
+                {isRTL ? 'נושא:' : 'Subject:'}
+              </label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder={isRTL ? 'הכנס נושא ההודעה' : 'Enter message subject'}
+                className={cn(
+                  "w-full",
+                  isRTL ? "text-right" : "text-left"
+                )}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                required
+              />
+            </div>
+
+            {/* Content */}
+            <div className="space-y-2">
+              <label className={cn(
+                "text-sm font-medium text-gray-700 block",
+                isRTL ? "text-right" : "text-left"
+              )}>
+                {isRTL ? 'תוכן ההודעה:' : 'Message:'}
+              </label>
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={isRTL ? 'כתוב את ההודעה שלך כאן...' : 'Write your message here...'}
+                rows={4}
+                className={cn(
+                  "resize-none w-full min-h-[100px] sm:min-h-[120px]",
+                  isRTL ? "text-right" : "text-left"
+                )}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                required
+              />
+            </div>
+
+            {/* Actions */}
+            <div className={cn(
+              "flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4",
+              isRTL ? "sm:flex-row-reverse" : "sm:flex-row"
+            )}>
+              <Button
+                type="submit"
+                disabled={!subject.trim() || !content.trim() || !selectedRecipient || isLoading}
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:flex-1 order-2 sm:order-1"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {isLoading ? (isRTL ? 'שולח...' : 'Sending...') : (isRTL ? 'שלח הודעה' : 'Send Message')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isLoading}
+                className="w-full sm:flex-1 order-1 sm:order-2"
+              >
+                {t('cancel')}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

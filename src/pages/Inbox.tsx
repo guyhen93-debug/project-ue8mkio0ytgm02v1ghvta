@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { MessageCircle, X, CheckCheck, Trash2, Plus, Send, Eye, Reply, Edit } from 'lucide-react';
+import { MessageCircle, X, CheckCheck, Trash2, Plus, Send, Eye, Reply, Edit, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import MessageThreadView from '@/components/messaging/MessageThreadView';
 import NewMessageForm from '@/components/messaging/NewMessageForm';
 
@@ -187,7 +188,7 @@ const Inbox: React.FC = () => {
   if (showNewMessageForm) {
     return (
       <Layout title={isRTL ? 'הודעה חדשה' : 'New Message'}>
-        <div className="p-4">
+        <div className="p-2 sm:p-4 lg:p-6">
           <NewMessageForm
             onSent={handleNewMessage}
             onCancel={() => setShowNewMessageForm(false)}
@@ -200,31 +201,37 @@ const Inbox: React.FC = () => {
   return (
     <Layout title={t('inbox')}>
       <div className={cn(
-        "p-4 space-y-4",
+        "p-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-4",
         isRTL ? "rtl" : "ltr"
       )} dir={isRTL ? "rtl" : "ltr"}>
         {/* Header */}
         <div className={cn(
-          "flex justify-between items-center",
-          isRTL ? "flex-row-reverse" : "flex-row"
+          "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4",
+          isRTL ? "sm:flex-row-reverse" : "sm:flex-row"
         )}>
-          <div className={cn(isRTL ? "text-right" : "text-left")}>
-            <h1 className="text-2xl font-bold text-gray-900">{t('inbox')}</h1>
-            <p className="text-gray-600">
+          <div className={cn(
+            "text-center sm:text-left",
+            isRTL ? "sm:text-right" : "sm:text-left"
+          )}>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('inbox')}</h1>
+            <p className="text-sm sm:text-base text-gray-600">
               {unreadCount} {t('new')} • {messages.length} {t('total')}
             </p>
           </div>
-          <div className="flex gap-2">
-            {/* New Message Button */}
+          
+          {/* Desktop Actions */}
+          <div className="hidden sm:flex gap-2">
             <Button
               onClick={() => setShowNewMessageForm(true)}
               className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+              size="sm"
             >
               <Edit className="w-4 h-4" />
-              {isRTL ? 'הודעה חדשה' : 'New Message'}
+              <span className="hidden md:inline">
+                {isRTL ? 'הודעה חדשה' : 'New Message'}
+              </span>
             </Button>
             
-            {/* Debug button - remove in production */}
             {process.env.NODE_ENV === 'development' && (
               <Button
                 variant="outline"
@@ -233,7 +240,7 @@ const Inbox: React.FC = () => {
                 className="flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Test
+                <span className="hidden lg:inline">Test</span>
               </Button>
             )}
             
@@ -245,32 +252,69 @@ const Inbox: React.FC = () => {
                 className="flex items-center gap-2"
               >
                 <CheckCheck className="w-4 h-4" />
-                {t('mark_all_read')}
+                <span className="hidden lg:inline">{t('mark_all_read')}</span>
               </Button>
+            )}
+          </div>
+
+          {/* Mobile Actions */}
+          <div className="flex sm:hidden justify-center gap-2">
+            <Button
+              onClick={() => setShowNewMessageForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 flex-1 max-w-[200px]"
+              size="sm"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              {isRTL ? 'הודעה חדשה' : 'New Message'}
+            </Button>
+            
+            {(messages.some(m => !m.is_read) || process.env.NODE_ENV === 'development') && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="px-3">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align={isRTL ? "start" : "end"}>
+                  {messages.some(m => !m.is_read) && (
+                    <DropdownMenuItem onClick={markAllAsRead}>
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      {t('mark_all_read')}
+                    </DropdownMenuItem>
+                  )}
+                  {process.env.NODE_ENV === 'development' && (
+                    <DropdownMenuItem onClick={createTestMessage}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Test Message
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
 
         {/* Messages List */}
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="text-center py-8 sm:py-12">
+            <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               {t('no_messages')}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 px-4">
               {isRTL ? 'תיבת הדואר שלך ריקה' : 'Your inbox is empty'}
             </p>
             <Button
               onClick={() => setShowNewMessageForm(true)}
               className="bg-blue-600 hover:bg-blue-700"
+              size="sm"
             >
               <Edit className="w-4 h-4 mr-2" />
               {isRTL ? 'כתוב הודעה ראשונה' : 'Write your first message'}
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {messages.map((message) => (
               <Card 
                 key={message.id} 
@@ -280,18 +324,18 @@ const Inbox: React.FC = () => {
                 )}
                 onClick={() => openMessageThread(message)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className={cn(
-                    "flex items-start justify-between gap-3",
+                    "flex items-start justify-between gap-2 sm:gap-3",
                     isRTL ? "flex-row-reverse" : "flex-row"
                   )}>
                     <div className={cn(
-                      "flex items-start gap-3 flex-1",
+                      "flex items-start gap-2 sm:gap-3 flex-1 min-w-0",
                       isRTL ? "flex-row-reverse" : "flex-row"
                     )}>
-                      {/* Icon */}
-                      <div className="mt-1">
-                        <Send className="w-5 h-5 text-blue-600" />
+                      {/* Icon - Hidden on very small screens */}
+                      <div className="mt-1 hidden xs:block">
+                        <Send className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       </div>
                       
                       {/* Content */}
@@ -300,35 +344,38 @@ const Inbox: React.FC = () => {
                         isRTL ? "text-right" : "text-left"
                       )}>
                         <div className={cn(
-                          "flex items-center gap-2 mb-1",
+                          "flex items-start gap-2 mb-1 flex-wrap",
                           isRTL ? "flex-row-reverse" : "flex-row"
                         )}>
-                          <h3 className="font-medium text-gray-900">
+                          <h3 className="font-medium text-gray-900 text-sm sm:text-base line-clamp-1 flex-1">
                             {message.subject}
                           </h3>
                           {!message.is_read && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs shrink-0">
                               {t('new')}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">
+                        
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">
                           {isRTL ? 'מאת:' : 'From:'} {message.sender_email}
                         </p>
-                        <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">
+                        
+                        <p className="text-gray-700 text-xs sm:text-sm leading-relaxed line-clamp-2 mb-2">
                           {message.content}
                         </p>
+                        
                         <div className={cn(
-                          "flex items-center gap-2 mt-2 text-xs text-gray-500",
+                          "flex items-center gap-1 sm:gap-2 text-xs text-gray-500 flex-wrap",
                           isRTL ? "flex-row-reverse" : "flex-row"
                         )}>
-                          <span>{getTimeAgo(message.created_at)}</span>
+                          <span className="shrink-0">{getTimeAgo(message.created_at)}</span>
                           {message.thread_id && (
                             <>
-                              <span>•</span>
-                              <div className="flex items-center gap-1">
+                              <span className="hidden sm:inline">•</span>
+                              <div className="flex items-center gap-1 shrink-0">
                                 <Reply className="w-3 h-3" />
-                                <span>{isRTL ? 'שרשור' : 'Thread'}</span>
+                                <span className="hidden sm:inline">{isRTL ? 'שרשור' : 'Thread'}</span>
                               </div>
                             </>
                           )}
@@ -337,62 +384,113 @@ const Inbox: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openMessageThread(message);
-                        }}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      
-                      {!message.is_read && (
+                    <div className="flex items-start gap-1 shrink-0">
+                      {/* Desktop Actions */}
+                      <div className="hidden sm:flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            markAsRead(message.id);
+                            openMessageThread(message);
                           }}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0"
                         >
-                          <CheckCheck className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </Button>
-                      )}
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                        
+                        {!message.is_read && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(message.id);
+                            }}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 h-8 w-8 p-0"
                           >
-                            <X className="w-4 h-4" />
+                            <CheckCheck className="w-4 h-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t('confirm_delete')}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {isRTL ? 'האם אתה בטוח שברצונך למחוק הודעה זו?' : 'Are you sure you want to delete this message?'}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteMessage(message.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                        )}
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                             >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="mx-4 max-w-md">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-base">
+                                {t('confirm_delete')}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="text-sm">
+                                {isRTL ? 'האם אתה בטוח שברצונך למחוק הודעה זו?' : 'Are you sure you want to delete this message?'}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                              <AlertDialogCancel className="w-full sm:w-auto">
+                                {t('cancel')}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMessage(message.id)}
+                                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                              >
+                                {t('delete')}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+
+                      {/* Mobile Actions */}
+                      <div className="sm:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align={isRTL ? "start" : "end"}>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              openMessageThread(message);
+                            }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              {isRTL ? 'פתח' : 'Open'}
+                            </DropdownMenuItem>
+                            {!message.is_read && (
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(message.id);
+                              }}>
+                                <CheckCheck className="w-4 h-4 mr-2" />
+                                {isRTL ? 'סמן כנקרא' : 'Mark as read'}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMessage(message.id);
+                              }}
+                              className="text-red-600"
+                            >
+                              <X className="w-4 h-4 mr-2" />
                               {t('delete')}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -404,13 +502,13 @@ const Inbox: React.FC = () => {
         {/* Message Thread Dialog */}
         <Dialog open={showThreadDialog} onOpenChange={closeMessageThread}>
           <DialogContent className={cn(
-            "max-w-4xl max-h-[90vh] overflow-y-auto",
+            "mx-2 sm:mx-4 max-w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto",
             isRTL ? "text-right" : "text-left"
           )} dir={isRTL ? "rtl" : "ltr"}>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" />
-                {selectedMessage?.subject}
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg pr-8">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="line-clamp-1">{selectedMessage?.subject}</span>
               </DialogTitle>
             </DialogHeader>
             {selectedMessage && (
