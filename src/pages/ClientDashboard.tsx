@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, MapPin, Calendar, Package, Clock, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const ClientDashboard: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
@@ -114,14 +115,20 @@ const ClientDashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* Status Filter */}
+        {/* Status Filter - Fix 1: RTL/LTR alignment and placeholders */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          <label className={cn(
+            "text-sm font-medium text-gray-700 whitespace-nowrap",
+            isRTL ? "text-right" : "text-left"
+          )}>
             {t('filter_by_status')}:
           </label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue />
+            <SelectTrigger className={cn(
+              "w-full sm:w-48",
+              isRTL ? "text-right" : "text-left"
+            )}>
+              <SelectValue placeholder={isRTL ? "סינון לפי סטטוס" : "Filter by status"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>
@@ -175,15 +182,21 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Product */}
-                  <div className="flex items-center gap-2">
+                  {/* Product - Fix 2: Remove middle dot and align properly */}
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Package className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">{t(order.product_id)}</span>
-                    <span className="text-gray-600">• {order.quantity} {t('tons')}</span>
+                    <span className="text-gray-600">{order.quantity} {t('tons')}</span>
                   </div>
 
                   {/* Delivery Date & Time */}
-                  <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Calendar className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">
                       {formatDeliveryTime(order.delivery_date, order.time_slot)}
@@ -192,24 +205,36 @@ const ClientDashboard: React.FC = () => {
 
                   {/* Site Name */}
                   {order.site_name && (
-                    <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "flex items-center gap-2",
+                      isRTL ? "text-right" : "text-left"
+                    )}>
                       <MapPin className="w-4 h-4 text-gray-500" />
                       <span className="text-gray-700">{order.site_name}</span>
                     </div>
                   )}
 
                   {/* Delivery Type */}
-                  <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
                     <Clock className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">{t(order.delivery_type)}</span>
                   </div>
 
-                  {/* Notes */}
+                  {/* Notes - Fix 3: Translate Notes label and RTL alignment */}
                   {order.notes && (
-                    <div className="flex items-start gap-2">
+                    <div className={cn(
+                      "flex items-start gap-2",
+                      isRTL ? "text-right" : "text-left"
+                    )}>
                       <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-600 leading-relaxed">
+                        <span className="text-sm font-medium text-gray-700">
+                          {isRTL ? "הערות:" : "Notes:"}
+                        </span>
+                        <p className="text-sm text-gray-600 leading-relaxed mt-1">
                           {order.notes}
                         </p>
                       </div>

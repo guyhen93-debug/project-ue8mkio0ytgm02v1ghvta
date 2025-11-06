@@ -156,7 +156,7 @@ const ManagerDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters - Fix 1: Improved placeholders and RTL/LTR alignment */}
+        {/* Filters - Fix 5: Admin home filters with RTL/LTR alignment and placeholders */}
         <div className={cn(
           "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
           isRTL ? "text-right" : "text-left"
@@ -178,7 +178,7 @@ const ManagerDashboard: React.FC = () => {
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-              <SelectValue placeholder={t('filter_by_status')} />
+              <SelectValue placeholder={isRTL ? "סינון לפי סטטוס" : "Filter by status"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>
@@ -192,7 +192,7 @@ const ManagerDashboard: React.FC = () => {
           {/* Quarry Filter */}
           <Select value={quarryFilter} onValueChange={setQuarryFilter}>
             <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-              <SelectValue placeholder={isRTL ? "סינון לפי מחצבה/מעבר" : "Filter by Quarry/Crossing"} />
+              <SelectValue placeholder={isRTL ? "סינון לפי מחצבה/מעבר" : "Filter by quarry/border"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>

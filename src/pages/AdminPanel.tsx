@@ -148,14 +148,14 @@ const AdminPanel: React.FC = () => {
   return (
     <Layout title={t('admin_panel')}>
       <div className="p-4 space-y-6">
-        {/* Header - Fix 6: RTL alignment */}
+        {/* Header - Fix 8: RTL alignment for headers */}
         <div className={cn(isRTL ? "text-right" : "text-left")}>
           <h1 className="text-3xl font-bold text-gray-900">{t('admin_panel')}</h1>
           <p className="text-gray-600 mt-2">{t('manage_all_system_data')}</p>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-6">
-          {/* Fix 6: RTL alignment for tabs */}
+          {/* Fix 8: RTL alignment for tabs */}
           <TabsList className={cn(
             "grid w-full grid-cols-4",
             isRTL ? "text-right" : "text-left"
@@ -248,7 +248,7 @@ const AdminPanel: React.FC = () => {
                               locale: language === 'he' ? he : enUS 
                             })}
                           </p>
-                          {/* Fix 4: Translate Notes label */}
+                          {/* Fix 7: Translate Notes label */}
                           {order.notes && (
                             <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
                               <span className="font-medium">
@@ -314,7 +314,6 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Fix 7: Display existing clients */}
           <TabsContent value="clients" className="space-y-4">
             <div className={cn(
               "flex justify-between items-center",
@@ -367,7 +366,6 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Fix 7: Display existing sites */}
           <TabsContent value="sites" className="space-y-4">
             <div className={cn(
               "flex justify-between items-center",
@@ -421,7 +419,6 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Products Management */}
           <TabsContent value="products" className="space-y-4">
             <div className={cn(
               "flex justify-between items-center",

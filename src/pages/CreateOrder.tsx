@@ -30,7 +30,7 @@ const CreateOrder: React.FC = () => {
     delivery_date: undefined as Date | undefined,
     time_slot: '',
     delivery_type: '',
-    site_id: '', // Fix 9: Use site_id instead of manual fields
+    site_id: '',
     quarry: '',
     notes: '',
     truck_access: true
@@ -38,9 +38,8 @@ const CreateOrder: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [sites, setSites] = useState<any[]>([]); // Fix 9: Load sites
+  const [sites, setSites] = useState<any[]>([]);
 
-  // Fix 9: Load sites on component mount
   useEffect(() => {
     loadSites();
   }, []);
@@ -67,7 +66,7 @@ const CreateOrder: React.FC = () => {
     { id: 'yitzhak_rabin', name: t('yitzhak_rabin') }
   ];
 
-  // Fix 8: Proper Hebrew and English time slot labels
+  // Fix 10: Proper Hebrew and English time slot labels with correct afternoon time
   const timeSlots = [
     { 
       id: 'morning', 
@@ -91,7 +90,7 @@ const CreateOrder: React.FC = () => {
       return;
     }
 
-    // Validation - Fix 9: Check site_id instead of delivery_location
+    // Validation
     if (!formData.product_id || !formData.quantity || !formData.delivery_date || 
         !formData.time_slot || !formData.delivery_type || !formData.site_id) {
       toast({
@@ -130,7 +129,6 @@ const CreateOrder: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fix 9: Get selected site details
       const selectedSite = sites.find(site => site.id === formData.site_id);
       
       const orderData = {
@@ -179,7 +177,7 @@ const CreateOrder: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Product Selection */}
+              {/* Product Selection - Fix 9: RTL alignment for product dropdown */}
               <div className="space-y-2">
                 <Label htmlFor="product" className="flex items-center gap-2">
                   <Package className="w-4 h-4" />
@@ -261,7 +259,7 @@ const CreateOrder: React.FC = () => {
                 </Popover>
               </div>
 
-              {/* Time Slot - Fix 8: RTL alignment */}
+              {/* Time Slot - Fix 10: RTL alignment and correct time values */}
               <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
@@ -289,7 +287,7 @@ const CreateOrder: React.FC = () => {
                 </RadioGroup>
               </div>
 
-              {/* Delivery Type - Fix 8: RTL alignment */}
+              {/* Delivery Type - RTL alignment */}
               <div className="space-y-3">
                 <Label>{t('delivery_type')} *</Label>
                 <RadioGroup
@@ -324,7 +322,7 @@ const CreateOrder: React.FC = () => {
                 </RadioGroup>
               </div>
 
-              {/* Fix 9: Site Selection (replace manual fields) */}
+              {/* Site Selection */}
               <div className="space-y-2">
                 <Label htmlFor="site" className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
