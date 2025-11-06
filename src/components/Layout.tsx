@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Notification } from '@/entities';
+import { Notification, Message } from '@/entities';
 import { Home, MessageCircle, Bell, User, Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -33,22 +33,24 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   }, [user?.email]);
 
-  // Listen for notification updates
+  // Listen for notification and message updates
   useEffect(() => {
-    const handleNotificationUpdate = () => {
-      console.log('Notification update event received');
+    const handleUpdate = () => {
+      console.log('Update event received');
       if (user?.email) {
         loadUnreadCounts();
       }
     };
 
-    window.addEventListener('notificationRead', handleNotificationUpdate);
+    window.addEventListener('notificationRead', handleUpdate);
+    window.addEventListener('messageRead', handleUpdate);
     return () => {
-      window.removeEventListener('notificationRead', handleNotificationUpdate);
+      window.removeEventListener('notificationRead', handleUpdate);
+      window.removeEventListener('messageRead', handleUpdate);
     };
   }, [user?.email]);
 
-  // Refresh when navigating to/from notifications page
+  // Refresh when navigating between pages
   useEffect(() => {
     if (user?.email) {
       console.log('Route changed to:', location.pathname);
@@ -79,8 +81,20 @@ export const Layout: React.FC<LayoutProps> = ({
         setUnreadNotifications(0);
       }
 
-      // For messages, we'll simulate unread count
-      setUnreadMessages(0);
+      // Load messages
+      try {
+        console.log('Querying messages for:', user?.email);
+        const messages = await Message.filter({
+          recipient_email: user?.email,
+          is_read: false
+        });
+        console.log('Raw unread messages:', messages);
+        console.log('Unread messages count:', messages.length);
+        setUnreadMessages(messages.length);
+      } catch (messageError) {
+        console.error('Error loading messages:', messageError);
+        setUnreadMessages(0);
+      }
     } catch (error) {
       console.error('Error in loadUnreadCounts:', error);
       setUnreadNotifications(0);
@@ -90,7 +104,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
   // Force refresh function for debugging
   const forceRefresh = () => {
-    console.log('Force refreshing notification count...');
+    console.log('Force refreshing counts...');
     loadUnreadCounts();
   };
 
@@ -144,7 +158,7 @@ export const Layout: React.FC<LayoutProps> = ({
               onClick={forceRefresh}
               className="text-xs bg-gray-200 px-2 py-1 rounded"
             >
-              Refresh ({unreadNotifications})
+              Refresh (N:{unreadNotifications} M:{unreadMessages})
             </button>
           )}
         </div>
