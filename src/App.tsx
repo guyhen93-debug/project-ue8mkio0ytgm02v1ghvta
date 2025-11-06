@@ -1,4 +1,11 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { User } from '@/entities';
+import Index from './pages/Index';
+import Login from './pages/Login';
+
+const queryClient = new QueryClient();
 
 // Simple error fallback
 const ErrorFallback = () => (
@@ -11,10 +18,10 @@ const ErrorFallback = () => (
   }}>
     <div style={{ textAlign: 'center', padding: '2rem' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
-        Something went wrong
+        שגיאה במערכת
       </h1>
       <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-        There was an error loading the application. Please try refreshing the page.
+        אירעה שגיאה בטעינת האפליקציה. אנא רענן את הדף.
       </p>
       <button
         onClick={() => window.location.reload()}
@@ -27,7 +34,7 @@ const ErrorFallback = () => (
           cursor: 'pointer'
         }}
       >
-        Refresh Page
+        רענן דף
       </button>
     </div>
   </div>
@@ -57,60 +64,84 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Absolutely minimal App component without any React hooks
+// Auth wrapper component
+const AuthWrapper = ({ children }) => {
+  const [user, setUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const currentUser = await User.me();
+        setUser(currentUser);
+      } catch (error) {
+        console.log('User not authenticated');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '2rem',
+            height: '2rem',
+            border: '2px solid #eab308',
+            borderTop: '2px solid transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          <p>טוען...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return React.cloneElement(children, { user, setUser });
+};
+
 const App = () => {
   console.log('App rendering, React available:', !!React);
   console.log('React type:', typeof React);
   console.log('React keys:', React ? Object.keys(React) : 'React is null');
   
-  // Simple static page without any state management
   return (
     <ErrorBoundary>
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #fef3c7 0%, #ffffff 50%, #fef3c7 100%)'
-      }}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{
-            width: '5rem',
-            height: '5rem',
-            backgroundColor: '#eab308',
-            borderRadius: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem auto'
-          }}>
-            <span style={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }}>PN</span>
-          </div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
-            Piternoufi Orders
-          </h1>
-          <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-            Quarry Management System
-          </p>
-          <button 
-            onClick={() => {
-              console.log('Login button clicked');
-              alert('Login functionality will be added soon');
-            }}
-            style={{
-              backgroundColor: '#eab308',
-              color: 'black',
-              fontWeight: '500',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Login
-          </button>
-        </div>
-      </div>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            <Route 
+              path="/login" 
+              element={
+                <AuthWrapper>
+                  <Login />
+                </AuthWrapper>
+              } 
+            />
+            <Route 
+              path="/" 
+              element={
+                <AuthWrapper>
+                  <Index />
+                </AuthWrapper>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };
