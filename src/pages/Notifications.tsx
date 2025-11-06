@@ -30,6 +30,7 @@ const Notifications: React.FC = () => {
           { recipient_email: user.email }, 
           '-created_at'
         );
+        console.log('Loaded notifications:', userNotifications.length);
         setNotifications(userNotifications);
       }
     } catch (error) {
@@ -43,6 +44,8 @@ const Notifications: React.FC = () => {
     try {
       await Notification.update(notificationId, { is_read: true });
       await loadNotifications();
+      // Trigger a custom event to notify Layout component
+      window.dispatchEvent(new CustomEvent('notificationRead'));
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -55,6 +58,8 @@ const Notifications: React.FC = () => {
         await Notification.update(notification.id, { is_read: true });
       }
       await loadNotifications();
+      // Trigger a custom event to notify Layout component
+      window.dispatchEvent(new CustomEvent('notificationRead'));
       toast({
         title: t('mark_all_read'),
         description: t('notification_sent')
@@ -68,6 +73,8 @@ const Notifications: React.FC = () => {
     try {
       await Notification.delete(notificationId);
       await loadNotifications();
+      // Trigger a custom event to notify Layout component
+      window.dispatchEvent(new CustomEvent('notificationRead'));
       toast({
         title: t('notification_deleted'),
         description: t('notification_deleted_successfully')

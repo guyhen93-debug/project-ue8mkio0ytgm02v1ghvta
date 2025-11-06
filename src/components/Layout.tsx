@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Notification } from '@/entities';
 import { Home, MessageCircle, Bell, User, Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -29,21 +30,20 @@ export const Layout: React.FC<LayoutProps> = ({
     if (user?.email) {
       loadUnreadCounts();
     }
-  }, [user?.email]);
+  }, [user?.email, location.pathname]); // Add location.pathname to refresh when navigating
 
   const loadUnreadCounts = async () => {
     try {
-      // Try to load notifications, but handle gracefully if entity doesn't exist
+      // Load notifications
       try {
-        // Import Notification entity dynamically to avoid errors if it doesn't exist
-        const { Notification } = await import('@/entities');
         const notifications = await Notification.filter({
           recipient_email: user?.email,
           is_read: false
         });
+        console.log('Unread notifications found:', notifications.length);
         setUnreadNotifications(notifications.length);
       } catch (notificationError) {
-        console.log('Notification entity not available, setting count to 0');
+        console.log('Error loading notifications:', notificationError);
         setUnreadNotifications(0);
       }
 
@@ -57,6 +57,17 @@ export const Layout: React.FC<LayoutProps> = ({
       setUnreadMessages(0);
     }
   };
+
+  // Refresh unread counts when visiting notifications page
+  useEffect(() => {
+    if (location.pathname === '/notifications' && user?.email) {
+      // Add a small delay to allow notifications to be marked as read
+      const timer = setTimeout(() => {
+        loadUnreadCounts();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, user?.email]);
 
   const navItems = [
     {
@@ -127,7 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 <item.icon className="h-5 w-5 mb-1" />
                 <span className="text-xs font-medium truncate">{item.label}</span>
                 {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
