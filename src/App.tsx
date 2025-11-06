@@ -11,6 +11,7 @@ import AdminPanel from './pages/AdminPanel';
 import Inbox from './pages/Inbox';
 import CreateOrder from './pages/CreateOrder';
 import Notifications from './pages/Notifications';
+import Profile from './pages/Profile';
 
 const queryClient = new QueryClient();
 
@@ -102,14 +103,6 @@ const AuthWrapper = ({ children }) => {
 
   return React.cloneElement(children, { user, setUser });
 };
-
-// Create placeholder components for remaining missing pages
-const Profile = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1>פרופיל</h1>
-    <p>עמוד זה בפיתוח</p>
-  </div>
-);
 
 const App = () => {
   console.log('App rendering, React available:', !!React);
