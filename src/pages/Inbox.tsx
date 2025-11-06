@@ -6,17 +6,22 @@ import { Message } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { MessageCircle, X, CheckCheck, Trash2, Plus, Send } from 'lucide-react';
+import { MessageCircle, X, CheckCheck, Trash2, Plus, Send, Eye, Reply } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import MessageThreadView from '@/components/messaging/MessageThreadView';
 
 const Inbox: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showThreadDialog, setShowThreadDialog] = useState(false);
 
   useEffect(() => {
     loadMessages();
@@ -27,8 +32,12 @@ const Inbox: React.FC = () => {
       setLoading(true);
       if (user?.email) {
         console.log('Loading messages for user:', user.email);
+        // Get only root messages (not replies)
         const userMessages = await Message.filter(
-          { recipient_email: user.email }, 
+          { 
+            recipient_email: user.email,
+            parent_message_id: null // Only root messages
+          }, 
           '-created_at'
         );
         console.log('Loaded messages:', userMessages.length);
@@ -94,6 +103,22 @@ const Inbox: React.FC = () => {
     }
   };
 
+  const openMessageThread = async (message: any) => {
+    setSelectedMessage(message);
+    setShowThreadDialog(true);
+    
+    // Mark as read when opening
+    if (!message.is_read) {
+      await markAsRead(message.id);
+    }
+  };
+
+  const closeMessageThread = () => {
+    setShowThreadDialog(false);
+    setSelectedMessage(null);
+    loadMessages(); // Refresh to update read status and reply counts
+  };
+
   // Debug function to create a test message
   const createTestMessage = async () => {
     try {
@@ -124,9 +149,20 @@ const Inbox: React.FC = () => {
     if (diffInHours < 1) {
       return t('just_now');
     } else if (diffInHours < 24) {
-      return `${diffInHours}${t('hours_ago')}`;
+      return `${diffInHours} ${t('hours_ago')}`;
     } else {
       return format(date, 'MMM d', { locale: language === 'he' ? he : enUS });
+    }
+  };
+
+  // Get reply count for a message
+  const getReplyCount = async (messageId: string) => {
+    try {
+      const replies = await Message.filter({ parent_message_id: messageId });
+      return replies.length;
+    } catch (error) {
+      console.error('Error getting reply count:', error);
+      return 0;
     }
   };
 
@@ -147,10 +183,16 @@ const Inbox: React.FC = () => {
 
   return (
     <Layout title={t('inbox')}>
-      <div className="p-4 space-y-4">
+      <div className={cn(
+        "p-4 space-y-4",
+        isRTL ? "rtl" : "ltr"
+      )} dir={isRTL ? "rtl" : "ltr"}>
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
+        <div className={cn(
+          "flex justify-between items-center",
+          isRTL ? "flex-row-reverse" : "flex-row"
+        )}>
+          <div className={cn(isRTL ? "text-right" : "text-left")}>
             <h1 className="text-2xl font-bold text-gray-900">{t('inbox')}</h1>
             <p className="text-gray-600">
               {unreadCount} {t('new')} • {messages.length} {t('total')}
@@ -207,21 +249,35 @@ const Inbox: React.FC = () => {
             {messages.map((message) => (
               <Card 
                 key={message.id} 
-                className={`transition-all hover:shadow-md ${
+                className={cn(
+                  "transition-all hover:shadow-md cursor-pointer",
                   !message.is_read ? 'bg-blue-50 border-blue-200' : ''
-                }`}
+                )}
+                onClick={() => openMessageThread(message)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
+                  <div className={cn(
+                    "flex items-start justify-between gap-3",
+                    isRTL ? "flex-row-reverse" : "flex-row"
+                  )}>
+                    <div className={cn(
+                      "flex items-start gap-3 flex-1",
+                      isRTL ? "flex-row-reverse" : "flex-row"
+                    )}>
                       {/* Icon */}
                       <div className="mt-1">
                         <Send className="w-5 h-5 text-blue-600" />
                       </div>
                       
                       {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className={cn(
+                        "flex-1 min-w-0",
+                        isRTL ? "text-right" : "text-left"
+                      )}>
+                        <div className={cn(
+                          "flex items-center gap-2 mb-1",
+                          isRTL ? "flex-row-reverse" : "flex-row"
+                        )}>
                           <h3 className="font-medium text-gray-900">
                             {message.subject}
                           </h3>
@@ -232,25 +288,52 @@ const Inbox: React.FC = () => {
                           )}
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
-                          From: {message.sender_email}
+                          {isRTL ? 'מאת:' : 'From:'} {message.sender_email}
                         </p>
-                        <p className="text-gray-700 text-sm leading-relaxed">
+                        <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">
                           {message.content}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {getTimeAgo(message.created_at)}
-                        </p>
+                        <div className={cn(
+                          "flex items-center gap-2 mt-2 text-xs text-gray-500",
+                          isRTL ? "flex-row-reverse" : "flex-row"
+                        )}>
+                          <span>{getTimeAgo(message.created_at)}</span>
+                          {message.thread_id && (
+                            <>
+                              <span>•</span>
+                              <div className="flex items-center gap-1">
+                                <Reply className="w-3 h-3" />
+                                <span>{isRTL ? 'שרשור' : 'Thread'}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMessageThread(message);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      
                       {!message.is_read && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => markAsRead(message.id)}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(message.id);
+                          }}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
                           <CheckCheck className="w-4 h-4" />
                         </Button>
@@ -261,6 +344,7 @@ const Inbox: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             <X className="w-4 h-4" />
@@ -291,6 +375,27 @@ const Inbox: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Message Thread Dialog */}
+        <Dialog open={showThreadDialog} onOpenChange={closeMessageThread}>
+          <DialogContent className={cn(
+            "max-w-4xl max-h-[90vh] overflow-y-auto",
+            isRTL ? "text-right" : "text-left"
+          )} dir={isRTL ? "rtl" : "ltr"}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5" />
+                {selectedMessage?.subject}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedMessage && (
+              <MessageThreadView
+                message={selectedMessage}
+                onUpdate={loadMessages}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

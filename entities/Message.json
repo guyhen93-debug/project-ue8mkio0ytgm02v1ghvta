@@ -29,6 +29,10 @@
     "order_id": {
       "type": "string",
       "description": "Related order ID if applicable"
+    },
+    "parent_message_id": {
+      "type": "string",
+      "description": "ID of the parent message if this is a reply"
     }
   }
 }
