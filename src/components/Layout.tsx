@@ -24,6 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const navigate = useNavigate();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
   // Load unread counts
   useEffect(() => {
@@ -63,43 +64,86 @@ export const Layout: React.FC<LayoutProps> = ({
   }, [location.pathname, user?.email]);
 
   const loadUnreadCounts = async () => {
+    if (isLoadingCounts) return; // Prevent concurrent requests
+    
     try {
+      setIsLoadingCounts(true);
       console.log('Starting to load unread counts...');
       
-      // Load notifications
+      // Load notifications with retry logic
       try {
         console.log('Querying notifications for:', user?.email);
-        const notifications = await Notification.filter({
-          recipient_email: user?.email,
-          is_read: false
+        const notifications = await withRetry(async () => {
+          return await Notification.filter({
+            recipient_email: user?.email,
+            is_read: false
+          });
         });
-        console.log('Raw unread notifications:', notifications);
-        console.log('Unread notifications count:', notifications.length);
-        setUnreadNotifications(notifications.length);
+        
+        if (notifications !== null) {
+          console.log('Raw unread notifications:', notifications);
+          console.log('Unread notifications count:', notifications.length);
+          setUnreadNotifications(notifications.length);
+        } else {
+          console.log('Failed to load notifications after retries, keeping current count');
+        }
       } catch (notificationError) {
         console.error('Error loading notifications:', notificationError);
-        setUnreadNotifications(0);
+        // Don't reset count on error - keep previous value
       }
 
-      // Load messages
+      // Load messages with retry logic
       try {
         console.log('Querying messages for:', user?.email);
-        const messages = await Message.filter({
-          recipient_email: user?.email,
-          is_read: false
+        const messages = await withRetry(async () => {
+          return await Message.filter({
+            recipient_email: user?.email,
+            is_read: false
+          });
         });
-        console.log('Raw unread messages:', messages);
-        console.log('Unread messages count:', messages.length);
-        setUnreadMessages(messages.length);
+        
+        if (messages !== null) {
+          console.log('Raw unread messages:', messages);
+          console.log('Unread messages count:', messages.length);
+          setUnreadMessages(messages.length);
+        } else {
+          console.log('Failed to load messages after retries, keeping current count');
+        }
       } catch (messageError) {
         console.error('Error loading messages:', messageError);
-        setUnreadMessages(0);
+        // Don't reset count on error - keep previous value
       }
     } catch (error) {
       console.error('Error in loadUnreadCounts:', error);
-      setUnreadNotifications(0);
-      setUnreadMessages(0);
+      // Don't reset counts on error - keep previous values
+    } finally {
+      setIsLoadingCounts(false);
     }
+  };
+
+  // Retry helper function
+  const withRetry = async <T,>(
+    operation: () => Promise<T>, 
+    maxRetries: number = 2, 
+    delay: number = 1000
+  ): Promise<T | null> => {
+    let lastError;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        console.log(`Operation failed, retry ${i + 1}/${maxRetries}:`, error);
+        
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    console.error('Operation failed after all retries:', lastError);
+    return null;
   };
 
   // Force refresh function for debugging
@@ -156,9 +200,14 @@ export const Layout: React.FC<LayoutProps> = ({
           {process.env.NODE_ENV === 'development' && (
             <button 
               onClick={forceRefresh}
-              className="text-xs bg-gray-200 px-2 py-1 rounded"
+              className={`text-xs px-2 py-1 rounded ${
+                isLoadingCounts 
+                  ? 'bg-yellow-200 text-yellow-800' 
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+              disabled={isLoadingCounts}
             >
-              Refresh (N:{unreadNotifications} M:{unreadMessages})
+              {isLoadingCounts ? 'Loading...' : `Refresh (N:${unreadNotifications} M:${unreadMessages})`}
             </button>
           )}
         </div>

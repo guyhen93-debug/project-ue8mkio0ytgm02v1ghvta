@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, RefreshCw } from 'lucide-react';
+import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,28 @@ const ManagerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    // Monitor online status
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log('Connection restored, reloading data...');
+      loadOrders();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log('Connection lost');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -51,22 +73,62 @@ const ManagerDashboard: React.FC = () => {
           await SampleDataService.initializeSampleData();
         } catch (sampleError) {
           console.log('Sample data initialization failed, continuing with existing data');
+          // Don't treat this as a fatal error
         }
       }
       
-      // Load orders with the robust data service
-      const allOrders = await OrderService.getOrdersWithRelations(undefined, true);
-      console.log('Loaded orders:', allOrders.length);
+      // Load orders with retry logic
+      const allOrders = await withRetry(async () => {
+        return await OrderService.getOrdersWithRelations(undefined, true);
+      }, 3, 2000);
       
-      setOrders(allOrders);
-      setRetryCount(0); // Reset retry count on success
+      if (allOrders !== null) {
+        console.log('Loaded orders:', allOrders.length);
+        setOrders(allOrders);
+        setRetryCount(0); // Reset retry count on success
+      } else {
+        throw new Error('Failed to load orders after multiple attempts');
+      }
     } catch (error) {
       console.error('Error loading orders:', error);
-      setError(`Failed to load orders. ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setOrders([]);
+      const errorMessage = !isOnline 
+        ? 'No internet connection. Please check your network and try again.'
+        : `Failed to load orders. ${error instanceof Error ? error.message : 'Unknown error'}`;
+      
+      setError(errorMessage);
+      
+      // Keep existing orders if we have them
+      if (orders.length === 0) {
+        setOrders([]);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Retry helper function
+  const withRetry = async <T,>(
+    operation: () => Promise<T>, 
+    maxRetries: number = 3, 
+    delay: number = 1000
+  ): Promise<T | null> => {
+    let lastError;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        console.log(`Operation failed, retry ${i + 1}/${maxRetries}:`, error);
+        
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        }
+      }
+    }
+    
+    console.error('Operation failed after all retries:', lastError);
+    return null;
   };
 
   const handleRetry = () => {
@@ -134,15 +196,18 @@ const ManagerDashboard: React.FC = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const result = await DataService.updateOrder(orderId, { status: newStatus });
-      if (result.success) {
+      const result = await withRetry(async () => {
+        return await DataService.updateOrder(orderId, { status: newStatus });
+      });
+      
+      if (result && result.success) {
         await loadOrders(); // Reload orders
         toast({
           title: t('order_updated'),
           description: t('order_updated_successfully')
         });
       } else {
-        throw new Error(result.error);
+        throw new Error(result?.error || 'Update failed');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -166,6 +231,12 @@ const ManagerDashboard: React.FC = () => {
                 Retry attempt: {retryCount}
               </p>
             )}
+            {!isOnline && (
+              <div className="flex items-center justify-center gap-2 mt-3 text-orange-600">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">No internet connection</span>
+              </div>
+            )}
           </div>
         </div>
       </Layout>
@@ -179,13 +250,22 @@ const ManagerDashboard: React.FC = () => {
           <div className="text-center max-w-md">
             <Package className="w-16 h-16 text-red-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('error_loading_data')}
+              {!isOnline ? 'Connection Problem' : t('error_loading_data')}
             </h3>
             <p className="text-gray-600 mb-4 text-sm">{error}</p>
+            
+            {!isOnline && (
+              <div className="flex items-center justify-center gap-2 mb-4 text-orange-600">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">Check your internet connection</span>
+              </div>
+            )}
+            
             <div className="flex gap-2 justify-center">
               <Button 
                 onClick={handleRetry} 
                 className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                disabled={!isOnline}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 {t('try_again')}
@@ -212,6 +292,16 @@ const ManagerDashboard: React.FC = () => {
   return (
     <Layout title={t('all_orders')}>
       <div className="p-4 space-y-4">
+        {/* Connection Status */}
+        {!isOnline && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-600" />
+            <span className="text-sm text-orange-800">
+              No internet connection. Some features may not work properly.
+            </span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -224,6 +314,7 @@ const ManagerDashboard: React.FC = () => {
               variant="outline"
               size="sm"
               className="flex-1 sm:flex-none"
+              disabled={!isOnline}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               {t('refresh')}
@@ -244,7 +335,7 @@ const ManagerDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* ... keep existing code (filters and orders list) */}
         <div className={cn(
           "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
           isRTL ? "text-right" : "text-left"
@@ -342,6 +433,7 @@ const ManagerDashboard: React.FC = () => {
                             size="sm"
                             onClick={() => updateOrderStatus(order.id, 'approved')}
                             className="bg-green-600 hover:bg-green-700 text-white"
+                            disabled={!isOnline}
                           >
                             {t('approved')}
                           </Button>
@@ -349,6 +441,7 @@ const ManagerDashboard: React.FC = () => {
                             size="sm"
                             variant="destructive"
                             onClick={() => updateOrderStatus(order.id, 'rejected')}
+                            disabled={!isOnline}
                           >
                             {t('rejected')}
                           </Button>
