@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '@/entities';
 
 const Index = ({ user, setUser }) => {
   const navigate = useNavigate();
@@ -12,14 +11,31 @@ const Index = ({ user, setUser }) => {
     }
   }, [user, navigate]);
 
-  const handleLogout = async () => {
-    try {
-      await User.logout();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
+  const handleLogout = () => {
+    setUser(null);
+    navigate('/login');
+  };
+
+  const handleOrdersClick = () => {
+    if (user.role === 'manager' || user.role === 'administrator') {
+      navigate('/manager-dashboard');
+    } else {
+      navigate('/client-dashboard');
     }
+  };
+
+  const handleClientsClick = () => {
+    // For now, navigate to manager dashboard
+    navigate('/manager-dashboard');
+  };
+
+  const handleSitesClick = () => {
+    // For now, navigate to manager dashboard
+    navigate('/manager-dashboard');
+  };
+
+  const handleAdminPanelClick = () => {
+    navigate('/manager-dashboard');
   };
 
   if (!user) {
@@ -61,7 +77,7 @@ const Index = ({ user, setUser }) => {
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ color: '#6b7280' }}>שלום, {user.full_name}</span>
+            <span style={{ color: '#6b7280' }}>שלום, {user.full_name || user.name}</span>
             <button
               onClick={handleLogout}
               style={{
@@ -129,15 +145,21 @@ const Index = ({ user, setUser }) => {
               <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
                 צפה וניהל הזמנות קיימות
               </p>
-              <button style={{
-                backgroundColor: '#eab308',
-                color: 'black',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
+              <button 
+                onClick={handleOrdersClick}
+                style={{
+                  backgroundColor: '#eab308',
+                  color: 'black',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#eab308'}
+              >
                 צפה בהזמנות
               </button>
             </div>
@@ -155,15 +177,21 @@ const Index = ({ user, setUser }) => {
               <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
                 ניהול פרטי לקוחות
               </p>
-              <button style={{
-                backgroundColor: '#eab308',
-                color: 'black',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
+              <button 
+                onClick={handleClientsClick}
+                style={{
+                  backgroundColor: '#eab308',
+                  color: 'black',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#eab308'}
+              >
                 ניהול לקוחות
               </button>
             </div>
@@ -181,15 +209,21 @@ const Index = ({ user, setUser }) => {
               <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
                 ניהול אתרי עבודה
               </p>
-              <button style={{
-                backgroundColor: '#eab308',
-                color: 'black',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
+              <button 
+                onClick={handleSitesClick}
+                style={{
+                  backgroundColor: '#eab308',
+                  color: 'black',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#eab308'}
+              >
                 ניהול אתרים
               </button>
             </div>
@@ -209,15 +243,21 @@ const Index = ({ user, setUser }) => {
               <p style={{ color: '#92400e', marginBottom: '1rem' }}>
                 גישה לכלי ניהול מתקדמים
               </p>
-              <button style={{
-                backgroundColor: '#f59e0b',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
+              <button 
+                onClick={handleAdminPanelClick}
+                style={{
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#f59e0b'}
+              >
                 פאנל מנהל
               </button>
             </div>
