@@ -103,6 +103,17 @@ const AdminPanel: React.FC = () => {
   const saveOrder = async (orderData: any) => {
     try {
       if (editingOrder.id) {
+        // Update site name if site_id changed
+        if (orderData.site_id && orderData.site_id !== editingOrder.site_id) {
+          const selectedSite = sites.find(s => s.id === orderData.site_id);
+          if (selectedSite) {
+            orderData.site_name = selectedSite.site_name;
+            orderData.client_id = selectedSite.client_id;
+            orderData.client_name = clients.find(c => c.id === selectedSite.client_id)?.name || '';
+            orderData.unlinked_site = false;
+          }
+        }
+        
         await Order.update(editingOrder.id, orderData);
         toast({
           title: t('order_updated'),
@@ -202,6 +213,19 @@ const AdminPanel: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Get available sites for the selected client in order editing
+  const getAvailableSites = (clientId?: string) => {
+    if (!clientId) return sites;
+    return sites.filter(site => site.client_id === clientId);
+  };
+
+  // Get quarry/crossing options
+  const getQuarryOptions = () => [
+    { value: 'default', label: isRTL ? 'מחצבה ברירת מחדל' : 'Default Quarry' },
+    { value: 'yitzhak_rabin', label: isRTL ? 'מעבר יצחק רבין' : 'Yitzhak Rabin Crossing' },
+    { value: 'taba', label: isRTL ? 'מעבר טאבה' : 'Taba Crossing' }
+  ];
+
   if (user?.role !== 'manager') {
     return (
       <Layout title={t('admin_panel')}>
@@ -278,6 +302,7 @@ const AdminPanel: React.FC = () => {
 
           {/* Orders Management */}
           <TabsContent value="orders" className="space-y-4">
+            {/* ... keep existing code (search and filters) */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className={cn(
@@ -308,6 +333,7 @@ const AdminPanel: React.FC = () => {
               </Select>
             </div>
 
+            {/* ... keep existing code (orders list) */}
             {filteredOrders.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
@@ -429,7 +455,7 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Clients Management */}
+          {/* ... keep existing code (other tabs) */}
           <TabsContent value="clients" className="space-y-4">
             <div className={cn(
               "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
@@ -491,7 +517,6 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Sites Management */}
           <TabsContent value="sites" className="space-y-4">
             <div className={cn(
               "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
@@ -556,23 +581,23 @@ const AdminPanel: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Products Management */}
           <TabsContent value="products" className="space-y-4">
             <ProductManagement />
           </TabsContent>
         </Tabs>
 
-        {/* Edit Order Dialog */}
+        {/* Enhanced Edit Order Dialog */}
         {editingOrder && (
           <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
             <DialogContent className={cn(
-              "max-w-2xl max-h-[90vh] overflow-y-auto",
+              "max-w-3xl max-h-[90vh] overflow-y-auto",
               isRTL ? "text-right" : "text-left"
             )} dir={isRTL ? "rtl" : "ltr"}>
               <DialogHeader>
-                <DialogTitle>{t('edit_order')}</DialogTitle>
+                <DialogTitle>{t('edit_order')} #{editingOrder.order_number}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Basic Order Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>{t('status')}</Label>
@@ -600,15 +625,103 @@ const AdminPanel: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div>
+
+                {/* Site Assignment */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="text-lg font-semibold">{isRTL ? 'שיוך אתר' : 'Site Assignment'}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>{t('client')}</Label>
+                      <Select 
+                        value={editingOrder.client_id || ''} 
+                        onValueChange={(value) => {
+                          const selectedClient = clients.find(c => c.id === value);
+                          setEditingOrder({
+                            ...editingOrder, 
+                            client_id: value,
+                            client_name: selectedClient?.name || '',
+                            site_id: '', // Reset site when client changes
+                            site_name: ''
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('select_client')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>{t('site')}</Label>
+                      <Select 
+                        value={editingOrder.site_id || ''} 
+                        onValueChange={(value) => {
+                          const selectedSite = sites.find(s => s.id === value);
+                          setEditingOrder({
+                            ...editingOrder, 
+                            site_id: value,
+                            site_name: selectedSite?.site_name || '',
+                            unlinked_site: !value
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('select_site')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableSites(editingOrder.client_id).map((site) => (
+                            <SelectItem key={site.id} value={site.id}>
+                              {site.site_name} ({t(site.region_type)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quarry/Crossing Assignment */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="text-lg font-semibold">{isRTL ? 'שיוך מחצבה/מעבר' : 'Quarry/Crossing Assignment'}</h3>
+                  <div>
+                    <Label>{isRTL ? 'מחצבה או מעבר' : 'Quarry or Crossing'}</Label>
+                    <Select 
+                      value={editingOrder.quarry_or_crossing || 'default'} 
+                      onValueChange={(value) => setEditingOrder({...editingOrder, quarry_or_crossing: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getQuarryOptions().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="border-t pt-4">
                   <Label>{t('notes')}</Label>
                   <Textarea 
                     value={editingOrder.notes || ''} 
                     onChange={(e) => setEditingOrder({...editingOrder, notes: e.target.value})}
                     rows={3}
+                    placeholder={isRTL ? 'הערות נוספות להזמנה...' : 'Additional notes for the order...'}
                   />
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2 justify-end">
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 justify-end border-t pt-4">
                   <Button variant="outline" onClick={() => setEditingOrder(null)} className="w-full sm:w-auto">
                     {t('cancel')}
                   </Button>
@@ -621,7 +734,7 @@ const AdminPanel: React.FC = () => {
           </Dialog>
         )}
 
-        {/* Edit Client Dialog */}
+        {/* ... keep existing code (other dialogs) */}
         {editingClient && (
           <Dialog open={!!editingClient} onOpenChange={() => setEditingClient(null)}>
             <DialogContent className={cn(
@@ -652,7 +765,6 @@ const AdminPanel: React.FC = () => {
           </Dialog>
         )}
 
-        {/* Edit Site Dialog */}
         {editingSite && (
           <Dialog open={!!editingSite} onOpenChange={() => setEditingSite(null)}>
             <DialogContent className={cn(
