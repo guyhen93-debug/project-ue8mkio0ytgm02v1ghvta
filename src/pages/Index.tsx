@@ -1,53 +1,29 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Layout } from '@/components/Layout';
+import React from 'react';
 
 const Index: React.FC = () => {
-  const { user, isLoading } = useAuth();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (user) {
-        // Redirect based on user role
-        const redirectPath = user.role === 'manager' ? '/manager' : '/client';
-        navigate(redirectPath, { replace: true });
-      } else {
-        // Redirect to login if not authenticated
-        navigate('/login', { replace: true });
-      }
-    }
-  }, [user, isLoading, navigate]);
-
-  if (isLoading) {
-    return (
-      <Layout showBottomNav={false}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <img 
-                src="/favicon.ico" 
-                alt="Piter Noufi" 
-                className="w-12 h-12"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'block';
-                }}
-              />
-              <span className="text-black font-bold text-2xl hidden">PN</span>
-            </div>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('loading')}</p>
-          </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
+      <div className="text-center p-8">
+        <div className="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span className="text-black font-bold text-2xl">PN</span>
         </div>
-      </Layout>
-    );
-  }
-
-  return null; // This component will redirect, so no need to render anything
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Piternoufi Orders
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Quarry Management System
+        </p>
+        <div className="space-y-4">
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium px-6 py-2 rounded-lg transition-colors"
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Index;
