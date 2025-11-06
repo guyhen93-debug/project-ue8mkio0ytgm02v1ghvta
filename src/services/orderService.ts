@@ -46,6 +46,7 @@ export class OrderService {
           }
         }
       } catch (error) {
+        console.error('Error fetching site for validation:', error);
         errors.push('site_not_found');
       }
     }
@@ -125,12 +126,27 @@ export class OrderService {
 
   static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<any[]> {
     try {
-      let orders;
+      let orders = [];
       
       if (isAdmin) {
-        orders = await Order.list('-created_at');
-      } else {
-        orders = await Order.filter({ created_by: userEmail }, '-created_at');
+        try {
+          orders = await Order.list('-created_at');
+        } catch (error) {
+          console.error('Error loading all orders:', error);
+          orders = [];
+        }
+      } else if (userEmail) {
+        try {
+          orders = await Order.filter({ created_by: userEmail }, '-created_at');
+        } catch (error) {
+          console.error('Error loading user orders:', error);
+          orders = [];
+        }
+      }
+
+      // If no orders found, return empty array
+      if (!orders || orders.length === 0) {
+        return [];
       }
 
       // Enrich orders with site and client information
@@ -139,28 +155,66 @@ export class OrderService {
           try {
             let site = null;
             let client = null;
+            let siteName = 'Unknown Site';
+            let clientName = 'Unknown Client';
+            let regionType = 'unknown';
+            let unlinkedSite = order.unlinked_site || false;
 
+            // Try to get site information if site_id exists
             if (order.site_id && !order.unlinked_site) {
-              site = await Site.get(order.site_id);
-              if (site && site.client_id) {
-                client = await Client.get(site.client_id);
+              try {
+                site = await Site.get(order.site_id);
+                if (site) {
+                  siteName = site.site_name || 'Unknown Site';
+                  regionType = site.region_type || 'unknown';
+                  
+                  // Try to get client information
+                  if (site.client_id) {
+                    try {
+                      client = await Client.get(site.client_id);
+                      if (client) {
+                        clientName = client.name || 'Unknown Client';
+                      }
+                    } catch (clientError) {
+                      console.error('Error fetching client:', clientError);
+                    }
+                  }
+                }
+              } catch (siteError) {
+                console.error('Error fetching site:', siteError);
+                unlinkedSite = true;
               }
+            }
+
+            // Handle legacy orders that might have site_name directly
+            if (!site && order.site_name) {
+              siteName = order.site_name;
+              unlinkedSite = true;
             }
 
             return {
               ...order,
-              site_name: site?.site_name || 'Unknown Site',
-              client_name: client?.name || 'Unknown Client',
-              region_type: site?.region_type || 'unknown'
+              site_name: siteName,
+              client_name: clientName,
+              region_type: regionType,
+              unlinked_site: unlinkedSite,
+              // Ensure we have the new field names with fallbacks
+              quantity_tons: order.quantity_tons || order.quantity || 0,
+              delivery_window: order.delivery_window || order.time_slot || 'morning',
+              delivery_method: order.delivery_method || order.delivery_type || 'self'
             };
           } catch (error) {
-            // Handle cases where site or client might not exist
+            console.error('Error enriching order:', error);
+            // Return order with safe defaults
             return {
               ...order,
-              site_name: 'Unknown Site',
+              site_name: order.site_name || 'Unknown Site',
               client_name: 'Unknown Client',
               region_type: 'unknown',
-              unlinked_site: true
+              unlinked_site: true,
+              quantity_tons: order.quantity_tons || order.quantity || 0,
+              delivery_window: order.delivery_window || order.time_slot || 'morning',
+              delivery_method: order.delivery_method || order.delivery_type || 'self'
             };
           }
         })

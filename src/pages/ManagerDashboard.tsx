@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderService } from '@/services/orderService';
+import { SampleDataService } from '@/services/sampleDataService';
 import { Order } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +27,7 @@ const ManagerDashboard: React.FC = () => {
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -38,10 +40,17 @@ const ManagerDashboard: React.FC = () => {
   const loadOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // Try to initialize sample data if no data exists
+      await SampleDataService.initializeSampleData();
+      
       const allOrders = await OrderService.getOrdersWithRelations(undefined, true);
       setOrders(allOrders);
     } catch (error) {
-      console.error('Error loading orders:', error);
+      console.error('Error loading orders with relations:', error);
+      setError('Failed to load orders. Please try again.');
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -136,6 +145,25 @@ const ManagerDashboard: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Layout title={t('all_orders')}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Package className="w-16 h-16 text-red-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {t('error_loading_data')}
+            </h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={loadOrders} className="bg-yellow-500 hover:bg-yellow-600 text-black">
+              {t('try_again')}
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout title={t('all_orders')}>
       <div className="p-4 space-y-4">
@@ -215,6 +243,18 @@ const ManagerDashboard: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {t('no_orders_found')}
             </h3>
+            <p className="text-gray-600 mb-4">
+              {orders.length === 0 ? t('no_orders_yet') : t('no_orders_match_filter')}
+            </p>
+            {orders.length === 0 && (
+              <Button 
+                onClick={() => navigate('/create-order')}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('create_first_order')}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -264,7 +304,7 @@ const ManagerDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Product - Aligned with other fields */}
+                  {/* Product */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
@@ -274,7 +314,7 @@ const ManagerDashboard: React.FC = () => {
                     <span className="text-gray-600">{order.quantity_tons} {t('tons')}</span>
                   </div>
 
-                  {/* Delivery Date & Window - Consistent time display */}
+                  {/* Delivery Date & Window */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
@@ -285,7 +325,7 @@ const ManagerDashboard: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Site Name - Show site name from relations */}
+                  {/* Site Name */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
@@ -309,7 +349,7 @@ const ManagerDashboard: React.FC = () => {
                     <span className="text-gray-700">{t(order.delivery_method)}</span>
                   </div>
 
-                  {/* Notes - Translated label */}
+                  {/* Notes */}
                   {order.notes && (
                     <div className={cn(
                       "flex items-start gap-2",
