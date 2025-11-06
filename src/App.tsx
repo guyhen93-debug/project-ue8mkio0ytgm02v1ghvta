@@ -9,6 +9,7 @@ import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminPanel from './pages/AdminPanel';
 import Inbox from './pages/Inbox';
+import CreateOrder from './pages/CreateOrder';
 
 const queryClient = new QueryClient();
 
@@ -101,14 +102,7 @@ const AuthWrapper = ({ children }) => {
   return React.cloneElement(children, { user, setUser });
 };
 
-// Create placeholder components for missing pages
-const CreateOrder = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1>יצירת הזמנה חדשה</h1>
-    <p>עמוד זה בפיתוח</p>
-  </div>
-);
-
+// Create placeholder components for remaining missing pages
 const Notifications = () => (
   <div style={{ padding: '2rem', textAlign: 'center' }}>
     <h1>התראות</h1>
