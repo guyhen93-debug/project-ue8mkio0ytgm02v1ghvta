@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Order } from '@/entities';
+import { OrderService } from '@/services/orderService';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,7 @@ const ClientDashboard: React.FC = () => {
     try {
       setLoading(true);
       if (user?.email) {
-        const userOrders = await Order.filter({ created_by: user.email }, '-created_at');
+        const userOrders = await OrderService.getOrdersWithRelations(user.email, false);
         setOrders(userOrders);
       }
     } catch (error) {
@@ -69,16 +69,16 @@ const ClientDashboard: React.FC = () => {
     }
   };
 
-  const formatDeliveryTime = (date: string, timeSlot: string) => {
+  const formatDeliveryInfo = (date: string, window: string) => {
     try {
       const deliveryDate = new Date(date);
       const dateStr = format(deliveryDate, 'MMMM d', { 
         locale: language === 'he' ? he : enUS 
       });
       
-      const timeStr = timeSlot === 'morning' ? t('morning') : t('afternoon');
+      const windowStr = OrderService.formatDeliveryWindow(window, language);
       
-      return isRTL ? `${dateStr} • ${timeStr}` : `${dateStr} • ${timeStr}`;
+      return `${dateStr} • ${windowStr}`;
     } catch (error) {
       return date;
     }
@@ -115,7 +115,7 @@ const ClientDashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* Status Filter - Fix 1: RTL/LTR alignment and placeholders */}
+        {/* Status Filter */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <label className={cn(
             "text-sm font-medium text-gray-700 whitespace-nowrap",
@@ -168,7 +168,7 @@ const ClientDashboard: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg font-semibold">
-                        {t('order_number')}{order.id.slice(-6)}
+                        {t('order_number')}{order.order_number || order.id.slice(-6)}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         {format(new Date(order.created_at), 'PPP', { 
@@ -182,48 +182,51 @@ const ClientDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Product - Fix 2: Remove middle dot and align properly */}
+                  {/* Product - Aligned properly without middle dot */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Package className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">{t(order.product_id)}</span>
-                    <span className="text-gray-600">{order.quantity} {t('tons')}</span>
+                    <span className="text-gray-600">{order.quantity_tons} {t('tons')}</span>
                   </div>
 
-                  {/* Delivery Date & Time */}
+                  {/* Delivery Date & Window - Consistent time display */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Calendar className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">
-                      {formatDeliveryTime(order.delivery_date, order.time_slot)}
+                      {formatDeliveryInfo(order.delivery_date, order.delivery_window)}
                     </span>
                   </div>
 
-                  {/* Site Name */}
-                  {order.site_name && (
-                    <div className={cn(
-                      "flex items-center gap-2",
-                      isRTL ? "text-right" : "text-left"
-                    )}>
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700">{order.site_name}</span>
-                    </div>
-                  )}
+                  {/* Site Name - Show site name from relations */}
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">{order.site_name}</span>
+                    {order.unlinked_site && (
+                      <Badge variant="outline" className="text-xs">
+                        {isRTL ? "לא מקושר" : "Unlinked"}
+                      </Badge>
+                    )}
+                  </div>
 
-                  {/* Delivery Type */}
+                  {/* Delivery Method */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Clock className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-700">{t(order.delivery_type)}</span>
+                    <span className="text-gray-700">{t(order.delivery_method)}</span>
                   </div>
 
-                  {/* Notes - Fix 3: Translate Notes label and RTL alignment */}
+                  {/* Notes - Translated label */}
                   {order.notes && (
                     <div className={cn(
                       "flex items-start gap-2",

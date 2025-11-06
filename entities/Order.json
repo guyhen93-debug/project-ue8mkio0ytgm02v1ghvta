@@ -1,50 +1,55 @@
 {
   "name": "Order",
-  "description": "An order in the system",
+  "description": "An order for construction materials",
   "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "Sequential order number (e.g., 2001, 2002, etc.)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "The ID of the client (FK→clients.id)"
+    },
+    "site_id": {
+      "type": "string",
+      "description": "The ID of the delivery site (FK→sites.id)"
+    },
     "product_id": {
       "type": "string",
       "description": "The ID of the ordered product"
     },
-    "quantity": {
+    "quantity_tons": {
       "type": "number",
       "description": "The quantity ordered in tons"
     },
     "delivery_date": {
       "type": "string",
-      "description": "The delivery date"
+      "description": "The delivery date (ISO string)"
     },
-    "time_slot": {
+    "delivery_window": {
       "type": "string",
-      "description": "The delivery time slot (morning/afternoon)"
+      "description": "The delivery window (morning/afternoon)",
+      "enum": ["morning", "afternoon"]
     },
-    "delivery_type": {
+    "delivery_method": {
       "type": "string",
-      "description": "The delivery type (self_transport/external)"
-    },
-    "site_name": {
-      "type": "string",
-      "description": "The name of the delivery site"
-    },
-    "delivery_location": {
-      "type": "string",
-      "description": "The delivery address"
-    },
-    "quarry": {
-      "type": "string",
-      "description": "The quarry or crossing point"
+      "description": "The delivery method (self/external)",
+      "enum": ["self", "external"]
     },
     "notes": {
       "type": "string",
       "description": "Additional notes for the order"
     },
-    "truck_access": {
-      "type": "boolean",
-      "description": "Whether there is truck access"
-    },
     "status": {
       "type": "string",
-      "description": "The order status (pending/approved/rejected/completed)"
+      "description": "The order status",
+      "enum": ["pending", "approved", "rejected", "completed"],
+      "default": "pending"
+    },
+    "unlinked_site": {
+      "type": "boolean",
+      "description": "Whether this is a legacy order without proper site linking",
+      "default": false
     }
   }
 }

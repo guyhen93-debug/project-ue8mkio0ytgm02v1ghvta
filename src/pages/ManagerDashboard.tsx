@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { OrderService } from '@/services/orderService';
 import { Order } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
 import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
@@ -21,7 +23,7 @@ const ManagerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [quarryFilter, setQuarryFilter] = useState<string>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -31,12 +33,12 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, statusFilter, quarryFilter, searchTerm]);
+  }, [orders, statusFilter, regionFilter, searchTerm]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const allOrders = await Order.list('-created_at');
+      const allOrders = await OrderService.getOrdersWithRelations(undefined, true);
       setOrders(allOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -53,22 +55,19 @@ const ManagerDashboard: React.FC = () => {
       filtered = filtered.filter(order => order.status === statusFilter);
     }
     
-    // Quarry filter
-    if (quarryFilter !== 'all') {
-      if (quarryFilter === 'shifolei_har') {
-        filtered = filtered.filter(order => order.quarry === 'shifolei_har');
-      } else if (quarryFilter === 'yitzhak_rabin') {
-        filtered = filtered.filter(order => order.quarry === 'yitzhak_rabin');
-      }
+    // Region filter
+    if (regionFilter !== 'all') {
+      filtered = filtered.filter(order => order.region_type === regionFilter);
     }
     
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(order => 
-        order.id.toLowerCase().includes(term) ||
+        (order.order_number && order.order_number.toLowerCase().includes(term)) ||
         order.created_by.toLowerCase().includes(term) ||
         (order.site_name && order.site_name.toLowerCase().includes(term)) ||
+        (order.client_name && order.client_name.toLowerCase().includes(term)) ||
         (order.notes && order.notes.toLowerCase().includes(term))
       );
     }
@@ -91,16 +90,16 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const formatDeliveryTime = (date: string, timeSlot: string) => {
+  const formatDeliveryInfo = (date: string, window: string) => {
     try {
       const deliveryDate = new Date(date);
       const dateStr = format(deliveryDate, 'MMMM d', { 
         locale: language === 'he' ? he : enUS 
       });
       
-      const timeStr = timeSlot === 'morning' ? t('morning') : t('afternoon');
+      const windowStr = OrderService.formatDeliveryWindow(window, language);
       
-      return isRTL ? `${dateStr} • ${timeStr}` : `${dateStr} • ${timeStr}`;
+      return `${dateStr} • ${windowStr}`;
     } catch (error) {
       return date;
     }
@@ -110,9 +109,17 @@ const ManagerDashboard: React.FC = () => {
     try {
       await Order.update(orderId, { status: newStatus });
       await loadOrders(); // Reload orders
-      // TODO: Send notification to client
+      toast({
+        title: t('order_updated'),
+        description: t('order_updated_successfully')
+      });
     } catch (error) {
       console.error('Error updating order status:', error);
+      toast({
+        title: t('error'),
+        description: t('update_failed'),
+        variant: 'destructive'
+      });
     }
   };
 
@@ -139,7 +146,6 @@ const ManagerDashboard: React.FC = () => {
             <p className="text-gray-600">{t('total_orders')}: {orders.length}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            {/* Fix 3: Add Create Order button for admin */}
             <Button 
               onClick={() => navigate('/create-order')}
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"
@@ -156,7 +162,7 @@ const ManagerDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters - Fix 5: Admin home filters with RTL/LTR alignment and placeholders */}
+        {/* Filters */}
         <div className={cn(
           "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
           isRTL ? "text-right" : "text-left"
@@ -189,15 +195,15 @@ const ManagerDashboard: React.FC = () => {
             </SelectContent>
           </Select>
 
-          {/* Quarry Filter */}
-          <Select value={quarryFilter} onValueChange={setQuarryFilter}>
+          {/* Region Filter */}
+          <Select value={regionFilter} onValueChange={setRegionFilter}>
             <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-              <SelectValue placeholder={isRTL ? "סינון לפי מחצבה/מעבר" : "Filter by quarry/border"} />
+              <SelectValue placeholder={isRTL ? "סינון לפי אזור" : "Filter by region"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('all')}</SelectItem>
-              <SelectItem value="shifolei_har">{t('shifolei_har')}</SelectItem>
-              <SelectItem value="yitzhak_rabin">{t('yitzhak_rabin')}</SelectItem>
+              <SelectItem value="eilat">{t('eilat')}</SelectItem>
+              <SelectItem value="outside_eilat">{t('outside_eilat')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -218,10 +224,13 @@ const ManagerDashboard: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg font-semibold">
-                        {t('order_number')}{order.id.slice(-6)}
+                        {t('order_number')}{order.order_number || order.id.slice(-6)}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         {t('customer')}: {order.created_by}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {t('client')}: {order.client_name}
                       </p>
                       <p className="text-sm text-gray-500">
                         {format(new Date(order.created_at), 'PPP', { 
@@ -255,59 +264,52 @@ const ManagerDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Product - Fix 2: Remove extra dot and align properly */}
+                  {/* Product - Aligned with other fields */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Package className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">{t(order.product_id)}</span>
-                    <span className="text-gray-600">{order.quantity} {t('tons')}</span>
+                    <span className="text-gray-600">{order.quantity_tons} {t('tons')}</span>
                   </div>
 
-                  {/* Delivery Date & Time */}
+                  {/* Delivery Date & Window - Consistent time display */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Calendar className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">
-                      {formatDeliveryTime(order.delivery_date, order.time_slot)}
+                      {formatDeliveryInfo(order.delivery_date, order.delivery_window)}
                     </span>
                   </div>
 
-                  {/* Site Name */}
-                  {order.site_name && (
-                    <div className={cn(
-                      "flex items-center gap-2",
-                      isRTL ? "text-right" : "text-left"
-                    )}>
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700">{order.site_name}</span>
-                    </div>
-                  )}
+                  {/* Site Name - Show site name from relations */}
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isRTL ? "text-right" : "text-left"
+                  )}>
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-700">{order.site_name}</span>
+                    <span className="text-xs text-gray-500">({t(order.region_type)})</span>
+                    {order.unlinked_site && (
+                      <Badge variant="outline" className="text-xs">
+                        {isRTL ? "לא מקושר" : "Unlinked"}
+                      </Badge>
+                    )}
+                  </div>
 
-                  {/* Delivery Type */}
+                  {/* Delivery Method */}
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "text-right" : "text-left"
                   )}>
                     <Clock className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-700">{t(order.delivery_type)}</span>
+                    <span className="text-gray-700">{t(order.delivery_method)}</span>
                   </div>
 
-                  {/* Quarry */}
-                  {order.quarry && (
-                    <div className={cn(
-                      "flex items-center gap-2",
-                      isRTL ? "text-right" : "text-left"
-                    )}>
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700">{t(order.quarry)}</span>
-                    </div>
-                  )}
-
-                  {/* Notes - Fix 4: Translate Notes label */}
+                  {/* Notes - Translated label */}
                   {order.notes && (
                     <div className={cn(
                       "flex items-start gap-2",

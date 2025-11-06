@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Order, Site } from '@/entities';
+import { OrderService, CreateOrderData } from '@/services/orderService';
+import { Site, Client } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,31 +26,46 @@ const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    product_id: '',
-    quantity: '',
-    delivery_date: undefined as Date | undefined,
-    time_slot: '',
-    delivery_type: '',
+    client_id: '',
     site_id: '',
-    quarry: '',
-    notes: '',
-    truck_access: true
+    product_id: '',
+    quantity_tons: '',
+    delivery_date: undefined as Date | undefined,
+    delivery_window: '',
+    delivery_method: '',
+    notes: ''
   });
   
   const [loading, setLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [sites, setSites] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [selectedSite, setSelectedSite] = useState<any>(null);
 
   useEffect(() => {
-    loadSites();
+    loadData();
   }, []);
 
-  const loadSites = async () => {
+  useEffect(() => {
+    if (formData.site_id) {
+      const site = sites.find(s => s.id === formData.site_id);
+      setSelectedSite(site);
+      if (site && site.client_id) {
+        setFormData(prev => ({ ...prev, client_id: site.client_id }));
+      }
+    }
+  }, [formData.site_id, sites]);
+
+  const loadData = async () => {
     try {
-      const sitesData = await Site.list('-created_at');
+      const [sitesData, clientsData] = await Promise.all([
+        Site.filter({ is_active: true }, '-created_at'),
+        Client.filter({ is_active: true }, '-created_at')
+      ]);
       setSites(sitesData);
+      setClients(clientsData);
     } catch (error) {
-      console.error('Error loading sites:', error);
+      console.error('Error loading data:', error);
     }
   };
 
@@ -61,13 +77,7 @@ const CreateOrder: React.FC = () => {
     { id: 'granite_10_60', name: t('granite_10_60') }
   ];
 
-  const quarries = [
-    { id: 'shifolei_har', name: t('shifolei_har') },
-    { id: 'yitzhak_rabin', name: t('yitzhak_rabin') }
-  ];
-
-  // Fix 10: Proper Hebrew and English time slot labels with correct afternoon time
-  const timeSlots = [
+  const deliveryWindows = [
     { 
       id: 'morning', 
       label: isRTL ? 'בוקר (07:00–12:00)' : 'Morning (07:00–12:00)'
@@ -77,6 +87,27 @@ const CreateOrder: React.FC = () => {
       label: isRTL ? 'צהריים (12:00–17:00)' : 'Afternoon (12:00–17:00)'
     }
   ];
+
+  const getValidationMessage = (errorKey: string): string => {
+    const messages = {
+      he: {
+        min_outside_eilat: 'לאתרים שמחוץ לאילת חובה להזמין מינימום של 40 טון בהובלה חיצונית.',
+        multiples_of_20: 'בהובלה חיצונית הכמות חייבת להיות בכפולות של 20.',
+        site_required: 'בחר אתר אספקה מהרשימה.',
+        window_required: 'בחר חלון אספקה (בוקר/צהריים).',
+        past_date: 'תאריך האספקה לא יכול להיות בעבר.'
+      },
+      en: {
+        min_outside_eilat: 'For sites outside Eilat, a minimum of 40 tons is required for external delivery.',
+        multiples_of_20: 'For external delivery, quantity must be in multiples of 20.',
+        site_required: 'Please select a delivery site from the list.',
+        window_required: 'Please select a delivery window (Morning/Afternoon).',
+        past_date: 'Delivery date cannot be in the past.'
+      }
+    };
+
+    return messages[language as keyof typeof messages]?.[errorKey as keyof typeof messages.en] || errorKey;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,37 +121,10 @@ const CreateOrder: React.FC = () => {
       return;
     }
 
-    // Validation
-    if (!formData.product_id || !formData.quantity || !formData.delivery_date || 
-        !formData.time_slot || !formData.delivery_type || !formData.site_id) {
+    if (!formData.delivery_date) {
       toast({
         title: t('validation_error'),
-        description: 'Please fill in all required fields',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validate quantity for external delivery
-    if (formData.delivery_type === 'external') {
-      const quantity = parseFloat(formData.quantity);
-      if (quantity < 20 || quantity % 20 !== 0) {
-        toast({
-          title: t('validation_error'),
-          description: t('external_multiple_20'),
-          variant: 'destructive'
-        });
-        return;
-      }
-    }
-
-    // Validate date is not in the past
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (formData.delivery_date < today) {
-      toast({
-        title: t('validation_error'),
-        description: t('past_date'),
+        description: getValidationMessage('window_required'),
         variant: 'destructive'
       });
       return;
@@ -129,24 +133,18 @@ const CreateOrder: React.FC = () => {
     try {
       setLoading(true);
       
-      const selectedSite = sites.find(site => site.id === formData.site_id);
-      
-      const orderData = {
+      const orderData: CreateOrderData = {
+        client_id: formData.client_id,
+        site_id: formData.site_id,
         product_id: formData.product_id,
-        quantity: parseFloat(formData.quantity),
+        quantity_tons: parseFloat(formData.quantity_tons),
         delivery_date: formData.delivery_date.toISOString(),
-        time_slot: formData.time_slot,
-        delivery_type: formData.delivery_type,
-        site_name: selectedSite?.name || '',
-        delivery_location: selectedSite?.address || '',
-        quarry: formData.quarry || 'shifolei_har',
-        notes: formData.notes,
-        truck_access: formData.truck_access,
-        status: 'pending',
-        created_by: user.email
+        delivery_window: formData.delivery_window as 'morning' | 'afternoon',
+        delivery_method: formData.delivery_method as 'self' | 'external',
+        notes: formData.notes
       };
 
-      await Order.create(orderData);
+      await OrderService.createOrder(orderData, user.email);
       
       toast({
         title: t('order_submitted'),
@@ -154,16 +152,34 @@ const CreateOrder: React.FC = () => {
       });
       
       navigate('/client');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      toast({
-        title: t('error'),
-        description: t('order_submission_failed'),
-        variant: 'destructive'
-      });
+      
+      // Handle validation errors
+      if (error.message.includes('Validation failed:')) {
+        const errorKeys = error.message.replace('Validation failed: ', '').split(', ');
+        const errorMessages = errorKeys.map(getValidationMessage).join('\n');
+        
+        toast({
+          title: t('validation_error'),
+          description: errorMessages,
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: t('error'),
+          description: t('order_submission_failed'),
+          variant: 'destructive'
+        });
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const getSiteDisplayName = (site: any): string => {
+    const client = clients.find(c => c.id === site.client_id);
+    return `${site.site_name} (${client?.name || 'Unknown Client'})`;
   };
 
   return (
@@ -177,7 +193,37 @@ const CreateOrder: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Product Selection - Fix 9: RTL alignment for product dropdown */}
+              {/* Site Selection - Dropdown Only */}
+              <div className="space-y-2">
+                <Label htmlFor="site" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {isRTL ? "בחר אתר אספקה" : "Select Delivery Site"} *
+                </Label>
+                <Select 
+                  value={formData.site_id} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
+                >
+                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
+                    <SelectValue placeholder={isRTL ? "בחר אתר אספקה" : "Select Delivery Site"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {getSiteDisplayName(site)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedSite && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    <p>{isRTL ? "איש קשר:" : "Contact:"} {selectedSite.contact_name}</p>
+                    <p>{isRTL ? "טלפון:" : "Phone:"} {selectedSite.contact_phone}</p>
+                    <p>{isRTL ? "אזור:" : "Region:"} {t(selectedSite.region_type)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Selection */}
               <div className="space-y-2">
                 <Label htmlFor="product" className="flex items-center gap-2">
                   <Package className="w-4 h-4" />
@@ -203,18 +249,28 @@ const CreateOrder: React.FC = () => {
               {/* Quantity */}
               <div className="space-y-2">
                 <Label htmlFor="quantity">
-                  {t('quantity')} *
+                  {t('quantity')} ({t('tons')}) *
                 </Label>
                 <Input
                   id="quantity"
                   type="number"
                   min="1"
                   step="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                  value={formData.quantity_tons}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quantity_tons: e.target.value }))}
                   placeholder={t('enter_quantity')}
                   className={cn(isRTL ? "text-right" : "text-left")}
                 />
+                {formData.delivery_method === 'external' && selectedSite?.region_type === 'outside_eilat' && (
+                  <p className="text-sm text-amber-600">
+                    {getValidationMessage('min_outside_eilat')}
+                  </p>
+                )}
+                {formData.delivery_method === 'external' && (
+                  <p className="text-sm text-blue-600">
+                    {getValidationMessage('multiples_of_20')}
+                  </p>
+                )}
               </div>
 
               {/* Delivery Date */}
@@ -259,49 +315,49 @@ const CreateOrder: React.FC = () => {
                 </Popover>
               </div>
 
-              {/* Time Slot - Fix 10: RTL alignment and correct time values */}
+              {/* Delivery Window */}
               <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  {t('time')} *
+                  {isRTL ? "חלון אספקה" : "Delivery Window"} *
                 </Label>
                 <RadioGroup
-                  value={formData.time_slot}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, time_slot: value }))}
+                  value={formData.delivery_window}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_window: value }))}
                   className={cn("grid grid-cols-1 gap-3")}
                 >
-                  {timeSlots.map((slot) => (
-                    <div key={slot.id} className={cn(
+                  {deliveryWindows.map((window) => (
+                    <div key={window.id} className={cn(
                       "flex items-center gap-2",
                       isRTL ? "flex-row-reverse" : "flex-row"
                     )}>
-                      <RadioGroupItem value={slot.id} id={slot.id} />
+                      <RadioGroupItem value={window.id} id={window.id} />
                       <Label 
-                        htmlFor={slot.id} 
+                        htmlFor={window.id} 
                         className="cursor-pointer"
                       >
-                        {slot.label}
+                        {window.label}
                       </Label>
                     </div>
                   ))}
                 </RadioGroup>
               </div>
 
-              {/* Delivery Type - RTL alignment */}
+              {/* Delivery Method */}
               <div className="space-y-3">
-                <Label>{t('delivery_type')} *</Label>
+                <Label>{isRTL ? "שיטת אספקה" : "Delivery Method"} *</Label>
                 <RadioGroup
-                  value={formData.delivery_type}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_type: value }))}
+                  value={formData.delivery_method}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_method: value }))}
                   className={cn("grid grid-cols-1 gap-3")}
                 >
                   <div className={cn(
                     "flex items-center gap-2",
                     isRTL ? "flex-row-reverse" : "flex-row"
                   )}>
-                    <RadioGroupItem value="self_transport" id="self_transport" />
+                    <RadioGroupItem value="self" id="self" />
                     <Label 
-                      htmlFor="self_transport" 
+                      htmlFor="self" 
                       className="cursor-pointer"
                     >
                       {t('self_transport')}
@@ -320,51 +376,6 @@ const CreateOrder: React.FC = () => {
                     </Label>
                   </div>
                 </RadioGroup>
-              </div>
-
-              {/* Site Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="site" className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  {isRTL ? "בחר אתר" : "Select Site"} *
-                </Label>
-                <Select 
-                  value={formData.site_id} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
-                >
-                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-                    <SelectValue placeholder={isRTL ? "בחר אתר" : "Select Site"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.name} - {site.address}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quarry Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="quarry">
-                  {t('quarry_crossing')}
-                </Label>
-                <Select 
-                  value={formData.quarry} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, quarry: value }))}
-                >
-                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-                    <SelectValue placeholder={t('select_quarry')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {quarries.map((quarry) => (
-                      <SelectItem key={quarry.id} value={quarry.id}>
-                        {quarry.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Additional Notes */}
