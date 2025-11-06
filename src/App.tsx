@@ -6,6 +6,7 @@ import Index from './pages/Index';
 import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
+import AdminPanel from './pages/AdminPanel';
 
 const queryClient = new QueryClient();
 
@@ -138,6 +139,14 @@ const App = () => {
                 element={
                   <AuthWrapper>
                     <ClientDashboard />
+                  </AuthWrapper>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <AuthWrapper>
+                    <AdminPanel />
                   </AuthWrapper>
                 } 
               />
