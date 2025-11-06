@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { User } from '@/entities';
 import Index from './pages/Index';
 import Login from './pages/Login';
 
@@ -67,23 +66,7 @@ class ErrorBoundary extends React.Component {
 // Auth wrapper component
 const AuthWrapper = ({ children }) => {
   const [user, setUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const currentUser = await User.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.log('User not authenticated');
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
+  const [loading, setLoading] = React.useState(false);
 
   if (loading) {
     return (
