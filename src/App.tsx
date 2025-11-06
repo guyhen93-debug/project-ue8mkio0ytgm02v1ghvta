@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,20 +18,41 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
 
-// Create QueryClient with proper configuration
+// Create QueryClient outside component to avoid recreation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-// Error Boundary Component
+// Simple error fallback component
+const ErrorFallback: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center p-8">
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+        Something went wrong
+      </h1>
+      <p className="text-gray-600 mb-6">
+        There was an error loading the application. Please try refreshing the page.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Refresh Page
+      </button>
+    </div>
+  </div>
+);
+
+// Error boundary class component
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; error?: Error }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -39,94 +60,87 @@ class ErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true };
+    console.error('ErrorBoundary caught error:', error);
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error('ErrorBoundary componentDidCatch:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Something went wrong
-            </h1>
-            <p className="text-gray-600 mb-4">
-              Please refresh the page to try again.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      );
+      return <ErrorFallback />;
     }
 
     return this.props.children;
   }
 }
 
+// Main App component
 const App: React.FC = () => {
+  // Add a safety check for React
+  if (!React || !React.useEffect) {
+    console.error('React is not properly loaded');
+    return <ErrorFallback />;
+  }
+
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <LanguageProvider>
-            <AuthProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/client" element={
-                    <ProtectedRoute role="client">
-                      <ClientDashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/manager" element={
-                    <ProtectedRoute role="manager">
-                      <ManagerDashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/admin" element={
-                    <ProtectedRoute role="manager">
-                      <AdminPanel />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/create-order" element={
-                    <ProtectedRoute>
-                      <CreateOrder />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/notifications" element={
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/inbox" element={
-                    <ProtectedRoute>
-                      <Inbox />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/profile" element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </AuthProvider>
-          </LanguageProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <LanguageProvider>
+              <AuthProvider>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/client" element={
+                      <ProtectedRoute role="client">
+                        <ClientDashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/manager" element={
+                      <ProtectedRoute role="manager">
+                        <ManagerDashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin" element={
+                      <ProtectedRoute role="manager">
+                        <AdminPanel />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/create-order" element={
+                      <ProtectedRoute>
+                        <CreateOrder />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                      <ProtectedRoute>
+                        <Notifications />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/inbox" element={
+                      <ProtectedRoute>
+                        <Inbox />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </AuthProvider>
+            </LanguageProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </React.StrictMode>
     </ErrorBoundary>
   );
 };
