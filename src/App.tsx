@@ -1,7 +1,4 @@
 import React from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Simple error fallback
@@ -120,31 +117,27 @@ const SimpleLogin = () => (
   </div>
 );
 
-// Minimal App component without QueryClient
+// Minimal App component without any Radix UI components
 const App = () => {
   console.log('App rendering, React available:', !!React);
   console.log('React.useEffect available:', !!React.useEffect);
   
   return (
     <ErrorBoundary>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<SimpleIndex />} />
-            <Route path="/login" element={<SimpleLogin />} />
-            <Route path="*" element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-                  <p className="text-gray-600">The page you're looking for doesn't exist.</p>
-                </div>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<SimpleIndex />} />
+          <Route path="/login" element={<SimpleLogin />} />
+          <Route path="*" element={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
+                <p className="text-gray-600">The page you're looking for doesn't exist.</p>
               </div>
-            } />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+            </div>
+          } />
+        </Routes>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 };
