@@ -4,8 +4,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Order, User } from '@/entities';
-import { Package, Clock, CheckCircle, XCircle, Plus, Calendar, MapPin } from 'lucide-react';
+import { Order } from '@/entities';
+import { superdevClient } from '@/lib/superdev/client';
+import { Package, Clock, CheckCircle, XCircle, Plus, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -29,7 +30,8 @@ const ClientDashboard = () => {
   const loadUserAndOrders = async () => {
     try {
       setLoading(true);
-      const currentUser = await User.me();
+      const currentUser = await superdevClient.auth.me();
+      console.log('Current user:', currentUser);
       setUser(currentUser);
 
       if (currentUser?.email) {
@@ -39,6 +41,7 @@ const ClientDashboard = () => {
           100
         );
         
+        console.log('User orders:', userOrders);
         setOrders(userOrders);
         
         const total = userOrders.length;

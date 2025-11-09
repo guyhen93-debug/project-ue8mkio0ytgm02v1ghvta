@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Order, User } from '@/entities';
-import { Plus, MapPin, Calendar, Package, Clock, FileText, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { Order } from '@/entities';
+import { superdevClient } from '@/lib/superdev/client';
+import { Plus, Calendar, Package, FileText, Search, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +36,8 @@ const ManagerDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const currentUser = await User.me();
+      const currentUser = await superdevClient.auth.me();
+      console.log('Current user:', currentUser);
       setUser(currentUser);
       
       const allOrders = await Order.list('-created_at', 100);
