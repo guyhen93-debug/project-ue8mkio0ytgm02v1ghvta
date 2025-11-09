@@ -12,7 +12,7 @@ interface LayoutProps {
   className?: string;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ 
+const Layout: React.FC<LayoutProps> = ({ 
   children, 
   title, 
   showBottomNav = true, 
@@ -55,7 +55,6 @@ export const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     if (user?.email) {
       console.log('Route changed to:', location.pathname);
-      // Small delay to allow for any pending operations
       const timer = setTimeout(() => {
         loadUnreadCounts();
       }, 200);
@@ -64,13 +63,12 @@ export const Layout: React.FC<LayoutProps> = ({
   }, [location.pathname, user?.email]);
 
   const loadUnreadCounts = async () => {
-    if (isLoadingCounts) return; // Prevent concurrent requests
+    if (isLoadingCounts) return;
     
     try {
       setIsLoadingCounts(true);
       console.log('Starting to load unread counts...');
       
-      // Load notifications with retry logic
       try {
         console.log('Querying notifications for:', user?.email);
         const notifications = await withRetry(async () => {
@@ -89,10 +87,8 @@ export const Layout: React.FC<LayoutProps> = ({
         }
       } catch (notificationError) {
         console.error('Error loading notifications:', notificationError);
-        // Don't reset count on error - keep previous value
       }
 
-      // Load messages with retry logic
       try {
         console.log('Querying messages for:', user?.email);
         const messages = await withRetry(async () => {
@@ -111,17 +107,14 @@ export const Layout: React.FC<LayoutProps> = ({
         }
       } catch (messageError) {
         console.error('Error loading messages:', messageError);
-        // Don't reset count on error - keep previous value
       }
     } catch (error) {
       console.error('Error in loadUnreadCounts:', error);
-      // Don't reset counts on error - keep previous values
     } finally {
       setIsLoadingCounts(false);
     }
   };
 
-  // Retry helper function
   const withRetry = async <T,>(
     operation: () => Promise<T>, 
     maxRetries: number = 2, 
@@ -146,7 +139,6 @@ export const Layout: React.FC<LayoutProps> = ({
     return null;
   };
 
-  // Force refresh function for debugging
   const forceRefresh = () => {
     console.log('Force refreshing counts...');
     loadUnreadCounts();
@@ -192,11 +184,9 @@ export const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className={`min-h-screen bg-gray-50 ${className}`}>  
-      {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-40">
         <div className="px-4 py-3 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
-          {/* Debug button - remove in production */}
           {process.env.NODE_ENV === 'development' && (
             <button 
               onClick={forceRefresh}
@@ -213,12 +203,10 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={showBottomNav ? "pb-20" : ""}>
         {children}
       </main>
 
-      {/* Bottom Navigation */}
       {showBottomNav && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
           <div className="flex items-center justify-around py-2">
@@ -247,3 +235,6 @@ export const Layout: React.FC<LayoutProps> = ({
     </div>
   );
 };
+
+export default Layout;
+export { Layout };
