@@ -1,240 +1,245 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { OrderService, CreateOrderData } from '@/services/orderService';
-import { Site, Client } from '@/entities';
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { CalendarIcon, MapPin, Package, Clock, FileText } from 'lucide-react';
+import { Order, Site, Client } from '@/entities';
+import { superdevClient } from '@/lib/superdev/client';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send } from 'lucide-react';
 import { format } from 'date-fns';
-import { he, enUS } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
-const CreateOrder: React.FC = () => {
-  const { t, language, isRTL } = useLanguage();
-  const { user } = useAuth();
+const CreateOrder = () => {
   const navigate = useNavigate();
-  
+  const [user, setUser] = useState<any>(null);
+  const [clients, setClients] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
+  const [filteredSites, setFilteredSites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     client_id: '',
     site_id: '',
     product_id: '',
     quantity_tons: '',
-    delivery_date: undefined as Date | undefined,
+    delivery_date: '',
     delivery_window: '',
     delivery_method: '',
     notes: ''
   });
-  
-  const [loading, setLoading] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [sites, setSites] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [selectedSite, setSelectedSite] = useState<any>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   useEffect(() => {
-    if (formData.site_id) {
-      const site = sites.find(s => s.id === formData.site_id);
-      setSelectedSite(site);
-      if (site && site.client_id) {
-        setFormData(prev => ({ ...prev, client_id: site.client_id }));
+    if (formData.client_id) {
+      const clientSites = sites.filter(site => site.client_id === formData.client_id);
+      setFilteredSites(clientSites);
+      
+      if (!clientSites.find(s => s.id === formData.site_id)) {
+        setFormData(prev => ({ ...prev, site_id: '' }));
       }
+    } else {
+      setFilteredSites([]);
+      setFormData(prev => ({ ...prev, site_id: '' }));
     }
-  }, [formData.site_id, sites]);
+  }, [formData.client_id, sites]);
 
   const loadData = async () => {
     try {
-      const [sitesData, clientsData] = await Promise.all([
-        Site.filter({ is_active: true }, '-created_at'),
-        Client.filter({ is_active: true }, '-created_at')
+      setLoading(true);
+      const currentUser = await superdevClient.auth.me();
+      setUser(currentUser);
+
+      const [allClients, allSites] = await Promise.all([
+        Client.list('-created_at', 1000),
+        Site.list('-created_at', 1000)
       ]);
-      setSites(sitesData);
-      setClients(clientsData);
+
+      setClients(allClients.filter(c => c.is_active));
+      setSites(allSites.filter(s => s.is_active));
     } catch (error) {
       console.error('Error loading data:', error);
-    }
-  };
-
-  const products = [
-    { id: 'p_new_sand_0_4', name: t('p_new_sand_0_4') },
-    { id: 'sesame_4_9_5', name: t('sesame_4_9_5') },
-    { id: 'lentil_9_5_19', name: t('lentil_9_5_19') },
-    { id: 'polia_19_25', name: t('polia_19_25') },
-    { id: 'granite_10_60', name: t('granite_10_60') }
-  ];
-
-  const deliveryWindows = [
-    { 
-      id: 'morning', 
-      label: isRTL ? 'בוקר (07:00–12:00)' : 'Morning (07:00–12:00)'
-    },
-    { 
-      id: 'afternoon', 
-      label: isRTL ? 'צהריים (12:00–17:00)' : 'Afternoon (12:00–17:00)'
-    }
-  ];
-
-  const getValidationMessage = (errorKey: string): string => {
-    const messages = {
-      he: {
-        min_outside_eilat: 'לאתרים שמחוץ לאילת חובה להזמין מינימום של 40 טון בהובלה חיצונית.',
-        multiples_of_20: 'בהובלה חיצונית הכמות חייבת להיות בכפולות של 20.',
-        site_required: 'בחר אתר אספקה מהרשימה.',
-        window_required: 'בחר חלון אספקה (בוקר/צהריים).',
-        past_date: 'תאריך האספקה לא יכול להיות בעבר.'
-      },
-      en: {
-        min_outside_eilat: 'For sites outside Eilat, a minimum of 40 tons is required for external delivery.',
-        multiples_of_20: 'For external delivery, quantity must be in multiples of 20.',
-        site_required: 'Please select a delivery site from the list.',
-        window_required: 'Please select a delivery window (Morning/Afternoon).',
-        past_date: 'Delivery date cannot be in the past.'
-      }
-    };
-
-    return messages[language as keyof typeof messages]?.[errorKey as keyof typeof messages.en] || errorKey;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user?.email) {
       toast({
-        title: t('error'),
-        description: t('login_error'),
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל בטעינת הנתונים',
+        variant: 'destructive',
       });
-      return;
-    }
-
-    if (!formData.delivery_date) {
-      toast({
-        title: t('validation_error'),
-        description: getValidationMessage('window_required'),
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const orderData: CreateOrderData = {
-        client_id: formData.client_id,
-        site_id: formData.site_id,
-        product_id: formData.product_id,
-        quantity_tons: parseFloat(formData.quantity_tons),
-        delivery_date: formData.delivery_date.toISOString(),
-        delivery_window: formData.delivery_window as 'morning' | 'afternoon',
-        delivery_method: formData.delivery_method as 'self' | 'external',
-        notes: formData.notes
-      };
-
-      await OrderService.createOrder(orderData, user.email);
-      
-      toast({
-        title: t('order_submitted'),
-        description: t('order_submitted_description')
-      });
-      
-      navigate('/client');
-    } catch (error: any) {
-      console.error('Error creating order:', error);
-      
-      // Handle validation errors
-      if (error.message.includes('Validation failed:')) {
-        const errorKeys = error.message.replace('Validation failed: ', '').split(', ');
-        const errorMessages = errorKeys.map(getValidationMessage).join('\n');
-        
-        toast({
-          title: t('validation_error'),
-          description: errorMessages,
-          variant: 'destructive'
-        });
-      } else {
-        toast({
-          title: t('error'),
-          description: t('order_submission_failed'),
-          variant: 'destructive'
-        });
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  const getSiteDisplayName = (site: any): string => {
-    const client = clients.find(c => c.id === site.client_id);
-    return `${site.site_name} (${client?.name || 'Unknown Client'})`;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.client_id || !formData.site_id || !formData.product_id || 
+        !formData.quantity_tons || !formData.delivery_date || 
+        !formData.delivery_window || !formData.delivery_method) {
+      toast({
+        title: 'שגיאה',
+        description: 'אנא מלא את כל השדות הנדרשים',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const lastOrder = await Order.list('-order_number', 1);
+      let nextOrderNumber = '2001';
+      
+      if (lastOrder.length > 0 && lastOrder[0].order_number) {
+        const lastNumber = parseInt(lastOrder[0].order_number);
+        nextOrderNumber = (lastNumber + 1).toString();
+      }
+
+      const orderData = {
+        order_number: nextOrderNumber,
+        client_id: formData.client_id,
+        site_id: formData.site_id,
+        product_id: formData.product_id,
+        quantity_tons: parseFloat(formData.quantity_tons),
+        delivery_date: formData.delivery_date,
+        delivery_window: formData.delivery_window,
+        delivery_method: formData.delivery_method,
+        notes: formData.notes,
+        status: 'pending',
+        unlinked_site: false
+      };
+
+      await Order.create(orderData);
+
+      toast({
+        title: 'הצלחה!',
+        description: `הזמנה #${nextOrderNumber} נוצרה בהצלחה`,
+      });
+
+      navigate('/client-dashboard');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל ביצירת ההזמנה',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  const products = [
+    { id: 'granite_10_60', name: 'גרניט 10-60' },
+    { id: 'granite_0_10', name: 'גרניט 0-10' },
+    { id: 'p_new_sand_0_4', name: 'חול חדש 0-4' },
+    { id: 'sand_0_4', name: 'חול 0-4' },
+    { id: 'sand_dune', name: 'חול דיונות' },
+    { id: 'gravel_10_20', name: 'חצץ 10-20' },
+    { id: 'gravel_20_40', name: 'חצץ 20-40' }
+  ];
+
+  if (loading) {
+    return (
+      <Layout title="יצירת הזמנה">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">טוען...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout title={t('create_order')}>
-      <div className="p-4 max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">
-              {t('create_new_order')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Site Selection - Dropdown Only */}
+    <Layout title="יצירת הזמנה">
+      <div className="p-4 space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
+          <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Client Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-gray-500" />
+                לקוח ואתר
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="site" className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  {isRTL ? "בחר אתר אספקה" : "Select Delivery Site"} *
+                <Label htmlFor="client_id" className="text-right block">
+                  לקוח <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.site_id} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(value) => setFormData({ ...formData, client_id: value })}
                 >
-                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-                    <SelectValue placeholder={isRTL ? "בחר אתר אספקה" : "Select Delivery Site"} />
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר לקוח" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {getSiteDisplayName(site)}
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedSite && (
-                  <div className="text-sm text-gray-600 mt-2">
-                    <p>{isRTL ? "איש קשר:" : "Contact:"} {selectedSite.contact_name}</p>
-                    <p>{isRTL ? "טלפון:" : "Phone:"} {selectedSite.contact_phone}</p>
-                    <p>{isRTL ? "אזור:" : "Region:"} {t(selectedSite.region_type)}</p>
-                  </div>
-                )}
               </div>
 
-              {/* Product Selection */}
               <div className="space-y-2">
-                <Label htmlFor="product" className="flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  {t('product')} *
+                <Label htmlFor="site_id" className="text-right block">
+                  אתר <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.product_id} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, product_id: value }))}
+                <Select
+                  value={formData.site_id}
+                  onValueChange={(value) => setFormData({ ...formData, site_id: value })}
+                  disabled={!formData.client_id}
                 >
-                  <SelectTrigger className={cn(isRTL ? "text-right" : "text-left")}>
-                    <SelectValue placeholder={t('select_product')} />
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder={formData.client_id ? "בחר אתר" : "בחר לקוח תחילה"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.site_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Product and Quantity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-5 w-5 text-gray-500" />
+                מוצר וכמות
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="product_id" className="text-right block">
+                  מוצר <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.product_id}
+                  onValueChange={(value) => setFormData({ ...formData, product_id: value })}
+                >
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר מוצר" />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((product) => (
@@ -246,165 +251,141 @@ const CreateOrder: React.FC = () => {
                 </Select>
               </div>
 
-              {/* Quantity */}
               <div className="space-y-2">
-                <Label htmlFor="quantity">
-                  {t('quantity')} ({t('tons')}) *
+                <Label htmlFor="quantity_tons" className="text-right block">
+                  כמות (טון) <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="quantity_tons"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.quantity_tons}
+                    onChange={(e) => setFormData({ ...formData, quantity_tons: e.target.value })}
+                    placeholder="הזן כמות בטונים"
+                    className="text-right pr-10"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-gray-500" />
+                פרטי משלוח
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="delivery_date" className="text-right block">
+                  תאריך משלוח <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={formData.quantity_tons}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity_tons: e.target.value }))}
-                  placeholder={t('enter_quantity')}
-                  className={cn(isRTL ? "text-right" : "text-left")}
+                  id="delivery_date"
+                  type="date"
+                  value={formData.delivery_date}
+                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  className="text-right"
                 />
-                {formData.delivery_method === 'external' && selectedSite?.region_type === 'outside_eilat' && (
-                  <p className="text-sm text-amber-600">
-                    {getValidationMessage('min_outside_eilat')}
-                  </p>
-                )}
-                {formData.delivery_method === 'external' && (
-                  <p className="text-sm text-blue-600">
-                    {getValidationMessage('multiples_of_20')}
-                  </p>
-                )}
               </div>
 
-              {/* Delivery Date */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4" />
-                  {t('delivery_date')} *
+                <Label htmlFor="delivery_window" className="text-right block">
+                  חלון אספקה <span className="text-red-500">*</span>
                 </Label>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.delivery_date && "text-muted-foreground",
-                        isRTL && "text-right"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.delivery_date ? (
-                        format(formData.delivery_date, "PPP", { 
-                          locale: language === 'he' ? he : enUS 
-                        })
-                      ) : (
-                        <span>{t('delivery_date')}</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.delivery_date}
-                      onSelect={(date) => {
-                        setFormData(prev => ({ ...prev, delivery_date: date }));
-                        setCalendarOpen(false);
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      locale={language === 'he' ? he : enUS}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Delivery Window */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  {isRTL ? "חלון אספקה" : "Delivery Window"} *
-                </Label>
-                <RadioGroup
+                <Select
                   value={formData.delivery_window}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_window: value }))}
-                  className={cn("grid grid-cols-1 gap-3")}
+                  onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
                 >
-                  {deliveryWindows.map((window) => (
-                    <div key={window.id} className={cn(
-                      "flex items-center gap-2",
-                      isRTL ? "flex-row-reverse" : "flex-row"
-                    )}>
-                      <RadioGroupItem value={window.id} id={window.id} />
-                      <Label 
-                        htmlFor={window.id} 
-                        className="cursor-pointer"
-                      >
-                        {window.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר חלון זמן" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4 text-yellow-500" />
+                        <span>בוקר (06:00-12:00)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="afternoon">
+                      <div className="flex items-center gap-2">
+                        <Sunset className="h-4 w-4 text-orange-500" />
+                        <span>צהריים (12:00-18:00)</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Delivery Method */}
-              <div className="space-y-3">
-                <Label>{isRTL ? "שיטת אספקה" : "Delivery Method"} *</Label>
-                <RadioGroup
-                  value={formData.delivery_method}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_method: value }))}
-                  className={cn("grid grid-cols-1 gap-3")}
-                >
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    isRTL ? "flex-row-reverse" : "flex-row"
-                  )}>
-                    <RadioGroupItem value="self" id="self" />
-                    <Label 
-                      htmlFor="self" 
-                      className="cursor-pointer"
-                    >
-                      {t('self_transport')}
-                    </Label>
-                  </div>
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    isRTL ? "flex-row-reverse" : "flex-row"
-                  )}>
-                    <RadioGroupItem value="external" id="external" />
-                    <Label 
-                      htmlFor="external" 
-                      className="cursor-pointer"
-                    >
-                      {t('external')}
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Additional Notes */}
               <div className="space-y-2">
-                <Label htmlFor="notes" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  {t('additional_notes')}
+                <Label htmlFor="delivery_method" className="text-right block">
+                  שיטת אספקה <span className="text-red-500">*</span>
                 </Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder={t('special_instructions')}
-                  rows={3}
-                  className={cn(isRTL ? "text-right" : "text-left")}
-                />
+                <div className="relative">
+                  <Truck className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
+                  <Select
+                    value={formData.delivery_method}
+                    onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                  >
+                    <SelectTrigger className="text-right pr-10">
+                      <SelectValue placeholder="בחר שיטת אספקה" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">משלוח עצמי</SelectItem>
+                      <SelectItem value="external">הובלה חיצונית</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-                disabled={loading}
-              >
-                {loading ? t('loading') : t('submit_order')}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-5 w-5 text-gray-500" />
+                הערות
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="הוסף הערות נוספות (אופציונלי)"
+                className="text-right min-h-[100px]"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Submit Button */}
+          <div className="sticky bottom-20 pt-4">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
+                  שולח הזמנה...
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5 ml-2" />
+                  שלח הזמנה
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
     </Layout>
   );
