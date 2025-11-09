@@ -4,9 +4,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Order } from '@/entities';
+import { Order, Site, Client } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { Package, Clock, CheckCircle, XCircle, Plus, Calendar } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Plus, Calendar, MapPin, Truck, Sun, Sunset } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -15,6 +15,8 @@ const ClientDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -35,14 +37,16 @@ const ClientDashboard = () => {
       setUser(currentUser);
 
       if (currentUser?.email) {
-        const userOrders = await Order.filter(
-          { created_by: currentUser.email },
-          '-created_at',
-          100
-        );
+        const [userOrders, allSites, allClients] = await Promise.all([
+          Order.filter({ created_by: currentUser.email }, '-created_at', 100),
+          Site.list('-created_at', 1000),
+          Client.list('-created_at', 1000)
+        ]);
         
         console.log('User orders:', userOrders);
         setOrders(userOrders);
+        setSites(allSites);
+        setClients(allClients);
         
         const total = userOrders.length;
         const pending = userOrders.filter((o: any) => o.status === 'pending').length;
@@ -61,6 +65,37 @@ const ClientDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getProductName = (productId: string) => {
+    const productMap: Record<string, string> = {
+      'granite_10_60': 'גרניט 10-60',
+      'granite_0_10': 'גרניט 0-10',
+      'p_new_sand_0_4': 'חול חדש 0-4',
+      'sand_0_4': 'חול 0-4',
+      'sand_dune': 'חול דיונות',
+      'gravel_10_20': 'חצץ 10-20',
+      'gravel_20_40': 'חצץ 20-40'
+    };
+    return productMap[productId] || productId;
+  };
+
+  const getSiteName = (siteId: string) => {
+    const site = sites.find(s => s.id === siteId);
+    return site?.site_name || 'לא ידוע';
+  };
+
+  const getClientName = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.name || 'לא ידוע';
+  };
+
+  const getDeliveryWindowText = (window: string) => {
+    return window === 'morning' ? 'בוקר' : 'צהריים';
+  };
+
+  const getDeliveryMethodText = (method: string) => {
+    return method === 'self' ? 'משלוח עצמי' : 'הובלה חיצונית';
   };
 
   const getStatusColor = (status: string) => {
@@ -236,17 +271,48 @@ const ClientDashboard = () => {
                     </div>
                     
                     <div className="space-y-2 text-sm">
+                      {/* Product */}
                       <div className="flex items-center gap-2 text-gray-700">
-                        <Package className="h-4 w-4 text-gray-500" />
+                        <Package className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="font-medium">{getProductName(order.product_id)}</span>
+                        <span className="text-gray-500">•</span>
                         <span>{order.quantity_tons} טון</span>
                       </div>
                       
+                      {/* Site */}
+                      {order.site_id && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span>{getSiteName(order.site_id)}</span>
+                        </div>
+                      )}
+                      
+                      {/* Delivery Date and Time */}
                       {order.delivery_date && (
                         <div className="flex items-center gap-2 text-gray-700">
-                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
                           <span>
                             {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
                           </span>
+                          {order.delivery_window && (
+                            <>
+                              <span className="text-gray-500">•</span>
+                              {order.delivery_window === 'morning' ? (
+                                <Sun className="h-4 w-4 text-yellow-500" />
+                              ) : (
+                                <Sunset className="h-4 w-4 text-orange-500" />
+                              )}
+                              <span>{getDeliveryWindowText(order.delivery_window)}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Delivery Method */}
+                      {order.delivery_method && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Truck className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span>{getDeliveryMethodText(order.delivery_method)}</span>
                         </div>
                       )}
                     </div>

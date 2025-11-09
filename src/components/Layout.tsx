@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Notification, Message } from '@/entities';
+import { superdevClient } from '@/lib/superdev/client';
 import { Home, MessageCircle, Bell, User, Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -18,13 +17,25 @@ const Layout: React.FC<LayoutProps> = ({
   showBottomNav = true, 
   className = "" 
 }) => {
-  const { user } = useAuth();
-  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const currentUser = await superdevClient.auth.me();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
 
   // Load unread counts
   useEffect(() => {
@@ -147,27 +158,27 @@ const Layout: React.FC<LayoutProps> = ({
   const navItems = [
     {
       icon: Home,
-      label: t('home'),
+      label: 'בית',
       path: user?.role === 'manager' ? '/manager-dashboard' : '/client-dashboard',
       active: location.pathname === (user?.role === 'manager' ? '/manager-dashboard' : '/client-dashboard')
     },
     {
       icon: MessageCircle,
-      label: t('inbox'),
+      label: 'הודעות',
       path: '/inbox',
       active: location.pathname === '/inbox',
       badge: unreadMessages > 0 ? unreadMessages : undefined
     },
     {
       icon: Bell,
-      label: t('notifications'),
+      label: 'התראות',
       path: '/notifications',
       active: location.pathname === '/notifications',
       badge: unreadNotifications > 0 ? unreadNotifications : undefined
     },
     {
       icon: User,
-      label: t('profile'),
+      label: 'פרופיל',
       path: '/profile',
       active: location.pathname === '/profile'
     }
@@ -176,7 +187,7 @@ const Layout: React.FC<LayoutProps> = ({
   if (user?.role === 'manager') {
     navItems.splice(3, 0, {
       icon: Settings,
-      label: t('admin'),
+      label: 'ניהול',
       path: '/admin',
       active: location.pathname === '/admin'
     });
@@ -197,7 +208,7 @@ const Layout: React.FC<LayoutProps> = ({
               }`}
               disabled={isLoadingCounts}
             >
-              {isLoadingCounts ? 'Loading...' : `Refresh (N:${unreadNotifications} M:${unreadMessages})`}
+              {isLoadingCounts ? 'טוען...' : `רענן (N:${unreadNotifications} M:${unreadMessages})`}
             </button>
           )}
         </div>
