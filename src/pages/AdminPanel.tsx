@@ -28,7 +28,6 @@ const AdminPanel = () => {
       
       setUser(currentUser);
       
-      // Check if user is manager
       const userIsManager = currentUser?.role === 'manager';
       console.log('Admin panel - Is manager:', userIsManager);
       setIsManager(userIsManager);
@@ -74,45 +73,45 @@ const AdminPanel = () => {
 
   return (
     <Layout title="פאנל ניהול">
-      <div className="p-4 space-y-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">פאנל ניהול</h1>
-          <p className="text-gray-600">ניהול לקוחות, אתרים, מוצרים והזמנות</p>
+      <div className="p-2 sm:p-4 space-y-4 sm:space-y-6 pb-24">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">פאנל ניהול</h1>
+          <p className="text-sm sm:text-base text-gray-600">ניהול לקוחות, אתרים, מוצרים והזמנות</p>
         </div>
 
         <Tabs defaultValue="orders" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">הזמנות</span>
+          <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto">
+            <TabsTrigger value="orders" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-1.5 px-1 sm:px-3">
+              <FileText className="h-4 w-4 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">הזמנות</span>
             </TabsTrigger>
-            <TabsTrigger value="clients" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">לקוחות</span>
+            <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-1.5 px-1 sm:px-3">
+              <Building2 className="h-4 w-4 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">לקוחות</span>
             </TabsTrigger>
-            <TabsTrigger value="sites" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">אתרים</span>
+            <TabsTrigger value="sites" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-1.5 px-1 sm:px-3">
+              <MapPin className="h-4 w-4 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">אתרים</span>
             </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">מוצרים</span>
+            <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-1.5 px-1 sm:px-3">
+              <Package className="h-4 w-4 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">מוצרים</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="orders" className="space-y-4">
+          <TabsContent value="orders" className="space-y-4 mt-0">
             <OrderManagement />
           </TabsContent>
 
-          <TabsContent value="clients" className="space-y-4">
+          <TabsContent value="clients" className="space-y-4 mt-0">
             <ClientManagement />
           </TabsContent>
 
-          <TabsContent value="sites" className="space-y-4">
+          <TabsContent value="sites" className="space-y-4 mt-0">
             <SiteManagement />
           </TabsContent>
 
-          <TabsContent value="products" className="space-y-4">
+          <TabsContent value="products" className="space-y-4 mt-0">
             <ProductManagement />
           </TabsContent>
         </Tabs>

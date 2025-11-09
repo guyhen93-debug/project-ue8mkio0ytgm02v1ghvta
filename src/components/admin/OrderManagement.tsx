@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { mockDataService } from '@/services/mockDataService';
 import { toast } from '@/hooks/use-toast';
-import { Edit, Search, Filter, ShoppingCart } from 'lucide-react';
+import { Edit, Search, Filter, ShoppingCart, Calendar, Package } from 'lucide-react';
 import OrderEditDialog from './OrderEditDialog';
 
 const OrderManagement: React.FC = () => {
@@ -42,7 +42,6 @@ const OrderManagement: React.FC = () => {
   const filterOrders = () => {
     let filtered = [...orders];
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(order =>
         order.order_number.toString().includes(searchTerm) ||
@@ -51,7 +50,6 @@ const OrderManagement: React.FC = () => {
       );
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(order => order.status === statusFilter);
     }
@@ -94,9 +92,9 @@ const OrderManagement: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
+          <div key={i} className="bg-white rounded-lg p-3 sm:p-4 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
             <div className="h-3 bg-gray-200 rounded w-1/2"></div>
           </div>
@@ -108,19 +106,19 @@ const OrderManagement: React.FC = () => {
   return (
     <div>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <ShoppingCart className="h-5 w-5" />
               {t('order_management')}
             </CardTitle>
-            <Badge variant="outline">
+            <Badge variant="outline" className="self-start sm:self-auto">
               {filteredOrders.length} {t('orders')}
             </Badge>
           </div>
           
           {/* Filters */}
-          <div className="flex gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -128,12 +126,12 @@ const OrderManagement: React.FC = () => {
                   placeholder={t('search_orders')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48 h-10">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -148,37 +146,41 @@ const OrderManagement: React.FC = () => {
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0">
           <div className="space-y-3">
             {filteredOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-medium">
+              <div key={order.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gray-50 rounded-lg gap-3">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-medium text-sm sm:text-base">
                       {t('order')} #{order.order_number}
                     </h4>
-                    <Badge className={getStatusColor(order.status)}>
+                    <Badge className={`${getStatusColor(order.status)} text-xs`}>
                       {t(order.status)}
                     </Badge>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div>
-                      <span className="font-medium">{t('client')}:</span> {order.client_name}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{t('client')}:</span>
+                      <span className="truncate">{order.client_name}</span>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-1">
+                      <Package className="h-3 w-3" />
                       <span className="font-medium">{t('quantity')}:</span> {order.quantity} {t('tons')}
                     </div>
-                    <div>
-                      <span className="font-medium">{t('delivery_date')}:</span> {formatDate(order.delivery_date)}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span className="font-medium">{t('delivery_date')}:</span>
+                      <span className="truncate text-xs">{formatDate(order.delivery_date)}</span>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-1">
                       <span className="font-medium">{t('delivery_type')}:</span> {t(order.delivery_type)}
                     </div>
                   </div>
                   
                   {order.notes && (
-                    <p className="text-sm text-gray-500 mt-2 truncate">
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">
                       {order.notes}
                     </p>
                   )}
@@ -188,9 +190,10 @@ const OrderManagement: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => handleEditOrder(order)}
-                  className="ml-4"
+                  className="w-full sm:w-auto"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 ml-2" />
+                  <span className="sm:inline">ערוך</span>
                 </Button>
               </div>
             ))}
@@ -207,7 +210,6 @@ const OrderManagement: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Order Dialog */}
       {editingOrder && (
         <OrderEditDialog
           order={editingOrder}
