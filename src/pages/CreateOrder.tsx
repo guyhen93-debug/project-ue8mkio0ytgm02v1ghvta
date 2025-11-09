@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft } from 'lucide-react';
 import { format } from 'date-fns';
 
 const CreateOrder = () => {
@@ -21,6 +22,7 @@ const CreateOrder = () => {
   const [filteredSites, setFilteredSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [useCubicMeters, setUseCubicMeters] = useState(false);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -32,6 +34,9 @@ const CreateOrder = () => {
     delivery_method: '',
     notes: ''
   });
+
+  // Conversion factor: 1 cubic meter ≈ 1.6 tons (average for aggregates)
+  const CUBIC_TO_TON_RATIO = 1.6;
 
   useEffect(() => {
     loadData();
@@ -73,6 +78,38 @@ const CreateOrder = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuantityChange = (value: string) => {
+    setFormData({ ...formData, quantity_tons: value });
+  };
+
+  const getDisplayQuantity = () => {
+    if (!formData.quantity_tons) return '';
+    const tons = parseFloat(formData.quantity_tons);
+    if (isNaN(tons)) return formData.quantity_tons;
+    
+    if (useCubicMeters) {
+      return (tons / CUBIC_TO_TON_RATIO).toFixed(2);
+    }
+    return formData.quantity_tons;
+  };
+
+  const handleDisplayQuantityChange = (value: string) => {
+    if (!value) {
+      setFormData({ ...formData, quantity_tons: '' });
+      return;
+    }
+    
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return;
+    
+    if (useCubicMeters) {
+      const tons = numValue * CUBIC_TO_TON_RATIO;
+      setFormData({ ...formData, quantity_tons: tons.toFixed(2) });
+    } else {
+      setFormData({ ...formData, quantity_tons: value });
     }
   };
 
@@ -251,23 +288,46 @@ const CreateOrder = () => {
                 </Select>
               </div>
 
+              {/* Unit Toggle */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4 text-gray-500" />
+                  <Label htmlFor="unit-toggle" className="text-sm font-medium cursor-pointer">
+                    הצג בקוב (מ"ק)
+                  </Label>
+                </div>
+                <Switch
+                  id="unit-toggle"
+                  checked={useCubicMeters}
+                  onCheckedChange={setUseCubicMeters}
+                />
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="quantity_tons" className="text-right block">
-                  כמות (טון) <span className="text-red-500">*</span>
+                <Label htmlFor="quantity" className="text-right block">
+                  כמות ({useCubicMeters ? 'מ"ק' : 'טון'}) <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    id="quantity_tons"
+                    id="quantity"
                     type="number"
                     min="0"
                     step="0.1"
-                    value={formData.quantity_tons}
-                    onChange={(e) => setFormData({ ...formData, quantity_tons: e.target.value })}
-                    placeholder="הזן כמות בטונים"
+                    value={getDisplayQuantity()}
+                    onChange={(e) => handleDisplayQuantityChange(e.target.value)}
+                    placeholder={`הזן כמות ב${useCubicMeters ? 'מטרים קוביים' : 'טונים'}`}
                     className="text-right pr-10"
                   />
                 </div>
+                {useCubicMeters && formData.quantity_tons && (
+                  <p className="text-xs text-gray-500 text-right">
+                    = {parseFloat(formData.quantity_tons).toFixed(2)} טון
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 text-right">
+                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
+                </p>
               </div>
             </CardContent>
           </Card>
