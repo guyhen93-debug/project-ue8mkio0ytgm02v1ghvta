@@ -1,147 +1,220 @@
-import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { User, Mail, Phone, Building, Globe, LogOut, Settings } from 'lucide-react';
+import { superdevClient } from '@/lib/superdev/client';
+import { User, Mail, Phone, Building, Globe, LogOut, Save } from 'lucide-react';
 
-const Profile: React.FC = () => {
-  const { t, language, setLanguage } = useLanguage();
-  const { user, logout } = useAuth();
-  const [profileData, setProfileData] = useState({
-    name: user?.full_name || '',
-    email: user?.email || '',
+const Profile = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
     phone: '',
-    company: 'Piter Noufi Ltd.'
+    company: '',
+    language: 'he'
   });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      setLoading(true);
+      const currentUser = await superdevClient.auth.me();
+      console.log('Loaded user:', currentUser);
+      setUser(currentUser);
+      
+      setFormData({
+        full_name: currentUser.full_name || currentUser.name || '',
+        phone: currentUser.phone || '',
+        company: currentUser.company || '',
+        language: currentUser.language || 'he'
+      });
+    } catch (error) {
+      console.error('Error loading user:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל בטעינת פרטי המשתמש',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
-      // Mock save implementation
+      setSaving(true);
+      await superdevClient.auth.updateProfile(formData);
+      
       toast({
-        title: t('profile_updated'),
-        description: t('profile_updated')
+        title: 'הצלחה',
+        description: 'הפרטים עודכנו בהצלחה',
       });
+      
+      await loadUser();
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error saving profile:', error);
       toast({
-        title: t('error'),
-        description: t('update_failed'),
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל בשמירת הפרטים',
+        variant: 'destructive',
       });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await logout();
+      console.log('Logging out...');
+      await superdevClient.auth.logout();
+      console.log('Logout successful, redirecting to login...');
+      
+      toast({
+        title: 'התנתקת בהצלחה',
+        description: 'להתראות!',
+      });
+      
+      // Redirect to login page
+      setTimeout(() => {
+        navigate('/login');
+      }, 500);
     } catch (error) {
       console.error('Error logging out:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל בהתנתקות',
+        variant: 'destructive',
+      });
     }
   };
 
+  if (loading) {
+    return (
+      <Layout title="פרופיל">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">טוען...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Layout title="פרופיל">
+        <div className="p-4">
+          <p className="text-center text-gray-600">אנא התחבר למערכת</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout title={t('profile')}>
-      <div className="p-4 max-w-2xl mx-auto space-y-6">
-        {/* Profile Information */}
+    <Layout title="פרופיל">
+      <div className="p-4 space-y-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">הפרופיל שלי</h1>
+          <p className="text-gray-600">ניהול פרטים אישיים והגדרות</p>
+        </div>
+
+        {/* User Info Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              {t('profile_information')}
+              <User className="h-5 w-5" />
+              פרטים אישיים
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Full Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">{t('name')}</Label>
-              <Input
-                id="name"
-                value={profileData.name}
-                onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                {t('email')}
+              <Label htmlFor="full_name" className="text-right block">
+                שם מלא
               </Label>
               <Input
-                id="email"
-                type="email"
-                value={profileData.email}
-                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                disabled
-                className="bg-gray-50"
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="הזן שם מלא"
+                className="text-right"
               />
             </div>
 
+            {/* Email (Read-only) */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                {t('phone')}
+              <Label htmlFor="email" className="text-right block">
+                אימייל
               </Label>
-              <Input
-                id="phone"
-                value={profileData.phone}
-                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder={t('phone')}
-              />
+              <div className="relative">
+                <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="email"
+                  value={user.email}
+                  disabled
+                  className="text-right pr-10 bg-gray-50"
+                />
+              </div>
+              <p className="text-xs text-gray-500 text-right">לא ניתן לשנות את כתובת האימייל</p>
             </div>
 
+            {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="company" className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                {t('company')}
+              <Label htmlFor="phone" className="text-right block">
+                טלפון
               </Label>
-              <Input
-                id="company"
-                value={profileData.company}
-                onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
-                disabled
-                className="bg-gray-50"
-              />
+              <div className="relative">
+                <Phone className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="הזן מספר טלפון"
+                  className="text-right pr-10"
+                />
+              </div>
             </div>
 
+            {/* Company */}
             <div className="space-y-2">
-              <Label>{t('role')}</Label>
-              <Input
-                value={t(user?.role || 'user')}
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
-
-            <Button 
-              onClick={handleSave}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-            >
-              {t('save')}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              {t('settings')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                {t('language')}
+              <Label htmlFor="company" className="text-right block">
+                חברה
               </Label>
-              <Select value={language} onValueChange={(value: 'en' | 'he') => setLanguage(value)}>
-                <SelectTrigger>
+              <div className="relative">
+                <Building className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  placeholder="הזן שם חברה"
+                  className="text-right pr-10"
+                />
+              </div>
+            </div>
+
+            {/* Language */}
+            <div className="space-y-2">
+              <Label htmlFor="language" className="text-right block">
+                שפה
+              </Label>
+              <Select
+                value={formData.language}
+                onValueChange={(value) => setFormData({ ...formData, language: value })}
+              >
+                <SelectTrigger className="text-right">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,42 +223,57 @@ const Profile: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Company Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('about_company')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-gray-700 leading-relaxed">
-              {t('company_description')}
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
-              <div>
-                <Label className="text-sm font-medium text-gray-600">{t('website')}</Label>
-                <p className="text-gray-900">www.piternoufi.co.il</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-600">{t('industry')}</Label>
-                <p className="text-gray-900">{t('construction_materials')}</p>
+            {/* Role (Read-only) */}
+            <div className="space-y-2">
+              <Label className="text-right block">תפקיד</Label>
+              <div className="px-3 py-2 bg-gray-50 rounded-md text-right">
+                <span className="text-gray-700">
+                  {user.role === 'manager' ? 'מנהל' : 'לקוח'}
+                </span>
               </div>
             </div>
+
+            {/* Save Button */}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black ml-2"></div>
+                  שומר...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 ml-2" />
+                  שמור שינויים
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Logout */}
-        <Card>
-          <CardContent className="pt-6">
-            <Button 
+        {/* Logout Card */}
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-600 flex items-center gap-2">
+              <LogOut className="h-5 w-5" />
+              התנתקות
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4 text-right">
+              התנתק מהמערכת ונדרש להתחבר מחדש בפעם הבאה
+            </p>
+            <Button
               onClick={handleLogout}
               variant="destructive"
               className="w-full"
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              {t('logout')}
+              <LogOut className="h-4 w-4 ml-2" />
+              התנתק
             </Button>
           </CardContent>
         </Card>
