@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import OrderManagement from '@/components/admin/OrderManagement';
 import ClientManagement from '@/components/admin/ClientManagement';
 import SiteManagement from '@/components/admin/SiteManagement';
 import ProductManagement from '@/components/admin/ProductManagement';
+import OrderManagement from '@/components/admin/OrderManagement';
 import { superdevClient } from '@/lib/superdev/client';
-import { Package, Users, MapPin, Settings } from 'lucide-react';
+import { Building2, MapPin, Package, FileText, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AdminPanel = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isManager, setIsManager] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadUser();
   }, []);
 
@@ -25,16 +25,16 @@ const AdminPanel = () => {
       const currentUser = await superdevClient.auth.me();
       console.log('Admin panel - Current user:', currentUser);
       console.log('Admin panel - User role:', currentUser?.role);
+      
       setUser(currentUser);
       
       // Check if user is manager
-      if (currentUser && currentUser.role !== 'manager') {
-        console.log('Access denied - user is not a manager');
-        navigate('/client-dashboard');
-      }
+      const userIsManager = currentUser?.role === 'manager';
+      console.log('Admin panel - Is manager:', userIsManager);
+      setIsManager(userIsManager);
     } catch (error) {
       console.error('Error loading user:', error);
-      navigate('/login');
+      setIsManager(false);
     } finally {
       setLoading(false);
     }
@@ -53,16 +53,20 @@ const AdminPanel = () => {
     );
   }
 
-  if (!user || user.role !== 'manager') {
+  if (!isManager) {
     return (
       <Layout title="פאנל ניהול">
         <div className="p-4">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">גישה נדחתה - דף זה מיועד למנהלים בלבד</p>
-            </CardContent>
-          </Card>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              הגישה נדחתה - הגישה למנהלים בלבד
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 text-center text-gray-600">
+            <p>משתמש: {user?.email || 'לא מזוהה'}</p>
+            <p>תפקיד: {user?.role || 'לא מוגדר'}</p>
+          </div>
         </div>
       </Layout>
     );
@@ -73,17 +77,17 @@ const AdminPanel = () => {
       <div className="p-4 space-y-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">פאנל ניהול</h1>
-          <p className="text-gray-600">ניהול הזמנות, לקוחות, אתרים ומוצרים</p>
+          <p className="text-gray-600">ניהול לקוחות, אתרים, מוצרים והזמנות</p>
         </div>
 
-        <Tabs defaultValue="orders" className="w-full">
+        <Tabs defaultValue="orders" className="w-full" dir="rtl">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">הזמנות</span>
             </TabsTrigger>
             <TabsTrigger value="clients" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+              <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">לקוחות</span>
             </TabsTrigger>
             <TabsTrigger value="sites" className="flex items-center gap-2">
@@ -91,24 +95,24 @@ const AdminPanel = () => {
               <span className="hidden sm:inline">אתרים</span>
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
+              <Package className="h-4 w-4" />
               <span className="hidden sm:inline">מוצרים</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="orders">
+          <TabsContent value="orders" className="space-y-4">
             <OrderManagement />
           </TabsContent>
 
-          <TabsContent value="clients">
+          <TabsContent value="clients" className="space-y-4">
             <ClientManagement />
           </TabsContent>
 
-          <TabsContent value="sites">
+          <TabsContent value="sites" className="space-y-4">
             <SiteManagement />
           </TabsContent>
 
-          <TabsContent value="products">
+          <TabsContent value="products" className="space-y-4">
             <ProductManagement />
           </TabsContent>
         </Tabs>
