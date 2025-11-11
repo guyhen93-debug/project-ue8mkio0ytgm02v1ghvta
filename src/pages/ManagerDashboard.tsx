@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Order } from '@/entities';
+import { Order, Site } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
 import { 
   Package, 
@@ -22,7 +22,8 @@ import {
   FileText,
   Box,
   Sunrise,
-  Sunset
+  Sunset,
+  MapPin
 } from 'lucide-react';
 
 // רשימת מוצרים סטטית
@@ -46,6 +47,7 @@ const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -80,6 +82,16 @@ const ManagerDashboard: React.FC = () => {
           return loadUserAndOrders(retryCount + 1);
         }
         throw new Error('נכשל בטעינת פרטי המשתמש');
+      }
+      
+      // טעינת אתרים
+      try {
+        const allSites = await Site.list('-created_at', 1000);
+        console.log('Loaded sites:', allSites.length);
+        setSites(allSites);
+      } catch (sitesError) {
+        console.error('Error loading sites:', sitesError);
+        setSites([]);
       }
       
       // טעינת הזמנות
@@ -146,6 +158,11 @@ const ManagerDashboard: React.FC = () => {
   const getProductName = (productId: string) => {
     const product = PRODUCTS.find(p => p.id === productId);
     return product?.name || productId;
+  };
+
+  const getSiteName = (siteId: string) => {
+    const site = sites.find(s => s.id === siteId);
+    return site?.site_name || 'לא צוין';
   };
 
   if (loading) {
@@ -261,6 +278,7 @@ const ManagerDashboard: React.FC = () => {
                   order={order} 
                   onUpdateStatus={updateOrderStatus}
                   getProductName={getProductName}
+                  getSiteName={getSiteName}
                 />
               ))
             )}
@@ -279,10 +297,12 @@ const OrderCard: React.FC<{
   order: any; 
   onUpdateStatus: (id: string, status: string) => void;
   getProductName: (productId: string) => string;
+  getSiteName: (siteId: string) => string;
 }> = ({ 
   order, 
   onUpdateStatus,
-  getProductName
+  getProductName,
+  getSiteName
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -405,6 +425,17 @@ const OrderCard: React.FC<{
 
       {/* פרטי ההזמנה עם אייקונים */}
       <div className="space-y-2">
+        {/* אתר */}
+        {order.site_id && (
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <span className="text-gray-500">אתר:</span>
+            <span className="font-medium text-gray-900">
+              {getSiteName(order.site_id)}
+            </span>
+          </div>
+        )}
+        
         {/* מוצר */}
         <div className="flex items-center gap-2 text-xs sm:text-sm">
           <Box className="w-4 h-4 text-gray-500 flex-shrink-0" />
