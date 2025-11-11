@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, Product } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2, Building2, Factory } from 'lucide-react';
 import OrderEditDialog from './OrderEditDialog';
 
 export const OrderManagement: React.FC = () => {
@@ -36,6 +36,12 @@ export const OrderManagement: React.FC = () => {
       orderNumber: 'הזמנה',
       client: 'לקוח',
       site: 'אתר',
+      region: 'אזור',
+      eilat: 'אילת',
+      outsideEilat: 'מחוץ לאילת',
+      supplier: 'ספק',
+      shifuliHar: 'שיפולי הר',
+      maavarRabin: 'מעבר רבין',
       product: 'מוצר',
       quantity: 'כמות',
       deliveryDate: 'תאריך אספקה',
@@ -83,6 +89,12 @@ export const OrderManagement: React.FC = () => {
       orderNumber: 'Order',
       client: 'Client',
       site: 'Site',
+      region: 'Region',
+      eilat: 'Eilat',
+      outsideEilat: 'Outside Eilat',
+      supplier: 'Supplier',
+      shifuliHar: 'Shifuli Har',
+      maavarRabin: 'Maavar Rabin',
       product: 'Product',
       quantity: 'Quantity',
       deliveryDate: 'Delivery Date',
@@ -194,16 +206,31 @@ export const OrderManagement: React.FC = () => {
     return product ? (language === 'he' ? product.name_he : product.name_en) : productId;
   };
 
+  const getSite = (siteId: string) => {
+    return sites.find(s => s.id === siteId);
+  };
+
   const getSiteName = (siteId: string) => {
-    const site = sites.find(s => s.id === siteId);
+    const site = getSite(siteId);
     return site?.site_name || t.site;
   };
 
   const getClientName = (siteId: string) => {
-    const site = sites.find(s => s.id === siteId);
+    const site = getSite(siteId);
     if (!site) return '';
     const client = clients.find(c => c.id === site.client_id);
     return client?.name || '';
+  };
+
+  const getRegionName = (siteId: string) => {
+    const site = getSite(siteId);
+    if (!site) return '';
+    return site.region_type === 'eilat' ? t.eilat : t.outsideEilat;
+  };
+
+  const getSupplierName = (supplier: string) => {
+    if (!supplier) return '';
+    return supplier === 'shifuli_har' ? t.shifuliHar : t.maavarRabin;
   };
 
   const formatDate = (dateString: string) => {
@@ -322,6 +349,20 @@ export const OrderManagement: React.FC = () => {
                         <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-500">{t.site}:</span>
                         <span className="font-medium text-gray-900">{getSiteName(order.site_id)}</span>
+                      </div>
+                    )}
+                    {order.site_id && (
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                        <span className="text-gray-500">{t.region}:</span>
+                        <span className="font-medium text-blue-700">{getRegionName(order.site_id)}</span>
+                      </div>
+                    )}
+                    {order.supplier && (
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Factory className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                        <span className="text-gray-500">{t.supplier}:</span>
+                        <span className="font-medium text-orange-700">{getSupplierName(order.supplier)}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-xs sm:text-sm">

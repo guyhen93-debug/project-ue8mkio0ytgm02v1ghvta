@@ -34,6 +34,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
     delivery_date: new Date(),
     delivery_window: 'morning',
     delivery_method: 'self',
+    supplier: 'shifuli_har',
     notes: '',
     status: 'pending'
   });
@@ -53,6 +54,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
       deliveryMethod: 'שיטת אספקה',
       self: 'עצמי',
       external: 'חיצוני',
+      supplier: 'ספק',
+      shifuliHar: 'שיפולי הר',
+      maavarRabin: 'מעבר רבין',
       notes: 'הערות',
       status: 'סטטוס',
       pending: 'ממתין',
@@ -83,6 +87,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
       deliveryMethod: 'Delivery Method',
       self: 'Self',
       external: 'External',
+      supplier: 'Supplier',
+      shifuliHar: 'Shifuli Har',
+      maavarRabin: 'Maavar Rabin',
       notes: 'Notes',
       status: 'Status',
       pending: 'Pending',
@@ -119,6 +126,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         delivery_date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
         delivery_window: order.delivery_window || 'morning',
         delivery_method: order.delivery_method || 'self',
+        supplier: order.supplier || 'shifuli_har',
         notes: order.notes || '',
         status: order.status || 'pending'
       });
@@ -169,6 +177,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         delivery_date: formData.delivery_date.toISOString(),
         delivery_window: formData.delivery_window,
         delivery_method: formData.delivery_method,
+        supplier: formData.supplier,
         notes: formData.notes,
         status: formData.status
       };
@@ -253,6 +262,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.product_id}>
                     {language === 'he' ? product.name_he : product.name_en}
+                    {product.size && ` (${product.size})`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -319,6 +329,22 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
               <SelectContent>
                 <SelectItem value="self">{t.self}</SelectItem>
                 <SelectItem value="external">{t.external}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="supplier">{t.supplier}</Label>
+            <Select
+              value={formData.supplier}
+              onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="shifuli_har">{t.shifuliHar}</SelectItem>
+                <SelectItem value="maavar_rabin">{t.maavarRabin}</SelectItem>
               </SelectContent>
             </Select>
           </div>

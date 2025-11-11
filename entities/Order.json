@@ -36,6 +36,11 @@
       "description": "The delivery method (self/external)",
       "enum": ["self", "external"]
     },
+    "supplier": {
+      "type": "string",
+      "description": "The supplier (shifuli_har/maavar_rabin)",
+      "enum": ["shifuli_har", "maavar_rabin"]
+    },
     "notes": {
       "type": "string",
       "description": "Additional notes for the order"
