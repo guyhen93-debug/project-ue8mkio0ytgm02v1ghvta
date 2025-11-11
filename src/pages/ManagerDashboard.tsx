@@ -9,7 +9,19 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { 
+  Package, 
+  RefreshCw, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  TrendingUp, 
+  AlertCircle,
+  Calendar,
+  Truck,
+  FileText,
+  Box
+} from 'lucide-react';
 
 // רשימת מוצרים סטטית
 const PRODUCTS = [
@@ -344,44 +356,54 @@ const OrderCard: React.FC<{
         )}
       </div>
 
-      {/* פרטי ההזמנה */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-        <div>
+      {/* פרטי ההזמנה עם אייקונים */}
+      <div className="space-y-2">
+        {/* מוצר */}
+        <div className="flex items-center gap-2 text-xs sm:text-sm">
+          <Box className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span className="text-gray-500">מוצר:</span>
-          <span className="font-medium text-gray-900 mr-2">
+          <span className="font-medium text-gray-900">
             {getProductName(order.product_id)}
           </span>
         </div>
         
-        <div>
+        {/* כמות */}
+        <div className="flex items-center gap-2 text-xs sm:text-sm">
+          <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span className="text-gray-500">כמות:</span>
-          <span className="font-medium text-gray-900 mr-2">
+          <span className="font-medium text-gray-900">
             {order.quantity_tons} טון
           </span>
         </div>
         
+        {/* תאריך אספקה */}
         {order.delivery_date && (
-          <div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
             <span className="text-gray-500">תאריך אספקה:</span>
-            <span className="font-medium text-gray-900 mr-2">
+            <span className="font-medium text-gray-900">
               {formatDate(order.delivery_date)}
             </span>
           </div>
         )}
         
+        {/* חלון זמן */}
         {order.delivery_window && (
-          <div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
             <span className="text-gray-500">חלון זמן:</span>
-            <span className="font-medium text-gray-900 mr-2">
+            <span className="font-medium text-gray-900">
               {order.delivery_window === 'morning' ? 'בוקר' : 'אחר הצהריים'}
             </span>
           </div>
         )}
         
+        {/* שיטת אספקה */}
         {order.delivery_method && (
-          <div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
             <span className="text-gray-500">שיטת אספקה:</span>
-            <span className="font-medium text-gray-900 mr-2">
+            <span className="font-medium text-gray-900">
               {order.delivery_method === 'self' ? 'עצמי' : 'חיצוני'}
             </span>
           </div>
@@ -391,8 +413,13 @@ const OrderCard: React.FC<{
       {/* הערות */}
       {order.notes && (
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-xs text-gray-500">הערות:</p>
-          <p className="text-xs sm:text-sm text-gray-700 mt-1">{order.notes}</p>
+          <div className="flex items-start gap-2">
+            <FileText className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-gray-500">הערות:</p>
+              <p className="text-xs sm:text-sm text-gray-700 mt-1">{order.notes}</p>
+            </div>
+          </div>
         </div>
       )}
 
