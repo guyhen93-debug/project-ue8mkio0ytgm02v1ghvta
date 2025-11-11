@@ -1,34 +1,42 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  description?: string;
-  trend?: string;
+  value: number;
+  icon: LucideIcon;
+  color?: 'blue' | 'yellow' | 'green' | 'red' | 'purple' | 'orange';
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, trend }) => {
+export const StatCard: React.FC<StatCardProps> = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color = 'blue' 
+}) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 text-blue-600',
+    yellow: 'bg-yellow-50 text-yellow-600',
+    green: 'bg-green-50 text-green-600',
+    red: 'bg-red-50 text-red-600',
+    purple: 'bg-purple-50 text-purple-600',
+    orange: 'bg-orange-50 text-orange-600'
+  };
+
   return (
     <Card className="industrial-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">
-          {title}
-        </CardTitle>
-        <Icon className="h-5 w-5 text-yellow-600" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        {description && (
-          <p className="text-xs text-gray-500 mt-1">{description}</p>
-        )}
-        {trend && (
-          <p className="text-xs text-green-600 mt-1">{trend}</p>
-        )}
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-xs sm:text-sm text-gray-600 mb-1">{title}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900">{value}</p>
+          </div>
+          <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
 };
-
-export default StatCard;
