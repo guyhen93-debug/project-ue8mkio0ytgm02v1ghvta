@@ -1,11 +1,10 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
   value: number;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   color?: 'blue' | 'yellow' | 'green' | 'red' | 'purple' | 'orange';
 }
 
