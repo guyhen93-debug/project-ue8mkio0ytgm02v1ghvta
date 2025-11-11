@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { StatCard } from '@/components/StatCard';
+import StatCard from '@/components/StatCard';
 import { QuickManagementTools } from '@/components/admin/QuickManagementTools';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -150,25 +150,21 @@ const ManagerDashboard: React.FC = () => {
             title="סה״כ הזמנות"
             value={stats.total}
             icon={Package}
-            color="blue"
           />
           <StatCard
             title="ממתינות לאישור"
             value={stats.pending}
             icon={Clock}
-            color="yellow"
           />
           <StatCard
             title="אושרו היום"
             value={stats.approved}
             icon={CheckCircle}
-            color="green"
           />
           <StatCard
             title="הושלמו"
             value={stats.completed}
             icon={TrendingUp}
-            color="purple"
           />
         </div>
 
