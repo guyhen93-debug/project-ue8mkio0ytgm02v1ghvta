@@ -127,6 +127,7 @@ export const OrderManagement: React.FC = () => {
   };
 
   const t = translations[language];
+  const isRTL = language === 'he';
 
   useEffect(() => {
     loadData();
@@ -224,16 +225,16 @@ export const OrderManagement: React.FC = () => {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
           <Input
             placeholder={t.search}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10"
+            className={isRTL ? 'pr-10' : 'pl-10'}
           />
         </div>
         <div className="flex gap-2">
@@ -360,7 +361,7 @@ export const OrderManagement: React.FC = () => {
                           onClick={() => updateOrderStatus(order.id, 'approved')}
                           className="bg-green-600 hover:bg-green-700 text-white flex-1"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.approve}
                         </Button>
                         <Button
@@ -369,7 +370,7 @@ export const OrderManagement: React.FC = () => {
                           onClick={() => updateOrderStatus(order.id, 'rejected')}
                           className="flex-1"
                         >
-                          <XCircle className="w-4 h-4 mr-1" />
+                          <XCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.reject}
                         </Button>
                       </>
@@ -381,7 +382,7 @@ export const OrderManagement: React.FC = () => {
                           onClick={() => updateOrderStatus(order.id, 'completed')}
                           className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.markCompleted}
                         </Button>
                         <Button
@@ -390,7 +391,7 @@ export const OrderManagement: React.FC = () => {
                           onClick={() => updateOrderStatus(order.id, 'pending')}
                           className="flex-1"
                         >
-                          <Clock className="w-4 h-4 mr-1" />
+                          <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.returnToPending}
                         </Button>
                       </>
@@ -402,7 +403,7 @@ export const OrderManagement: React.FC = () => {
                         onClick={() => updateOrderStatus(order.id, 'pending')}
                         className="w-full"
                       >
-                        <Clock className="w-4 h-4 mr-1" />
+                        <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                         {t.returnToPending}
                       </Button>
                     )}
@@ -413,7 +414,7 @@ export const OrderManagement: React.FC = () => {
                         onClick={() => updateOrderStatus(order.id, 'approved')}
                         className="w-full"
                       >
-                        <Clock className="w-4 h-4 mr-1" />
+                        <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                         {t.returnToApproved}
                       </Button>
                     )}

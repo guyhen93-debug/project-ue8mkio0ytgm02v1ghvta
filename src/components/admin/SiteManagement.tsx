@@ -94,6 +94,7 @@ export const SiteManagement: React.FC = () => {
   };
 
   const t = translations[language];
+  const isRTL = language === 'he';
 
   useEffect(() => {
     loadData();
@@ -207,16 +208,16 @@ export const SiteManagement: React.FC = () => {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
           <Input
             placeholder={t.search}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10"
+            className={isRTL ? 'pr-10' : 'pl-10'}
           />
         </div>
         <div className="flex gap-2">
@@ -226,11 +227,11 @@ export const SiteManagement: React.FC = () => {
           }}>
             <DialogTrigger asChild>
               <Button className="piter-yellow flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 {t.addSite}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
               <DialogHeader>
                 <DialogTitle>{editingSite ? t.editSite : t.addSite}</DialogTitle>
               </DialogHeader>
@@ -345,7 +346,6 @@ export const SiteManagement: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {/* Mobile Cards */}
           <div className="grid grid-cols-1 gap-3">
             {filteredSites.map((site) => (
               <Card key={site.id}>
@@ -378,7 +378,7 @@ export const SiteManagement: React.FC = () => {
                       onClick={() => handleEdit(site)}
                       className="flex-1"
                     >
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                       {t.edit}
                     </Button>
                     <Button
@@ -387,7 +387,7 @@ export const SiteManagement: React.FC = () => {
                       onClick={() => handleDelete(site.id)}
                       className="flex-1"
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
+                      <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                       {t.delete}
                     </Button>
                   </div>

@@ -74,6 +74,7 @@ export const ClientManagement: React.FC = () => {
   };
 
   const t = translations[language];
+  const isRTL = language === 'he';
 
   useEffect(() => {
     loadClients();
@@ -166,16 +167,16 @@ export const ClientManagement: React.FC = () => {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
           <Input
             placeholder={t.search}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10"
+            className={isRTL ? 'pr-10' : 'pl-10'}
           />
         </div>
         <div className="flex gap-2">
@@ -185,11 +186,11 @@ export const ClientManagement: React.FC = () => {
           }}>
             <DialogTrigger asChild>
               <Button className="piter-yellow flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 {t.addClient}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px]" dir={isRTL ? 'rtl' : 'ltr'}>
               <DialogHeader>
                 <DialogTitle>{editingClient ? t.editClient : t.addClient}</DialogTitle>
               </DialogHeader>
@@ -257,9 +258,9 @@ export const ClientManagement: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-right p-3 text-sm font-semibold text-gray-700">{t.name}</th>
-                  <th className="text-right p-3 text-sm font-semibold text-gray-700">{t.status}</th>
-                  <th className="text-right p-3 text-sm font-semibold text-gray-700">{t.actions}</th>
+                  <th className={`${isRTL ? 'text-right' : 'text-left'} p-3 text-sm font-semibold text-gray-700`}>{t.name}</th>
+                  <th className={`${isRTL ? 'text-right' : 'text-left'} p-3 text-sm font-semibold text-gray-700`}>{t.status}</th>
+                  <th className={`${isRTL ? 'text-right' : 'text-left'} p-3 text-sm font-semibold text-gray-700`}>{t.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -280,7 +281,7 @@ export const ClientManagement: React.FC = () => {
                           variant="outline"
                           onClick={() => handleEdit(client)}
                         >
-                          <Edit className="w-4 h-4 mr-1" />
+                          <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.edit}
                         </Button>
                         <Button
@@ -288,7 +289,7 @@ export const ClientManagement: React.FC = () => {
                           variant="destructive"
                           onClick={() => handleDelete(client.id)}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
+                          <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.delete}
                         </Button>
                       </div>
@@ -321,7 +322,7 @@ export const ClientManagement: React.FC = () => {
                       onClick={() => handleEdit(client)}
                       className="flex-1"
                     >
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                       {t.edit}
                     </Button>
                     <Button
@@ -330,7 +331,7 @@ export const ClientManagement: React.FC = () => {
                       onClick={() => handleDelete(client.id)}
                       className="flex-1"
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
+                      <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                       {t.delete}
                     </Button>
                   </div>

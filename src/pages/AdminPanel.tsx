@@ -44,7 +44,7 @@ const AdminPanel: React.FC = () => {
 
   return (
     <Layout title={t.title}>
-      <div className="p-3 sm:p-4 md:p-6 pb-24">
+      <div className="p-3 sm:p-4 md:p-6 pb-24" dir={language === 'he' ? 'rtl' : 'ltr'}>
         <Card className="industrial-card">
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl font-bold">{t.title}</CardTitle>
@@ -57,32 +57,28 @@ const AdminPanel: React.FC = () => {
                   className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.orders}</span>
-                  <span className="sm:hidden">{t.orders}</span>
+                  <span>{t.orders}</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="clients"
                   className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
                 >
                   <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.clients}</span>
-                  <span className="sm:hidden">{t.clients}</span>
+                  <span>{t.clients}</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="sites"
                   className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
                 >
                   <Building2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.sites}</span>
-                  <span className="sm:hidden">{t.sites}</span>
+                  <span>{t.sites}</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="products"
                   className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
                 >
                   <Package2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.products}</span>
-                  <span className="sm:hidden">{t.products}</span>
+                  <span>{t.products}</span>
                 </TabsTrigger>
               </TabsList>
 
