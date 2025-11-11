@@ -1,365 +1,367 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { mockDataService } from '@/services/mockDataService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Order, Site, Client, Product } from '@/entities';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface OrderEditDialogProps {
-  order: any;
+  order?: any;
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
 }
 
 const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClose, onSave }) => {
-  const { t } = useLanguage();
-  const [formData, setFormData] = useState({
-    product: '',
-    quantity: '',
-    delivery_date: '',
-    delivery_time: 'morning',
-    delivery_type: 'self_transport',
-    client_id: '',
-    site_id: '',
-    status: 'pending',
-    notes: '',
-    quarry_or_crossing: 'default'
-  });
-  const [products, setProducts] = useState<any[]>([]);
+  const { language } = useLanguage();
   const [clients, setClients] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [filteredSites, setFilteredSites] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    client_id: '',
+    site_id: '',
+    product_id: '',
+    quantity_tons: 0,
+    delivery_date: new Date(),
+    delivery_window: 'morning',
+    delivery_method: 'self',
+    notes: '',
+    status: 'pending'
+  });
+
+  const translations = {
+    he: {
+      editOrder: 'ערוך הזמנה',
+      createOrder: 'צור הזמנה',
+      client: 'לקוח',
+      site: 'אתר',
+      product: 'מוצר',
+      quantity: 'כמות (טון)',
+      deliveryDate: 'תאריך אספקה',
+      timeWindow: 'חלון זמן',
+      morning: 'בוקר',
+      afternoon: 'אחר הצהריים',
+      deliveryMethod: 'שיטת אספקה',
+      self: 'עצמי',
+      external: 'חיצוני',
+      notes: 'הערות',
+      status: 'סטטוס',
+      pending: 'ממתין',
+      approved: 'מאושר',
+      rejected: 'נדחה',
+      completed: 'הושלם',
+      save: 'שמור',
+      cancel: 'ביטול',
+      selectClient: 'בחר לקוח',
+      selectSite: 'בחר אתר',
+      selectProduct: 'בחר מוצר',
+      requiredFields: 'יש למלא את כל השדות החובה',
+      orderUpdated: 'הזמנה עודכנה בהצלחה',
+      orderCreated: 'הזמנה נוצרה בהצלחה',
+      error: 'שגיאה'
+    },
+    en: {
+      editOrder: 'Edit Order',
+      createOrder: 'Create Order',
+      client: 'Client',
+      site: 'Site',
+      product: 'Product',
+      quantity: 'Quantity (tons)',
+      deliveryDate: 'Delivery Date',
+      timeWindow: 'Time Window',
+      morning: 'Morning',
+      afternoon: 'Afternoon',
+      deliveryMethod: 'Delivery Method',
+      self: 'Self',
+      external: 'External',
+      notes: 'Notes',
+      status: 'Status',
+      pending: 'Pending',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      completed: 'Completed',
+      save: 'Save',
+      cancel: 'Cancel',
+      selectClient: 'Select client',
+      selectSite: 'Select site',
+      selectProduct: 'Select product',
+      requiredFields: 'Please fill all required fields',
+      orderUpdated: 'Order updated successfully',
+      orderCreated: 'Order created successfully',
+      error: 'Error'
+    }
+  };
+
+  const t = translations[language];
+  const isRTL = language === 'he';
 
   useEffect(() => {
-    if (order && isOpen) {
-      loadFormData();
-      loadDropdownData();
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (order) {
+      const site = sites.find(s => s.id === order.site_id);
+      setFormData({
+        client_id: site?.client_id || '',
+        site_id: order.site_id || '',
+        product_id: order.product_id || '',
+        quantity_tons: order.quantity_tons || 0,
+        delivery_date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
+        delivery_window: order.delivery_window || 'morning',
+        delivery_method: order.delivery_method || 'self',
+        notes: order.notes || '',
+        status: order.status || 'pending'
+      });
     }
-  }, [order, isOpen]);
+  }, [order, sites]);
 
-  const loadFormData = () => {
-    const deliveryDateTime = new Date(order.delivery_date);
-    const dateStr = deliveryDateTime.toISOString().split('T')[0];
-    const timeStr = deliveryDateTime.getHours() < 12 ? 'morning' : 'afternoon';
+  useEffect(() => {
+    if (formData.client_id) {
+      const clientSites = sites.filter(s => s.client_id === formData.client_id);
+      setFilteredSites(clientSites);
+    } else {
+      setFilteredSites([]);
+    }
+  }, [formData.client_id, sites]);
 
-    setFormData({
-      product: order.product || '',
-      quantity: order.quantity?.toString() || '',
-      delivery_date: dateStr,
-      delivery_time: timeStr,
-      delivery_type: order.delivery_type || 'self_transport',
-      client_id: order.client_id || '',
-      site_id: order.site_id || '',
-      status: order.status || 'pending',
-      notes: order.notes || '',
-      quarry_or_crossing: order.quarry_or_crossing || 'default'
-    });
-  };
-
-  const loadDropdownData = async () => {
+  const loadData = async () => {
     try {
-      const [productList, clientList, siteList] = await Promise.all([
-        mockDataService.getProducts(),
-        mockDataService.getClients({ is_active: true }),
-        mockDataService.getSites({ is_active: true })
+      const [clientsData, sitesData, productsData] = await Promise.all([
+        Client.list('-created_at', 1000),
+        Site.list('-created_at', 1000),
+        Product.list('-created_at', 1000)
       ]);
-      setProducts(productList);
-      setClients(clientList);
-      setSites(siteList);
+      setClients(clientsData);
+      setSites(sitesData);
+      setProducts(productsData);
     } catch (error) {
-      console.error('Error loading dropdown data:', error);
+      console.error('Error loading data:', error);
     }
   };
 
-  const handleSave = async () => {
-    try {
-      const timeMapping = { morning: '09:00', afternoon: '14:00' };
-      const deliveryDateTime = `${formData.delivery_date}T${timeMapping[formData.delivery_time]}:00`;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      const updates = {
-        product: formData.product,
-        quantity: parseFloat(formData.quantity),
-        delivery_date: deliveryDateTime,
-        delivery_type: formData.delivery_type,
-        client_id: formData.client_id,
+    if (!formData.site_id || !formData.product_id || formData.quantity_tons <= 0) {
+      toast({
+        title: t.error,
+        description: t.requiredFields,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const orderData = {
         site_id: formData.site_id,
-        status: formData.status,
+        product_id: formData.product_id,
+        quantity_tons: formData.quantity_tons,
+        delivery_date: formData.delivery_date.toISOString(),
+        delivery_window: formData.delivery_window,
+        delivery_method: formData.delivery_method,
         notes: formData.notes,
-        quarry_or_crossing: formData.quarry_or_crossing
+        status: formData.status
       };
 
-      await mockDataService.updateOrder(order.id, updates);
-      
-      toast({
-        title: t('order_updated'),
-        description: t('order_updated_successfully'),
-      });
-      
+      if (order) {
+        await Order.update(order.id, orderData);
+        toast({ title: t.orderUpdated });
+      } else {
+        await Order.create(orderData);
+        toast({ title: t.orderCreated });
+      }
+
       onSave();
-      onClose();
     } catch (error) {
-      console.error('Error updating order:', error);
+      console.error('Error saving order:', error);
       toast({
-        title: t('error'),
-        description: t('update_failed'),
-        variant: 'destructive',
+        title: t.error,
+        description: 'Failed to save order',
+        variant: 'destructive'
       });
     }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await mockDataService.deleteOrder(order.id);
-      
-      toast({
-        title: t('order_deleted'),
-        description: t('order_deleted_successfully'),
-      });
-      
-      onSave();
-      onClose();
-      setShowDeleteConfirm(false);
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast({
-        title: t('error'),
-        description: t('delete_failed'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getFilteredSites = () => {
-    return sites.filter(site => site.client_id === formData.client_id);
   };
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              {t('edit_order')} #{order?.order_number}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Client Selection */}
-            <div>
-              <Label>{t('select_client')}</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value, site_id: '' })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('select_client')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+        <DialogHeader>
+          <DialogTitle>{order ? t.editOrder : t.createOrder}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="client_id">{t.client}</Label>
+            <Select
+              value={formData.client_id}
+              onValueChange={(value) => {
+                setFormData({ ...formData, client_id: value, site_id: '' });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectClient} />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Site Selection */}
-            <div>
-              <Label>{t('select_site')}</Label>
-              <Select
-                value={formData.site_id}
-                onValueChange={(value) => setFormData({ ...formData, site_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('select_site')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getFilteredSites().map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.site_name} ({t(site.region_type)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="site_id">{t.site}</Label>
+            <Select
+              value={formData.site_id}
+              onValueChange={(value) => setFormData({ ...formData, site_id: value })}
+              disabled={!formData.client_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectSite} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredSites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.site_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Product Selection */}
-            <div>
-              <Label>{t('product')}</Label>
-              <Select
-                value={formData.product}
-                onValueChange={(value) => setFormData({ ...formData, product: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('select_product')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.display_name_he}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="product_id">{t.product}</Label>
+            <Select
+              value={formData.product_id}
+              onValueChange={(value) => setFormData({ ...formData, product_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectProduct} />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((product) => (
+                  <SelectItem key={product.id} value={product.product_id}>
+                    {language === 'he' ? product.name_he : product.name_en}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Quantity */}
-            <div>
-              <Label>{t('quantity')}</Label>
-              <Input
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                placeholder={t('enter_quantity')}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="quantity_tons">{t.quantity}</Label>
+            <Input
+              id="quantity_tons"
+              type="number"
+              min="0"
+              step="0.1"
+              value={formData.quantity_tons}
+              onChange={(e) => setFormData({ ...formData, quantity_tons: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
 
-            {/* Delivery Date */}
-            <div>
-              <Label>{t('delivery_date')}</Label>
-              <Input
-                type="date"
-                value={formData.delivery_date}
-                onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>{t.deliveryDate}</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                  <CalendarIcon className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+                  {format(formData.delivery_date, 'PPP')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 pointer-events-auto">
+                <Calendar
+                  mode="single"
+                  selected={formData.delivery_date}
+                  onSelect={(date) => date && setFormData({ ...formData, delivery_date: date })}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-            {/* Delivery Time */}
-            <div>
-              <Label>{t('delivery_time')}</Label>
-              <Select
-                value={formData.delivery_time}
-                onValueChange={(value) => setFormData({ ...formData, delivery_time: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">{t('morning_slot')}</SelectItem>
-                  <SelectItem value="afternoon">{t('afternoon_slot')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="delivery_window">{t.timeWindow}</Label>
+            <Select
+              value={formData.delivery_window}
+              onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">{t.morning}</SelectItem>
+                <SelectItem value="afternoon">{t.afternoon}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Delivery Type */}
-            <div>
-              <Label>{t('delivery_type')}</Label>
-              <Select
-                value={formData.delivery_type}
-                onValueChange={(value) => setFormData({ ...formData, delivery_type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="self_transport">{t('self_transport')}</SelectItem>
-                  <SelectItem value="external">{t('external_delivery')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="delivery_method">{t.deliveryMethod}</Label>
+            <Select
+              value={formData.delivery_method}
+              onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self">{t.self}</SelectItem>
+                <SelectItem value="external">{t.external}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Quarry/Crossing */}
-            <div>
-              <Label>{t('quarry_or_crossing')}</Label>
-              <Select
-                value={formData.quarry_or_crossing}
-                onValueChange={(value) => setFormData({ ...formData, quarry_or_crossing: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">{t('shifolei_har')}</SelectItem>
-                  <SelectItem value="yitzhak_rabin">{t('yitzhak_rabin_crossing')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="status">{t.status}</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">{t.pending}</SelectItem>
+                <SelectItem value="approved">{t.approved}</SelectItem>
+                <SelectItem value="rejected">{t.rejected}</SelectItem>
+                <SelectItem value="completed">{t.completed}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Status */}
-            <div>
-              <Label>{t('status')}</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">{t('pending')}</SelectItem>
-                  <SelectItem value="approved">{t('approved')}</SelectItem>
-                  <SelectItem value="rejected">{t('rejected')}</SelectItem>
-                  <SelectItem value="completed">{t('completed')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Notes */}
-            <div>
-              <Label>{t('notes')}</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder={t('order_notes')}
-                rows={3}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">{t.notes}</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+            />
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button onClick={handleSave} className="flex-1">
-              {t('save_changes')}
+            <Button type="submit" className="piter-yellow flex-1">
+              {t.save}
             </Button>
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              {t('cancel')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('confirm_delete')}</DialogTitle>
-          </DialogHeader>
-          <p className="text-gray-600">
-            {t('confirm_delete_order')} #{order?.order_number}?
-          </p>
-          <div className="flex gap-2 pt-4">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="flex-1"
-            >
-              {t('delete')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1"
-            >
-              {t('cancel')}
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              {t.cancel}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

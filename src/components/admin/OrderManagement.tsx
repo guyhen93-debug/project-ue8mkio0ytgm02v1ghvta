@@ -5,32 +5,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client } from '@/entities';
+import { Order, Site, Client, Product } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2 } from 'lucide-react';
 import OrderEditDialog from './OrderEditDialog';
-
-const PRODUCTS = [
-  { id: 'p_new_sand_0_4', name_he: 'חול חדש 0-4', name_en: 'New Sand 0-4' },
-  { id: 'p_new_sand_0_6', name_he: 'חול חדש 0-6', name_en: 'New Sand 0-6' },
-  { id: 'p_washed_sand_0_2', name_he: 'חול שטוף 0-2', name_en: 'Washed Sand 0-2' },
-  { id: 'p_washed_sand_0_4', name_he: 'חול שטוף 0-4', name_en: 'Washed Sand 0-4' },
-  { id: 'granite_4_10', name_he: 'גרניט 4-10', name_en: 'Granite 4-10' },
-  { id: 'granite_10_20', name_he: 'גרניט 10-20', name_en: 'Granite 10-20' },
-  { id: 'granite_20_40', name_he: 'גרניט 20-40', name_en: 'Granite 20-40' },
-  { id: 'granite_10_60', name_he: 'גרניט 10-60', name_en: 'Granite 10-60' },
-  { id: 'granite_40_80', name_he: 'גרניט 40-80', name_en: 'Granite 40-80' },
-  { id: 'granite_dust', name_he: 'אבק גרניט', name_en: 'Granite Dust' },
-  { id: 'gravel_4_25', name_he: 'חצץ 4-25', name_en: 'Gravel 4-25' },
-  { id: 'gravel_25_60', name_he: 'חצץ 25-60', name_en: 'Gravel 25-60' },
-  { id: 'gravel_dust', name_he: 'אבק חצץ', name_en: 'Gravel Dust' }
-];
 
 export const OrderManagement: React.FC = () => {
   const { language } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -40,6 +25,7 @@ export const OrderManagement: React.FC = () => {
   const translations = {
     he: {
       title: 'ניהול הזמנות',
+      addOrder: 'הוסף הזמנה',
       search: 'חיפוש הזמנה...',
       refresh: 'רענן',
       filterAll: 'הכל',
@@ -72,17 +58,21 @@ export const OrderManagement: React.FC = () => {
       returnToPending: 'החזר לממתין',
       returnToApproved: 'החזר לאושר',
       edit: 'ערוך',
+      delete: 'מחק',
       noOrders: 'אין הזמנות במערכת',
       orderApproved: 'הזמנה אושרה בהצלחה',
       orderRejected: 'הזמנה נדחתה',
       orderCompleted: 'הזמנה סומנה כהושלמה',
       orderUpdated: 'הזמנה עודכנה בהצלחה',
+      orderDeleted: 'הזמנה נמחקה בהצלחה',
+      deleteConfirm: 'האם אתה בטוח שברצונך למחוק הזמנה זו?',
       error: 'שגיאה',
       tons: 'טון',
       createdAt: 'נוצר ב'
     },
     en: {
       title: 'Order Management',
+      addOrder: 'Add Order',
       search: 'Search order...',
       refresh: 'Refresh',
       filterAll: 'All',
@@ -115,11 +105,14 @@ export const OrderManagement: React.FC = () => {
       returnToPending: 'Return to Pending',
       returnToApproved: 'Return to Approved',
       edit: 'Edit',
+      delete: 'Delete',
       noOrders: 'No orders in the system',
       orderApproved: 'Order approved successfully',
       orderRejected: 'Order rejected',
       orderCompleted: 'Order marked as completed',
       orderUpdated: 'Order updated successfully',
+      orderDeleted: 'Order deleted successfully',
+      deleteConfirm: 'Are you sure you want to delete this order?',
       error: 'Error',
       tons: 'tons',
       createdAt: 'Created at'
@@ -136,14 +129,16 @@ export const OrderManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [ordersData, sitesData, clientsData] = await Promise.all([
+      const [ordersData, sitesData, clientsData, productsData] = await Promise.all([
         Order.list('-created_at', 1000),
         Site.list('-created_at', 1000),
-        Client.list('-created_at', 1000)
+        Client.list('-created_at', 1000),
+        Product.list('-created_at', 1000)
       ]);
       setOrders(ordersData);
       setSites(sitesData);
       setClients(clientsData);
+      setProducts(productsData);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -177,8 +172,25 @@ export const OrderManagement: React.FC = () => {
     }
   };
 
+  const handleDelete = async (orderId: string) => {
+    if (!confirm(t.deleteConfirm)) return;
+
+    try {
+      await Order.delete(orderId);
+      toast({ title: t.orderDeleted });
+      loadData();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast({
+        title: t.error,
+        description: 'Failed to delete order',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const getProductName = (productId: string) => {
-    const product = PRODUCTS.find(p => p.id === productId);
+    const product = products.find(p => p.product_id === productId);
     return product ? (language === 'he' ? product.name_he : product.name_en) : productId;
   };
 
@@ -238,6 +250,16 @@ export const OrderManagement: React.FC = () => {
           />
         </div>
         <div className="flex gap-2">
+          <Button 
+            className="piter-yellow flex-1 sm:flex-none"
+            onClick={() => {
+              setEditingOrder(null);
+              setIsEditDialogOpen(true);
+            }}
+          >
+            <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t.addOrder}
+          </Button>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue />
@@ -353,71 +375,96 @@ export const OrderManagement: React.FC = () => {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-3 border-t border-gray-100">
-                    {order.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'approved')}
-                          className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                        >
-                          <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                          {t.approve}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => updateOrderStatus(order.id, 'rejected')}
-                          className="flex-1"
-                        >
-                          <XCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                          {t.reject}
-                        </Button>
-                      </>
-                    )}
-                    {order.status === 'approved' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'completed')}
-                          className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
-                        >
-                          <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                          {t.markCompleted}
-                        </Button>
+                  <div className="space-y-2 pt-3 border-t border-gray-100">
+                    <div className="flex gap-2">
+                      {order.status === 'pending' && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => updateOrderStatus(order.id, 'approved')}
+                            className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                          >
+                            <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.approve}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => updateOrderStatus(order.id, 'rejected')}
+                            className="flex-1"
+                          >
+                            <XCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.reject}
+                          </Button>
+                        </>
+                      )}
+                      {order.status === 'approved' && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                          >
+                            <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.markCompleted}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateOrderStatus(order.id, 'pending')}
+                            className="flex-1"
+                          >
+                            <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.returnToPending}
+                          </Button>
+                        </>
+                      )}
+                      {order.status === 'rejected' && (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateOrderStatus(order.id, 'pending')}
-                          className="flex-1"
+                          className="w-full"
                         >
                           <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                           {t.returnToPending}
                         </Button>
-                      </>
-                    )}
-                    {order.status === 'rejected' && (
+                      )}
+                      {order.status === 'completed' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateOrderStatus(order.id, 'approved')}
+                          className="w-full"
+                        >
+                          <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                          {t.returnToApproved}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => updateOrderStatus(order.id, 'pending')}
-                        className="w-full"
+                        onClick={() => {
+                          setEditingOrder(order);
+                          setIsEditDialogOpen(true);
+                        }}
+                        className="flex-1"
                       >
-                        <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                        {t.returnToPending}
+                        <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                        {t.edit}
                       </Button>
-                    )}
-                    {order.status === 'completed' && (
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => updateOrderStatus(order.id, 'approved')}
-                        className="w-full"
+                        variant="destructive"
+                        onClick={() => handleDelete(order.id)}
+                        className="flex-1"
                       >
-                        <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                        {t.returnToApproved}
+                        <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                        {t.delete}
                       </Button>
-                    )}
+                    </div>
                   </div>
 
                   {/* Created Date */}
@@ -433,22 +480,20 @@ export const OrderManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      {editingOrder && (
-        <OrderEditDialog
-          order={editingOrder}
-          isOpen={isEditDialogOpen}
-          onClose={() => {
-            setEditingOrder(null);
-            setIsEditDialogOpen(false);
-          }}
-          onSave={() => {
-            setEditingOrder(null);
-            setIsEditDialogOpen(false);
-            loadData();
-          }}
-        />
-      )}
+      {/* Edit/Create Dialog */}
+      <OrderEditDialog
+        order={editingOrder}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setEditingOrder(null);
+          setIsEditDialogOpen(false);
+        }}
+        onSave={() => {
+          setEditingOrder(null);
+          setIsEditDialogOpen(false);
+          loadData();
+        }}
+      />
     </div>
   );
 };

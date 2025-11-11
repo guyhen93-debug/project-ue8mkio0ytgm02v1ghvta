@@ -1,0 +1,28 @@
+{
+  "name": "Product",
+  "description": "A product in the quarry system",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "Unique product identifier"
+    },
+    "name_he": {
+      "type": "string",
+      "description": "Product name in Hebrew"
+    },
+    "name_en": {
+      "type": "string",
+      "description": "Product name in English"
+    },
+    "category": {
+      "type": "string",
+      "description": "Product category (sand/granite/gravel)",
+      "enum": ["sand", "granite", "gravel"]
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Whether the product is active",
+      "default": true
+    }
+  }
+}

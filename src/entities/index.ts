@@ -4,5 +4,6 @@ export const Client = superdevClient.entity("Client");
 export const Message = superdevClient.entity("Message");
 export const Notification = superdevClient.entity("Notification");
 export const Order = superdevClient.entity("Order");
+export const Product = superdevClient.entity("Product");
 export const Site = superdevClient.entity("Site");
-export const User = superdevClient.entity("User");
+export const User = superdevClient.auth;
