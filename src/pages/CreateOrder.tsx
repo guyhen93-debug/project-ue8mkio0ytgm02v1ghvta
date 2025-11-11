@@ -67,12 +67,16 @@ const CreateOrder = () => {
     try {
       setLoading(true);
       const currentUser = await User.me();
+      console.log('Current user:', currentUser);
       setUser(currentUser);
 
       const [allClients, allSites] = await Promise.all([
         Client.list('-created_at', 1000),
         Site.list('-created_at', 1000)
       ]);
+
+      console.log('All clients:', allClients);
+      console.log('All sites:', allSites);
 
       const activeClients = allClients.filter(c => c.is_active);
       const activeSites = allSites.filter(s => s.is_active);
@@ -82,16 +86,31 @@ const CreateOrder = () => {
 
       // אם המשתמש הוא לקוח, מצא את הלקוח שלו ואתחל אוטומטית
       if (currentUser.role === 'client') {
-        // מצא לקוח לפי האימייל של המשתמש
-        const matchingClient = activeClients.find(c => c.created_by === currentUser.email);
+        // נסה למצוא לקוח לפי email או לפי company
+        let matchingClient = activeClients.find(c => 
+          c.created_by === currentUser.email || 
+          (currentUser.company && c.name === currentUser.company)
+        );
+
+        // אם לא נמצא, נסה למצוא לקוח שהאימייל שלו תואם לשם הלקוח
+        if (!matchingClient && currentUser.email) {
+          matchingClient = activeClients.find(c => 
+            currentUser.email.toLowerCase().includes(c.name.toLowerCase()) ||
+            c.name.toLowerCase().includes(currentUser.email.split('@')[0].toLowerCase())
+          );
+        }
+
+        console.log('Matching client for user:', matchingClient);
         
         if (matchingClient) {
           setUserClient(matchingClient);
           setFormData(prev => ({ ...prev, client_id: matchingClient.id }));
+          console.log('Set client_id to:', matchingClient.id);
         } else {
+          console.warn('No matching client found for user');
           toast({
-            title: 'שגיאה',
-            description: 'לא נמצא לקוח משויך למשתמש זה',
+            title: 'שים לב',
+            description: 'לא נמצא לקוח משויך למשתמש זה. אנא פנה למנהל המערכת.',
             variant: 'destructive',
           });
         }
@@ -277,11 +296,24 @@ const CreateOrder = () => {
               )}
 
               {!isManager && userClient && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm text-gray-600 font-medium">לקוח:</span>
-                    <span className="text-sm text-gray-900 font-bold">{userClient.name}</span>
+                <div className="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border-2 border-yellow-300 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-yellow-500 p-2 rounded-full">
+                      <Building2 className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-yellow-700 font-medium mb-1">לקוח</p>
+                      <p className="text-base text-gray-900 font-bold">{userClient.name}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!isManager && !userClient && (
+                <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="h-5 w-5 text-red-600" />
+                    <p className="text-sm text-red-700">לא נמצא לקוח משויך. אנא פנה למנהל המערכת.</p>
                   </div>
                 </div>
               )}
@@ -299,11 +331,17 @@ const CreateOrder = () => {
                     <SelectValue placeholder={formData.client_id ? "בחר אתר" : "בחר לקוח תחילה"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredSites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.site_name}
+                    {filteredSites.length > 0 ? (
+                      filteredSites.map((site) => (
+                        <SelectItem key={site.id} value={site.id}>
+                          {site.site_name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-sites" disabled>
+                        אין אתרים זמינים
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -385,7 +423,7 @@ const CreateOrder = () => {
                     step="1"
                     value={getDisplayQuantity()}
                     onChange={(e) => handleDisplayQuantityChange(e.target.value)}
-                    placeholder={`הזן כמות ב${useCubicMeters ? 'מטרים קוביים' : 'טונים'} (מספרים שלמים בלבד)`}
+                    placeholder={useCubicMeters ? 'הזן כמות במ"ק' : 'הזן כמות בטון'}
                     className="text-right pr-10"
                   />
                 </div>
@@ -395,7 +433,7 @@ const CreateOrder = () => {
                   </p>
                 )}
                 <p className="text-xs text-gray-400 text-right">
-                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון (מעוגל למספר שלם)
+                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
                 </p>
               </div>
             </CardContent>
@@ -499,22 +537,22 @@ const CreateOrder = () => {
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-20 pt-4">
+          <div className="sticky bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg">
             <Button
               type="submit"
-              disabled={submitting}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+              disabled={submitting || !formData.client_id}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg"
             >
               {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
-                  שולח הזמנה...
-                </>
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                  <span>שולח...</span>
+                </div>
               ) : (
-                <>
-                  <Send className="h-5 w-5 ml-2" />
-                  שלח הזמנה
-                </>
+                <div className="flex items-center gap-2">
+                  <Send className="h-5 w-5" />
+                  <span>שלח הזמנה</span>
+                </div>
               )}
             </Button>
           </div>
