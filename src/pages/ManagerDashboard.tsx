@@ -9,9 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { Package, Calendar, FileText, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -67,38 +65,13 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    const statusMap: Record<string, string> = {
-      pending: 'ממתין',
-      approved: 'אושר',
-      rejected: 'נדחה',
-      completed: 'הושלם'
-    };
-    return statusMap[status] || status;
-  };
-
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       await Order.update(orderId, { status: newStatus });
       await loadUserAndOrders();
       toast({
         title: 'הזמנה עודכנה',
-        description: 'הסטטוס עודכן בהצלחה'
+        description: `ההזמנה ${newStatus === 'approved' ? 'אושרה' : 'נדחתה'} בהצלחה`
       });
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -127,7 +100,7 @@ const ManagerDashboard: React.FC = () => {
 
   return (
     <Layout title="דשבורד מנהל">
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-24">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -170,91 +143,33 @@ const ManagerDashboard: React.FC = () => {
 
         {/* הזמנות אחרונות */}
         <Card className="industrial-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl font-bold">הזמנות אחרונות</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/manager-dashboard')}
-            >
-              הצג הכל
-            </Button>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold">הזמנות אחרונות</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/admin')}
+              >
+                הצג הכל
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             {recentOrders.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-600">אין הזמנות עדיין</p>
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">אין הזמנות עדיין</p>
+                <p className="text-sm text-gray-500 mt-1">הזמנות חדשות יופיעו כאן</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-900">
-                            הזמנה #{order.order_number || order.id.slice(-6)}
-                          </span>
-                          <Badge className={getStatusColor(order.status)}>
-                            {getStatusText(order.status)}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          לקוח: {order.created_by}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
-                        </p>
-                      </div>
-                      {order.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => updateOrderStatus(order.id, 'approved')}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateOrderStatus(order.id, 'rejected')}
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-right">
-                        <Package className="w-4 h-4 text-gray-500" />
-                        <span className="text-gray-700">{order.quantity_tons} טון</span>
-                      </div>
-
-                      {order.delivery_date && (
-                        <div className="flex items-center gap-2 text-right">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="text-gray-700">
-                            {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
-                          </span>
-                        </div>
-                      )}
-
-                      {order.notes && (
-                        <div className="flex items-start gap-2 text-right">
-                          <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
-                          <span className="text-gray-600 text-xs">{order.notes}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              recentOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  onUpdateStatus={updateOrderStatus}
+                />
+              ))
             )}
           </CardContent>
         </Card>
@@ -263,6 +178,140 @@ const ManagerDashboard: React.FC = () => {
         <QuickManagementTools />
       </div>
     </Layout>
+  );
+};
+
+// קומפוננט כרטיס הזמנה - זהה לעיצוב של הלקוח עם כפתורי ניהול
+const OrderCard: React.FC<{ order: any; onUpdateStatus: (id: string, status: string) => void }> = ({ 
+  order, 
+  onUpdateStatus 
+}) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'status-pending';
+      case 'approved':
+        return 'status-approved';
+      case 'rejected':
+        return 'status-rejected';
+      case 'completed':
+        return 'status-completed';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: 'ממתין לאישור',
+      approved: 'אושר',
+      rejected: 'נדחה',
+      completed: 'הושלם'
+    };
+    return statusMap[status] || status;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('he-IL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-bold text-gray-900">
+              הזמנה #{order.order_number || order.id.slice(-6)}
+            </h3>
+            <Badge className={getStatusColor(order.status)}>
+              {getStatusText(order.status)}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-600">לקוח: {order.created_by}</p>
+        </div>
+        
+        {/* כפתורי אישור/דחייה - רק להזמנות ממתינות */}
+        {order.status === 'pending' && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => onUpdateStatus(order.id, 'approved')}
+              className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+            >
+              <CheckCircle className="w-4 h-4 ml-1" />
+              אשר
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => onUpdateStatus(order.id, 'rejected')}
+              className="h-8 px-3"
+            >
+              <XCircle className="w-4 h-4 ml-1" />
+              דחה
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* פרטי ההזמנה */}
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-gray-500">כמות:</span>
+          <span className="font-medium text-gray-900 mr-2">
+            {order.quantity_tons} טון
+          </span>
+        </div>
+        
+        {order.delivery_date && (
+          <div>
+            <span className="text-gray-500">תאריך אספקה:</span>
+            <span className="font-medium text-gray-900 mr-2">
+              {formatDate(order.delivery_date)}
+            </span>
+          </div>
+        )}
+        
+        {order.delivery_window && (
+          <div>
+            <span className="text-gray-500">חלון זמן:</span>
+            <span className="font-medium text-gray-900 mr-2">
+              {order.delivery_window === 'morning' ? 'בוקר' : 'אחר הצהריים'}
+            </span>
+          </div>
+        )}
+        
+        {order.delivery_method && (
+          <div>
+            <span className="text-gray-500">שיטת אספקה:</span>
+            <span className="font-medium text-gray-900 mr-2">
+              {order.delivery_method === 'self' ? 'עצמי' : 'חיצוני'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* הערות */}
+      {order.notes && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-xs text-gray-500">הערות:</p>
+          <p className="text-sm text-gray-700 mt-1">{order.notes}</p>
+        </div>
+      )}
+
+      {/* תאריך יצירה */}
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <p className="text-xs text-gray-400">
+          נוצר ב-{formatDate(order.created_at)}
+        </p>
+      </div>
+    </div>
   );
 };
 
