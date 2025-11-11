@@ -23,6 +23,10 @@
       "description": "The supplier that provides this product",
       "enum": ["shifuli_har", "maavar_rabin"]
     },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the product image"
+    },
     "is_active": {
       "type": "boolean",
       "description": "Whether the product is active",

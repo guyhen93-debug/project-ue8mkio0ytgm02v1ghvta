@@ -8,19 +8,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/entities';
-import { Plus, Edit, Trash2, Package, Factory } from 'lucide-react';
+import { uploadFile } from '@/integrations/core';
+import { Plus, Edit, Trash2, Package, Factory, Upload, X } from 'lucide-react';
 
 export const ProductManagement = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     product_id: '',
     name_he: '',
     name_en: '',
     size: '',
     supplier: '',
+    image_url: '',
     is_active: true
   });
 
@@ -42,6 +45,39 @@ export const ProductManagement = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'שגיאה',
+        description: 'אנא בחר קובץ תמונה',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const { file_url } = await uploadFile({ file });
+      setFormData({ ...formData, image_url: file_url });
+      toast({
+        title: 'הצלחה!',
+        description: 'התמונה הועלתה בהצלחה',
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל בהעלאת התמונה',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -93,6 +129,7 @@ export const ProductManagement = () => {
       name_en: product.name_en,
       size: product.size || '',
       supplier: product.supplier || '',
+      image_url: product.image_url || '',
       is_active: product.is_active
     });
     setDialogOpen(true);
@@ -125,6 +162,7 @@ export const ProductManagement = () => {
       name_en: '',
       size: '',
       supplier: '',
+      image_url: '',
       is_active: true
     });
     setEditingProduct(null);
@@ -162,7 +200,7 @@ export const ProductManagement = () => {
               מוצר חדש
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-right">
                 {editingProduct ? 'עריכת מוצר' : 'מוצר חדש'}
@@ -233,6 +271,46 @@ export const ProductManagement = () => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>תמונת מוצר</Label>
+                {formData.image_url ? (
+                  <div className="relative">
+                    <img
+                      src={formData.image_url}
+                      alt="תמונת מוצר"
+                      className="w-full h-40 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 left-2"
+                      onClick={() => setFormData({ ...formData, image_url: '' })}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <Label
+                      htmlFor="image-upload"
+                      className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      {uploading ? 'מעלה...' : 'לחץ להעלאת תמונה'}
+                    </Label>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-2 pt-4">
                 <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black">
                   {editingProduct ? 'עדכן' : 'צור'}
@@ -258,10 +336,21 @@ export const ProductManagement = () => {
         {products.map((product) => (
           <Card key={product.id}>
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+              <div className="flex items-start gap-4">
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.name_he}
+                    className="w-20 h-20 object-cover rounded-lg border flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Package className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <Package className="h-5 w-5 text-gray-500" />
                     <h3 className="font-bold text-lg">{product.name_he}</h3>
                     {!product.is_active && (
                       <Badge variant="secondary">לא פעיל</Badge>
@@ -279,7 +368,8 @@ export const ProductManagement = () => {
                   </div>
                   <p className="text-xs text-gray-400 mt-2">מזהה: {product.product_id}</p>
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
