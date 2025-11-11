@@ -9,9 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client } from '@/entities';
+import { Order, Site, Client, User } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
-import { superdevClient } from '@/lib/superdev/client';
 import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -24,6 +23,7 @@ const CreateOrder = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [useCubicMeters, setUseCubicMeters] = useState(false);
+  const [userClient, setUserClient] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -66,7 +66,7 @@ const CreateOrder = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const currentUser = await superdevClient.auth.me();
+      const currentUser = await User.me();
       setUser(currentUser);
 
       const [allClients, allSites] = await Promise.all([
@@ -74,8 +74,28 @@ const CreateOrder = () => {
         Site.list('-created_at', 1000)
       ]);
 
-      setClients(allClients.filter(c => c.is_active));
-      setSites(allSites.filter(s => s.is_active));
+      const activeClients = allClients.filter(c => c.is_active);
+      const activeSites = allSites.filter(s => s.is_active);
+
+      setClients(activeClients);
+      setSites(activeSites);
+
+      // אם המשתמש הוא לקוח, מצא את הלקוח שלו ואתחל אוטומטית
+      if (currentUser.role === 'client') {
+        // מצא לקוח לפי האימייל של המשתמש
+        const matchingClient = activeClients.find(c => c.created_by === currentUser.email);
+        
+        if (matchingClient) {
+          setUserClient(matchingClient);
+          setFormData(prev => ({ ...prev, client_id: matchingClient.id }));
+        } else {
+          toast({
+            title: 'שגיאה',
+            description: 'לא נמצא לקוח משויך למשתמש זה',
+            variant: 'destructive',
+          });
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -140,6 +160,16 @@ const CreateOrder = () => {
       return;
     }
 
+    // בדיקת אבטחה: ודא שלקוח לא יוצר הזמנה עבור לקוח אחר
+    if (user?.role === 'client' && userClient && formData.client_id !== userClient.id) {
+      toast({
+        title: 'שגיאה',
+        description: 'אינך מורשה ליצור הזמנה עבור לקוח אחר',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -191,6 +221,8 @@ const CreateOrder = () => {
     { id: 'maavar_rabin', name_he: 'מעבר רבין', name_en: 'Maavar Rabin' }
   ];
 
+  const isManager = user?.role === 'manager';
+
   if (loading) {
     return (
       <Layout title="יצירת הזמנה">
@@ -217,30 +249,42 @@ const CreateOrder = () => {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-gray-500" />
-                לקוח ואתר
+                {isManager ? 'לקוח ואתר' : 'אתר'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="client_id" className="text-right block">
-                  לקוח <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.client_id}
-                  onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-                >
-                  <SelectTrigger className="text-right">
-                    <SelectValue placeholder="בחר לקוח" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isManager && (
+                <div className="space-y-2">
+                  <Label htmlFor="client_id" className="text-right block">
+                    לקוח <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.client_id}
+                    onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                  >
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="בחר לקוח" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {!isManager && userClient && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm text-gray-600 font-medium">לקוח:</span>
+                    <span className="text-sm text-gray-900 font-bold">{userClient.name}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="site_id" className="text-right block">
