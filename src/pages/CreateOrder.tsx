@@ -394,13 +394,13 @@ const CreateOrder = () => {
                     <SelectItem value="morning">
                       <div className="flex items-center gap-2">
                         <Sun className="h-4 w-4 text-yellow-500" />
-                        <span>בוקר (06:00-12:00)</span>
+                        <span>בוקר (07:00-12:00)</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="afternoon">
                       <div className="flex items-center gap-2">
                         <Sunset className="h-4 w-4 text-orange-500" />
-                        <span>צהריים (12:00-18:00)</span>
+                        <span>צהריים (12:00-17:00)</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
