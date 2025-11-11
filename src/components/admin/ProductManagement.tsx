@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -22,7 +21,7 @@ export const ProductManagement: React.FC = () => {
     product_id: '',
     name_he: '',
     name_en: '',
-    category: 'sand',
+    size: '',
     is_active: true
   });
 
@@ -36,10 +35,7 @@ export const ProductManagement: React.FC = () => {
       productId: 'מזהה מוצר',
       nameHe: 'שם בעברית',
       nameEn: 'שם באנגלית',
-      category: 'קטגוריה',
-      sand: 'חול',
-      granite: 'גרניט',
-      gravel: 'חצץ',
+      size: 'מידות',
       status: 'סטטוס',
       active: 'פעיל',
       inactive: 'לא פעיל',
@@ -67,10 +63,7 @@ export const ProductManagement: React.FC = () => {
       productId: 'Product ID',
       nameHe: 'Name in Hebrew',
       nameEn: 'Name in English',
-      category: 'Category',
-      sand: 'Sand',
-      granite: 'Granite',
-      gravel: 'Gravel',
+      size: 'Size',
       status: 'Status',
       active: 'Active',
       inactive: 'Inactive',
@@ -155,7 +148,7 @@ export const ProductManagement: React.FC = () => {
       product_id: product.product_id,
       name_he: product.name_he,
       name_en: product.name_en,
-      category: product.category || 'sand',
+      size: product.size || '',
       is_active: product.is_active ?? true
     });
     setIsDialogOpen(true);
@@ -183,7 +176,7 @@ export const ProductManagement: React.FC = () => {
       product_id: '',
       name_he: '',
       name_en: '',
-      category: 'sand',
+      size: '',
       is_active: true
     });
     setEditingProduct(null);
@@ -194,7 +187,8 @@ export const ProductManagement: React.FC = () => {
     return (
       product.name_he?.toLowerCase().includes(searchLower) ||
       product.name_en?.toLowerCase().includes(searchLower) ||
-      product.product_id?.toLowerCase().includes(searchLower)
+      product.product_id?.toLowerCase().includes(searchLower) ||
+      product.size?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -256,20 +250,13 @@ export const ProductManagement: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">{t.category}</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sand">{t.sand}</SelectItem>
-                      <SelectItem value="granite">{t.granite}</SelectItem>
-                      <SelectItem value="gravel">{t.gravel}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="size">{t.size}</Label>
+                  <Input
+                    id="size"
+                    value={formData.size}
+                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                    placeholder="0-4"
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="is_active">{t.status}</Label>
@@ -340,9 +327,11 @@ export const ProductManagement: React.FC = () => {
                     </h3>
                     <p className="text-xs text-gray-500 mt-1">{product.product_id}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {t[product.category] || product.category}
-                      </span>
+                      {product.size && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {product.size}
+                        </span>
+                      )}
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>

@@ -14,10 +14,9 @@
       "type": "string",
       "description": "Product name in English"
     },
-    "category": {
+    "size": {
       "type": "string",
-      "description": "Product category (sand/granite/gravel)",
-      "enum": ["sand", "granite", "gravel"]
+      "description": "Product size/dimensions"
     },
     "is_active": {
       "type": "boolean",

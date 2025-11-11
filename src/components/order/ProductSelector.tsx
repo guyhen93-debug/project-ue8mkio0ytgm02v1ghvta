@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { mockDataService } from '@/services/mockDataService';
+import { Product } from '@/entities';
 
 interface ProductSelectorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-const ProductSelector: React.FC<ProductSelectorProps> = ({ value, onChange }) => {
-  const { t } = useLanguage();
+export const ProductSelector: React.FC<ProductSelectorProps> = ({ value, onChange }) => {
+  const { language } = useLanguage();
   const [products, setProducts] = useState<any[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const translations = {
+    he: {
+      label: 'מוצר',
+      placeholder: 'בחר מוצר',
+      loading: 'טוען מוצרים...',
+      noProducts: 'אין מוצרים זמינים'
+    },
+    en: {
+      label: 'Product',
+      placeholder: 'Select product',
+      loading: 'Loading products...',
+      noProducts: 'No products available'
+    }
+  };
+
+  const t = translations[language];
 
   useEffect(() => {
     loadProducts();
@@ -23,92 +37,38 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ value, onChange }) =>
 
   const loadProducts = async () => {
     try {
-      const productList = await mockDataService.getProducts();
-      setProducts(productList);
+      setLoading(true);
+      const data = await Product.filter({ is_active: true }, '-created_at', 1000);
+      setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleProductSelect = async (productId: string) => {
-    try {
-      const product = await mockDataService.getProductPreview(productId);
-      if (product) {
-        setSelectedProduct(product);
-        setShowPreview(true);
-        onChange(productId);
-      }
-    } catch (error) {
-      console.error('Error loading product preview:', error);
-      onChange(productId);
-    }
-  };
-
-  const getProductDisplayName = (product: any) => {
-    return t(product.id) || product.display_name_he || product.name;
   };
 
   return (
-    <>
-      <div className="space-y-3">
-        <Label htmlFor="product" className="text-base font-bold">
-          {t('product')} *
-        </Label>
-        <Select value={value} onValueChange={handleProductSelect}>
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder={t('select_product')} />
-          </SelectTrigger>
-          <SelectContent>
-            {products.map((product) => (
-              <SelectItem key={product.id} value={product.id}>
-                {getProductDisplayName(product)} ({product.size_label})
+    <div className="space-y-2">
+      <Label htmlFor="product">{t.label}</Label>
+      <Select value={value} onValueChange={onChange} disabled={loading}>
+        <SelectTrigger id="product">
+          <SelectValue placeholder={loading ? t.loading : t.placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {products.length === 0 ? (
+            <SelectItem value="none" disabled>
+              {t.noProducts}
+            </SelectItem>
+          ) : (
+            products.map((product) => (
+              <SelectItem key={product.id} value={product.product_id}>
+                {language === 'he' ? product.name_he : product.name_en}
+                {product.size && ` (${product.size})`}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Product Preview Modal */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('product_preview')}</DialogTitle>
-          </DialogHeader>
-          {selectedProduct && (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <img
-                  src={selectedProduct.image_url}
-                  alt={getProductDisplayName(selectedProduct)}
-                  className="w-24 h-24 object-cover rounded-lg"
-                  onError={(e) => {
-                    e.currentTarget.src = '/favicon.ico';
-                  }}
-                />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">
-                  {getProductDisplayName(selectedProduct)}
-                </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  {t('product_description')}:
-                </p>
-                <p className="text-sm">
-                  {t.language === 'he' ? selectedProduct.description_he : selectedProduct.description_en}
-                </p>
-              </div>
-              <Button
-                onClick={() => setShowPreview(false)}
-                className="w-full"
-              >
-                {t('ok')}
-              </Button>
-            </div>
+            ))
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
-
-export default ProductSelector;
