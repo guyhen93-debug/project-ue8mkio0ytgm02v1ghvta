@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { StatCard } from '@/components/StatCard';
+import { QuickManagementTools } from '@/components/admin/QuickManagementTools';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { Plus, Calendar, Package, FileText, Search, RefreshCw } from 'lucide-react';
+import { Package, Calendar, FileText, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
@@ -17,24 +17,21 @@ const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0
+  });
 
   useEffect(() => {
     loadUserAndOrders();
   }, []);
 
-  useEffect(() => {
-    filterOrders();
-  }, [orders, statusFilter, searchTerm]);
-
   const loadUserAndOrders = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       const currentUser = await superdevClient.auth.me();
       console.log('Current user:', currentUser);
@@ -43,9 +40,23 @@ const ManagerDashboard: React.FC = () => {
       const allOrders = await Order.list('-created_at', 100);
       console.log('Loaded orders:', allOrders.length);
       setOrders(allOrders);
+      
+      // חישוב סטטיסטיקות
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      setStats({
+        total: allOrders.length,
+        pending: allOrders.filter(o => o.status === 'pending').length,
+        approved: allOrders.filter(o => {
+          const orderDate = new Date(o.updated_at || o.created_at);
+          orderDate.setHours(0, 0, 0, 0);
+          return o.status === 'approved' && orderDate.getTime() === today.getTime();
+        }).length,
+        completed: allOrders.filter(o => o.status === 'completed').length
+      });
     } catch (error) {
       console.error('Error loading orders:', error);
-      setError('נכשל בטעינת ההזמנות');
       toast({
         title: 'שגיאה',
         description: 'נכשל בטעינת ההזמנות',
@@ -54,25 +65,6 @@ const ManagerDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterOrders = () => {
-    let filtered = orders;
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
-    }
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(order => 
-        (order.order_number && order.order_number.toLowerCase().includes(term)) ||
-        order.created_by.toLowerCase().includes(term) ||
-        (order.notes && order.notes.toLowerCase().includes(term))
-      );
-    }
-    
-    setFilteredOrders(filtered);
   };
 
   const getStatusColor = (status: string) => {
@@ -120,7 +112,7 @@ const ManagerDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout title="כל ההזמנות">
+      <Layout title="דשבורד מנהל">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
@@ -131,138 +123,97 @@ const ManagerDashboard: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Layout title="כל ההזמנות">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center max-w-md">
-            <Package className="w-16 h-16 text-red-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">שגיאה בטעינת הנתונים</h3>
-            <p className="text-gray-600 mb-4 text-sm">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button 
-                onClick={loadUserAndOrders} 
-                className="bg-yellow-500 hover:bg-yellow-600 text-black"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                נסה שוב
-              </Button>
-              <Button 
-                onClick={() => navigate('/create-order')}
-                variant="outline"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                צור הזמנה
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const recentOrders = orders.slice(0, 5);
 
   return (
-    <Layout title="כל ההזמנות">
-      <div className="p-4 space-y-4">
+    <Layout title="דשבורד מנהל">
+      <div className="p-4 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">כל ההזמנות</h1>
-            <p className="text-gray-600">סה"כ הזמנות: {orders.length}</p>
+            <h1 className="text-2xl font-bold text-gray-900">שלום, {user?.full_name || 'מנהל'}</h1>
+            <p className="text-gray-600">סקירה כללית של המערכת</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              onClick={loadUserAndOrders}
+          <Button 
+            onClick={loadUserAndOrders}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            רענן
+          </Button>
+        </div>
+
+        {/* סטטיסטיקות */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="סה״כ הזמנות"
+            value={stats.total}
+            icon={Package}
+            color="blue"
+          />
+          <StatCard
+            title="ממתינות לאישור"
+            value={stats.pending}
+            icon={Clock}
+            color="yellow"
+          />
+          <StatCard
+            title="אושרו היום"
+            value={stats.approved}
+            icon={CheckCircle}
+            color="green"
+          />
+          <StatCard
+            title="הושלמו"
+            value={stats.completed}
+            icon={TrendingUp}
+            color="purple"
+          />
+        </div>
+
+        {/* הזמנות אחרונות */}
+        <Card className="industrial-card">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-xl font-bold">הזמנות אחרונות</CardTitle>
+            <Button
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none"
+              onClick={() => navigate('/manager-dashboard')}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              רענן
+              הצג הכל
             </Button>
-            <Button 
-              onClick={() => navigate('/create-order')}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              צור הזמנה
-            </Button>
-            <Button 
-              onClick={() => navigate('/admin')}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium flex-1 sm:flex-none"
-            >
-              פאנל ניהול
-            </Button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="חיפוש הזמנות..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10 text-right"
-            />
-          </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="text-right">
-              <SelectValue placeholder="סינון לפי סטטוס" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">הכל</SelectItem>
-              <SelectItem value="pending">ממתין</SelectItem>
-              <SelectItem value="approved">אושר</SelectItem>
-              <SelectItem value="rejected">נדחה</SelectItem>
-              <SelectItem value="completed">הושלם</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Orders List */}
-        {filteredOrders.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              לא נמצאו הזמנות
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {orders.length === 0 ? 'אין הזמנות עדיין' : 'אין הזמנות התואמות את הסינון'}
-            </p>
-            {orders.length === 0 && (
-              <Button 
-                onClick={() => navigate('/create-order')}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                צור הזמנה ראשונה
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredOrders.map((order) => (
-              <Card key={order.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        הזמנה #{order.order_number || order.id.slice(-6)}
-                      </CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
-                        לקוח: {order.created_by}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2 items-end">
-                      <Badge className={getStatusColor(order.status)}>
-                        {getStatusText(order.status)}
-                      </Badge>
+          </CardHeader>
+          <CardContent>
+            {recentOrders.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600">אין הזמנות עדיין</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-gray-900">
+                            הזמנה #{order.order_number || order.id.slice(-6)}
+                          </span>
+                          <Badge className={getStatusColor(order.status)}>
+                            {getStatusText(order.status)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          לקוח: {order.created_by}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
+                        </p>
+                      </div>
                       {order.status === 'pending' && (
                         <div className="flex gap-2">
                           <Button
@@ -270,46 +221,50 @@ const ManagerDashboard: React.FC = () => {
                             onClick={() => updateOrderStatus(order.id, 'approved')}
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
-                            אשר
+                            <CheckCircle className="w-4 h-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
                             onClick={() => updateOrderStatus(order.id, 'rejected')}
                           >
-                            דחה
+                            <XCircle className="w-4 h-4" />
                           </Button>
                         </div>
                       )}
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-right">
-                    <Package className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-700">{order.quantity_tons} טון</span>
-                  </div>
 
-                  {order.delivery_date && (
-                    <div className="flex items-center gap-2 text-right">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700">
-                        {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
-                      </span>
-                    </div>
-                  )}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-right">
+                        <Package className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-700">{order.quantity_tons} טון</span>
+                      </div>
 
-                  {order.notes && (
-                    <div className="flex items-start gap-2 text-right">
-                      <FileText className="w-4 h-4 text-gray-500 mt-1" />
-                      <span className="text-sm text-gray-600">{order.notes}</span>
+                      {order.delivery_date && (
+                        <div className="flex items-center gap-2 text-right">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700">
+                            {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
+                          </span>
+                        </div>
+                      )}
+
+                      {order.notes && (
+                        <div className="flex items-start gap-2 text-right">
+                          <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                          <span className="text-gray-600 text-xs">{order.notes}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* כלי ניהול מהירים */}
+        <QuickManagementTools />
       </div>
     </Layout>
   );
