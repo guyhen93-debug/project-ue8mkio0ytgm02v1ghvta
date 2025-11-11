@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
+import { productsApi } from '@/functions';
 import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -34,6 +36,11 @@ const ManagerDashboard: React.FC = () => {
       const currentUser = await superdevClient.auth.me();
       console.log('Current user:', currentUser);
       setUser(currentUser);
+      
+      // טעינת מוצרים
+      const productsData = await productsApi();
+      console.log('Products loaded:', productsData);
+      setProducts(productsData || []);
       
       const allOrders = await Order.list('-created_at', 100);
       console.log('Loaded orders:', allOrders.length);
@@ -83,6 +90,11 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
+  const getProductName = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    return product?.name || productId;
+  };
+
   if (loading) {
     return (
       <Layout title="דשבורד מנהל">
@@ -100,17 +112,18 @@ const ManagerDashboard: React.FC = () => {
 
   return (
     <Layout title="דשבורד מנהל">
-      <div className="p-4 space-y-6 pb-24">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-24">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">שלום, {user?.full_name || 'מנהל'}</h1>
-            <p className="text-gray-600">סקירה כללית של המערכת</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">שלום, {user?.full_name || 'מנהל'}</h1>
+            <p className="text-sm sm:text-base text-gray-600">סקירה כללית של המערכת</p>
           </div>
           <Button 
             onClick={loadUserAndOrders}
             variant="outline"
             size="sm"
+            className="w-full sm:w-auto"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             רענן
@@ -118,7 +131,7 @@ const ManagerDashboard: React.FC = () => {
         </div>
 
         {/* סטטיסטיקות */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             title="סה״כ הזמנות"
             value={stats.total}
@@ -143,24 +156,25 @@ const ManagerDashboard: React.FC = () => {
 
         {/* הזמנות אחרונות */}
         <Card className="industrial-card">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-3 sm:p-6 pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold">הזמנות אחרונות</CardTitle>
+              <CardTitle className="text-lg sm:text-xl font-bold">הזמנות אחרונות</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/admin')}
+                className="text-xs sm:text-sm"
               >
                 הצג הכל
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-3 sm:p-6 pt-0 space-y-3">
             {recentOrders.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 font-medium">אין הזמנות עדיין</p>
-                <p className="text-sm text-gray-500 mt-1">הזמנות חדשות יופיעו כאן</p>
+              <div className="text-center py-8 sm:py-12">
+                <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                <p className="text-sm sm:text-base text-gray-600 font-medium">אין הזמנות עדיין</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">הזמנות חדשות יופיעו כאן</p>
               </div>
             ) : (
               recentOrders.map((order) => (
@@ -168,6 +182,7 @@ const ManagerDashboard: React.FC = () => {
                   key={order.id} 
                   order={order} 
                   onUpdateStatus={updateOrderStatus}
+                  getProductName={getProductName}
                 />
               ))
             )}
@@ -182,9 +197,14 @@ const ManagerDashboard: React.FC = () => {
 };
 
 // קומפוננט כרטיס הזמנה - זהה לעיצוב של הלקוח עם כפתורי ניהול
-const OrderCard: React.FC<{ order: any; onUpdateStatus: (id: string, status: string) => void }> = ({ 
+const OrderCard: React.FC<{ 
+  order: any; 
+  onUpdateStatus: (id: string, status: string) => void;
+  getProductName: (productId: string) => string;
+}> = ({ 
   order, 
-  onUpdateStatus 
+  onUpdateStatus,
+  getProductName
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -221,39 +241,39 @@ const OrderCard: React.FC<{ order: any; onUpdateStatus: (id: string, status: str
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all">
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-3">
+        <div className="flex-1 w-full">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h3 className="font-bold text-sm sm:text-base text-gray-900">
               הזמנה #{order.order_number || order.id.slice(-6)}
             </h3>
-            <Badge className={getStatusColor(order.status)}>
+            <Badge className={`${getStatusColor(order.status)} text-xs`}>
               {getStatusText(order.status)}
             </Badge>
           </div>
-          <p className="text-sm text-gray-600">לקוח: {order.created_by}</p>
+          <p className="text-xs sm:text-sm text-gray-600">לקוח: {order.created_by}</p>
         </div>
         
         {/* כפתורי אישור/דחייה - רק להזמנות ממתינות */}
         {order.status === 'pending' && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               size="sm"
               onClick={() => onUpdateStatus(order.id, 'approved')}
-              className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+              className="bg-green-600 hover:bg-green-700 text-white h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
             >
-              <CheckCircle className="w-4 h-4 ml-1" />
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
               אשר
             </Button>
             <Button
               size="sm"
               variant="destructive"
               onClick={() => onUpdateStatus(order.id, 'rejected')}
-              className="h-8 px-3"
+              className="h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
             >
-              <XCircle className="w-4 h-4 ml-1" />
+              <XCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
               דחה
             </Button>
           </div>
@@ -261,7 +281,14 @@ const OrderCard: React.FC<{ order: any; onUpdateStatus: (id: string, status: str
       </div>
 
       {/* פרטי ההזמנה */}
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+        <div>
+          <span className="text-gray-500">מוצר:</span>
+          <span className="font-medium text-gray-900 mr-2">
+            {getProductName(order.product_id)}
+          </span>
+        </div>
+        
         <div>
           <span className="text-gray-500">כמות:</span>
           <span className="font-medium text-gray-900 mr-2">
@@ -301,7 +328,7 @@ const OrderCard: React.FC<{ order: any; onUpdateStatus: (id: string, status: str
       {order.notes && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <p className="text-xs text-gray-500">הערות:</p>
-          <p className="text-sm text-gray-700 mt-1">{order.notes}</p>
+          <p className="text-xs sm:text-sm text-gray-700 mt-1">{order.notes}</p>
         </div>
       )}
 
