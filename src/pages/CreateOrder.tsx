@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
 import { superdevClient } from '@/lib/superdev/client';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
 const CreateOrder = () => {
@@ -88,15 +88,25 @@ const CreateOrder = () => {
     }
   };
 
+  const getSelectedSite = () => {
+    return sites.find(s => s.id === formData.site_id);
+  };
+
+  const getRegionName = () => {
+    const site = getSelectedSite();
+    if (!site) return '';
+    return site.region_type === 'eilat' ? 'אילת' : 'מחוץ לאילת';
+  };
+
   const getDisplayQuantity = () => {
     if (!formData.quantity_tons) return '';
     const tons = parseFloat(formData.quantity_tons);
     if (isNaN(tons)) return formData.quantity_tons;
     
     if (useCubicMeters) {
-      return (tons / CUBIC_TO_TON_RATIO).toFixed(2);
+      return Math.round(tons / CUBIC_TO_TON_RATIO).toString();
     }
-    return formData.quantity_tons;
+    return Math.round(tons).toString();
   };
 
   const handleDisplayQuantityChange = (value: string) => {
@@ -105,14 +115,14 @@ const CreateOrder = () => {
       return;
     }
     
-    const numValue = parseFloat(value);
+    const numValue = parseInt(value);
     if (isNaN(numValue)) return;
     
     if (useCubicMeters) {
       const tons = numValue * CUBIC_TO_TON_RATIO;
-      setFormData({ ...formData, quantity_tons: tons.toFixed(2) });
+      setFormData({ ...formData, quantity_tons: Math.round(tons).toString() });
     } else {
-      setFormData({ ...formData, quantity_tons: value });
+      setFormData({ ...formData, quantity_tons: numValue.toString() });
     }
   };
 
@@ -146,7 +156,7 @@ const CreateOrder = () => {
         client_id: formData.client_id,
         site_id: formData.site_id,
         product_id: formData.product_id,
-        quantity_tons: parseFloat(formData.quantity_tons),
+        quantity_tons: parseInt(formData.quantity_tons),
         delivery_date: formData.delivery_date,
         delivery_window: formData.delivery_window,
         delivery_method: formData.delivery_method,
@@ -196,7 +206,7 @@ const CreateOrder = () => {
 
   return (
     <Layout title="יצירת הזמנה">
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-24">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
           <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
@@ -253,6 +263,16 @@ const CreateOrder = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.site_id && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm text-blue-900 font-medium">אזור:</span>
+                    <span className="text-sm text-blue-700 font-bold">{getRegionName()}</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -317,21 +337,21 @@ const CreateOrder = () => {
                   <Input
                     id="quantity"
                     type="number"
-                    min="0"
-                    step="0.1"
+                    min="1"
+                    step="1"
                     value={getDisplayQuantity()}
                     onChange={(e) => handleDisplayQuantityChange(e.target.value)}
-                    placeholder={`הזן כמות ב${useCubicMeters ? 'מטרים קוביים' : 'טונים'}`}
+                    placeholder={`הזן כמות ב${useCubicMeters ? 'מטרים קוביים' : 'טונים'} (מספרים שלמים בלבד)`}
                     className="text-right pr-10"
                   />
                 </div>
                 {useCubicMeters && formData.quantity_tons && (
                   <p className="text-xs text-gray-500 text-right">
-                    = {parseFloat(formData.quantity_tons).toFixed(2)} טון
+                    = {Math.round(parseFloat(formData.quantity_tons))} טון
                   </p>
                 )}
                 <p className="text-xs text-gray-400 text-right">
-                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
+                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון (מעוגל למספר שלם)
                 </p>
               </div>
             </CardContent>
@@ -391,21 +411,28 @@ const CreateOrder = () => {
                 <Label htmlFor="delivery_method" className="text-right block">
                   שיטת אספקה <span className="text-red-500">*</span>
                 </Label>
-                <div className="relative">
-                  <Truck className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
-                  <Select
-                    value={formData.delivery_method}
-                    onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
-                  >
-                    <SelectTrigger className="text-right pr-10">
-                      <SelectValue placeholder="בחר שיטת אספקה" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="self">משלוח עצמי</SelectItem>
-                      <SelectItem value="external">הובלה חיצונית</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={formData.delivery_method}
+                  onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                >
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר שיטת אספקה" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self">
+                      <div className="flex items-center gap-2">
+                        <PackageCheck className="h-4 w-4 text-green-600" />
+                        <span>משלוח עצמי</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="external">
+                      <div className="flex items-center gap-2">
+                        <TruckIcon className="h-4 w-4 text-blue-600" />
+                        <span>הובלה חיצונית</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
