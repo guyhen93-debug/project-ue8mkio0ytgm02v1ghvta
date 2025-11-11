@@ -23,7 +23,8 @@ import {
   Box,
   Sunrise,
   Sunset,
-  MapPin
+  MapPin,
+  Plus
 } from 'lucide-react';
 
 // רשימת מוצרים סטטית
@@ -214,15 +215,24 @@ const ManagerDashboard: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">שלום, {user?.full_name || 'מנהל'}</h1>
             <p className="text-sm sm:text-base text-gray-600">סקירה כללית של המערכת</p>
           </div>
-          <Button 
-            onClick={() => loadUserAndOrders()}
-            variant="outline"
-            size="sm"
-            className="w-full sm:w-auto"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            רענן
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={() => navigate('/create-order')}
+              className="piter-yellow flex-1 sm:flex-none"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              הזמנה חדשה
+            </Button>
+            <Button 
+              onClick={() => loadUserAndOrders()}
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              רענן
+            </Button>
+          </div>
         </div>
 
         {/* סטטיסטיקות */}
