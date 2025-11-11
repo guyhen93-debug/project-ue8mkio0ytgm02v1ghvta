@@ -20,7 +20,9 @@ import {
   Calendar,
   Truck,
   FileText,
-  Box
+  Box,
+  Sunrise,
+  Sunset
 } from 'lucide-react';
 
 // רשימת מוצרים סטטית
@@ -316,6 +318,9 @@ const OrderCard: React.FC<{
     });
   };
 
+  // בחירת אייקון חלון זמן
+  const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all">
       {/* Header */}
@@ -332,28 +337,70 @@ const OrderCard: React.FC<{
           <p className="text-xs sm:text-sm text-gray-600">לקוח: {order.created_by}</p>
         </div>
         
-        {/* כפתורי אישור/דחייה */}
-        {order.status === 'pending' && (
-          <div className="flex gap-2 w-full sm:w-auto">
+        {/* כפתורי אישור/דחייה - מוצגים לכל ההזמנות */}
+        <div className="flex gap-2 w-full sm:w-auto">
+          {order.status === 'pending' ? (
+            <>
+              <Button
+                size="sm"
+                onClick={() => onUpdateStatus(order.id, 'approved')}
+                className="bg-green-600 hover:bg-green-700 text-white h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
+              >
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                אשר
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => onUpdateStatus(order.id, 'rejected')}
+                className="h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
+              >
+                <XCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                דחה
+              </Button>
+            </>
+          ) : order.status === 'approved' ? (
+            <>
+              <Button
+                size="sm"
+                onClick={() => onUpdateStatus(order.id, 'completed')}
+                className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
+              >
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                סמן כהושלם
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onUpdateStatus(order.id, 'pending')}
+                className="h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
+              >
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                החזר לממתין
+              </Button>
+            </>
+          ) : order.status === 'rejected' ? (
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => onUpdateStatus(order.id, 'pending')}
+              className="h-8 px-2 sm:px-3 w-full sm:w-auto text-xs sm:text-sm"
+            >
+              <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+              החזר לממתין
+            </Button>
+          ) : order.status === 'completed' ? (
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => onUpdateStatus(order.id, 'approved')}
-              className="bg-green-600 hover:bg-green-700 text-white h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
+              className="h-8 px-2 sm:px-3 w-full sm:w-auto text-xs sm:text-sm"
             >
-              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
-              אשר
+              <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+              החזר לאושר
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => onUpdateStatus(order.id, 'rejected')}
-              className="h-8 px-2 sm:px-3 flex-1 sm:flex-none text-xs sm:text-sm"
-            >
-              <XCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
-              דחה
-            </Button>
-          </div>
-        )}
+          ) : null}
+        </div>
       </div>
 
       {/* פרטי ההזמנה עם אייקונים */}
@@ -387,10 +434,10 @@ const OrderCard: React.FC<{
           </div>
         )}
         
-        {/* חלון זמן */}
+        {/* חלון זמן עם אייקון זריחה/שקיעה */}
         {order.delivery_window && (
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <TimeIcon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
             <span className="text-gray-500">חלון זמן:</span>
             <span className="font-medium text-gray-900">
               {order.delivery_window === 'morning' ? 'בוקר' : 'אחר הצהריים'}
