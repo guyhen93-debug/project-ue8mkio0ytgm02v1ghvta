@@ -1,311 +1,199 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { mockDataService } from '@/services/mockDataService';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Package } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Plus, Edit, Search, RefreshCw, Package2 } from 'lucide-react';
 
-const ProductManagement: React.FC = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
+// רשימת מוצרים סטטית
+const PRODUCTS = [
+  { id: 'p_new_sand_0_4', name_he: 'חול חדש 0-4', name_en: 'New Sand 0-4', price: 0 },
+  { id: 'p_new_sand_0_6', name_he: 'חול חדש 0-6', name_en: 'New Sand 0-6', price: 0 },
+  { id: 'p_washed_sand_0_2', name_he: 'חול שטוף 0-2', name_en: 'Washed Sand 0-2', price: 0 },
+  { id: 'p_washed_sand_0_4', name_he: 'חול שטוף 0-4', name_en: 'Washed Sand 0-4', price: 0 },
+  { id: 'granite_4_10', name_he: 'גרניט 4-10', name_en: 'Granite 4-10', price: 0 },
+  { id: 'granite_10_20', name_he: 'גרניט 10-20', name_en: 'Granite 10-20', price: 0 },
+  { id: 'granite_20_40', name_he: 'גרניט 20-40', name_en: 'Granite 20-40', price: 0 },
+  { id: 'granite_10_60', name_he: 'גרניט 10-60', name_en: 'Granite 10-60', price: 0 },
+  { id: 'granite_40_80', name_he: 'גרניט 40-80', name_en: 'Granite 40-80', price: 0 },
+  { id: 'granite_dust', name_he: 'אבק גרניט', name_en: 'Granite Dust', price: 0 },
+  { id: 'gravel_4_25', name_he: 'חצץ 4-25', name_en: 'Gravel 4-25', price: 0 },
+  { id: 'gravel_25_60', name_he: 'חצץ 25-60', name_en: 'Gravel 25-60', price: 0 },
+  { id: 'gravel_dust', name_he: 'אבק חצץ', name_en: 'Gravel Dust', price: 0 }
+];
+
+export const ProductManagement: React.FC = () => {
+  const { language } = useLanguage();
+  const [products, setProducts] = useState(PRODUCTS);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    display_name_he: '',
-    size_label: '',
-    description_en: '',
-    description_he: '',
-    image_url: ''
+    price: 0
   });
-  const { t } = useLanguage();
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
-    try {
-      const productList = await mockDataService.getProducts();
-      setProducts(productList);
-    } catch (error) {
-      console.error('Error loading products:', error);
-    } finally {
-      setIsLoading(false);
+  const translations = {
+    he: {
+      title: 'ניהול מוצרים',
+      editProduct: 'ערוך מוצר',
+      search: 'חיפוש מוצר...',
+      refresh: 'רענן',
+      productName: 'שם המוצר',
+      price: 'מחיר (₪)',
+      actions: 'פעולות',
+      edit: 'ערוך',
+      save: 'שמור',
+      cancel: 'ביטול',
+      noProducts: 'אין מוצרים במערכת',
+      productUpdated: 'מוצר עודכן בהצלחה',
+      error: 'שגיאה',
+      priceNote: 'הערה: ניהול מחירים יתווסף בגרסה עתידית'
+    },
+    en: {
+      title: 'Product Management',
+      editProduct: 'Edit Product',
+      search: 'Search product...',
+      refresh: 'Refresh',
+      productName: 'Product Name',
+      price: 'Price (₪)',
+      actions: 'Actions',
+      edit: 'Edit',
+      save: 'Save',
+      cancel: 'Cancel',
+      noProducts: 'No products in the system',
+      productUpdated: 'Product updated successfully',
+      error: 'Error',
+      priceNote: 'Note: Price management will be added in a future version'
     }
   };
 
-  const handleSave = async () => {
-    try {
-      if (editingProduct) {
-        await mockDataService.updateProduct(editingProduct.id, formData);
-        toast({
-          title: t('product_updated'),
-          description: t('product_updated_successfully'),
-        });
-      } else {
-        await mockDataService.createProduct(formData);
-        toast({
-          title: t('product_created'),
-          description: t('product_created_successfully'),
-        });
-      }
-      
-      setShowDialog(false);
-      setEditingProduct(null);
-      resetForm();
-      await loadProducts();
-    } catch (error) {
-      console.error('Error saving product:', error);
-      toast({
-        title: t('error'),
-        description: t('save_failed'),
-        variant: 'destructive',
-      });
-    }
-  };
+  const t = translations[language];
 
-  const handleDelete = async () => {
-    if (!productToDelete) return;
-    
-    try {
-      await mockDataService.deleteProduct(productToDelete.id);
-      toast({
-        title: t('product_deleted'),
-        description: t('product_deleted_successfully'),
-      });
-      
-      setShowDeleteConfirm(false);
-      setProductToDelete(null);
-      await loadProducts();
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast({
-        title: t('error'),
-        description: t('delete_failed'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const openEdit = (product: any) => {
+  const handleEdit = (product: any) => {
     setEditingProduct(product);
     setFormData({
-      name: product.name,
-      display_name_he: product.display_name_he,
-      size_label: product.size_label,
-      description_en: product.description_en,
-      description_he: product.description_he,
-      image_url: product.image_url
+      price: product.price || 0
     });
-    setShowDialog(true);
+    setIsDialogOpen(true);
   };
 
-  const openDelete = (product: any) => {
-    setProductToDelete(product);
-    setShowDeleteConfirm(true);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({ title: t.productUpdated });
+    setIsDialogOpen(false);
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      display_name_he: '',
-      size_label: '',
-      description_en: '',
-      description_he: '',
-      image_url: ''
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  const filteredProducts = products.filter(product => {
+    const name = language === 'he' ? product.name_he : product.name_en;
+    return name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
-    <div>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              {t('product_management')}
-            </CardTitle>
-            <Button
-              onClick={() => setShowDialog(true)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {t('add_product')}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {products.map((product) => (
-              <div key={product.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  {product.image_url && (
-                    <img
-                      src={product.image_url}
-                      alt={product.display_name_he}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                  )}
-                  <div>
-                    <h4 className="font-medium">{product.display_name_he}</h4>
-                    <p className="text-sm text-gray-600">{product.name}</p>
-                    <Badge variant="outline" className="mt-1">
-                      {product.size_label}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEdit(product)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openDelete(product)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder={t.search}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+        <Button variant="outline" size="icon" className="flex-shrink-0">
+          <RefreshCw className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Info Note */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <p className="text-sm text-blue-800">{t.priceNote}</p>
         </CardContent>
       </Card>
 
-      {/* Product Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? t('edit_product') : t('add_product')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{t('product_name_en')}</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Sand 0-4mm"
-              />
-            </div>
-            <div>
-              <Label>{t('product_name_he')}</Label>
-              <Input
-                value={formData.display_name_he}
-                onChange={(e) => setFormData({ ...formData, display_name_he: e.target.value })}
-                placeholder="חול מחצבה (0-4) מ״מ"
-              />
-            </div>
-            <div>
-              <Label>{t('size_label')}</Label>
-              <Input
-                value={formData.size_label}
-                onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
-                placeholder="0-4 מ״מ"
-              />
-            </div>
-            <div>
-              <Label>{t('description_en')}</Label>
-              <Textarea
-                value={formData.description_en}
-                onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
-                placeholder="English description"
-                rows={2}
-              />
-            </div>
-            <div>
-              <Label>{t('description_he')}</Label>
-              <Textarea
-                value={formData.description_he}
-                onChange={(e) => setFormData({ ...formData, description_he: e.target.value })}
-                placeholder="תיאור בעברית"
-                rows={2}
-              />
-            </div>
-            <div>
-              <Label>{t('image_url')}</Label>
-              <Input
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 pt-4">
-            <Button onClick={handleSave} className="flex-1">
-              {editingProduct ? t('update') : t('create')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDialog(false);
-                setEditingProduct(null);
-                resetForm();
-              }}
-              className="flex-1"
-            >
-              {t('cancel')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Products List */}
+      {filteredProducts.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Package2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600">{t.noProducts}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filteredProducts.map((product) => (
+            <Card key={product.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">
+                      {language === 'he' ? product.name_he : product.name_en}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {t.price}: ₪{product.price}
+                    </p>
+                  </div>
+                  <Package2 className="w-5 h-5 text-gray-400" />
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleEdit(product)}
+                  className="w-full mt-2"
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  {t.edit}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
+      {/* Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{t('confirm_delete')}</DialogTitle>
+            <DialogTitle>{t.editProduct}</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600">
-            {t('confirm_delete_product')} "{productToDelete?.display_name_he}"?
-          </p>
-          <div className="flex gap-2 pt-4">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="flex-1"
-            >
-              {t('delete')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1"
-            >
-              {t('cancel')}
-            </Button>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t.productName}</Label>
+              <Input
+                value={editingProduct ? (language === 'he' ? editingProduct.name_he : editingProduct.name_en) : ''}
+                disabled
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price">{t.price}</Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button type="submit" className="piter-yellow flex-1">
+                {t.save}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="flex-1"
+              >
+                {t.cancel}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
-
-export default ProductManagement;
