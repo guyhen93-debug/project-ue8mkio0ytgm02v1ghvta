@@ -9,14 +9,29 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
-import { productsApi } from '@/functions';
 import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+
+// רשימת מוצרים סטטית
+const PRODUCTS = [
+  { id: 'p_new_sand_0_4', name: 'חול חדש 0-4' },
+  { id: 'p_new_sand_0_6', name: 'חול חדש 0-6' },
+  { id: 'p_washed_sand_0_2', name: 'חול שטוף 0-2' },
+  { id: 'p_washed_sand_0_4', name: 'חול שטוף 0-4' },
+  { id: 'granite_4_10', name: 'גרניט 4-10' },
+  { id: 'granite_10_20', name: 'גרניט 10-20' },
+  { id: 'granite_20_40', name: 'גרניט 20-40' },
+  { id: 'granite_10_60', name: 'גרניט 10-60' },
+  { id: 'granite_40_80', name: 'גרניט 40-80' },
+  { id: 'granite_dust', name: 'אבק גרניט' },
+  { id: 'gravel_4_25', name: 'חצץ 4-25' },
+  { id: 'gravel_25_60', name: 'חצץ 25-60' },
+  { id: 'gravel_dust', name: 'אבק חצץ' }
+];
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -51,17 +66,6 @@ const ManagerDashboard: React.FC = () => {
           return loadUserAndOrders(retryCount + 1);
         }
         throw new Error('נכשל בטעינת פרטי המשתמש');
-      }
-      
-      // טעינת מוצרים
-      try {
-        const productsData = await productsApi();
-        console.log('Products loaded:', productsData);
-        setProducts(productsData || []);
-      } catch (productsError) {
-        console.error('Error loading products:', productsError);
-        // ממשיכים גם אם המוצרים לא נטענו
-        setProducts([]);
       }
       
       // טעינת הזמנות
@@ -126,7 +130,7 @@ const ManagerDashboard: React.FC = () => {
   };
 
   const getProductName = (productId: string) => {
-    const product = products.find(p => p.id === productId);
+    const product = PRODUCTS.find(p => p.id === productId);
     return product?.name || productId;
   };
 
