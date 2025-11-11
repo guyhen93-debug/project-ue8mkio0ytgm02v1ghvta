@@ -18,6 +18,11 @@
       "type": "string",
       "description": "Product size/dimensions"
     },
+    "supplier": {
+      "type": "string",
+      "description": "The supplier that provides this product",
+      "enum": ["shifuli_har", "maavar_rabin"]
+    },
     "is_active": {
       "type": "boolean",
       "description": "Whether the product is active",

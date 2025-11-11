@@ -1,91 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/entities';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, Edit, Trash2, Search, RefreshCw, Package2 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+import { Plus, Edit, Trash2, Package, Factory } from 'lucide-react';
 
-export const ProductManagement: React.FC = () => {
-  const { language } = useLanguage();
+export const ProductManagement = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
     product_id: '',
     name_he: '',
     name_en: '',
     size: '',
+    supplier: '',
     is_active: true
   });
-
-  const translations = {
-    he: {
-      title: 'ניהול מוצרים',
-      addProduct: 'הוסף מוצר',
-      editProduct: 'ערוך מוצר',
-      search: 'חיפוש מוצר...',
-      refresh: 'רענן',
-      productId: 'מזהה מוצר',
-      nameHe: 'שם בעברית',
-      nameEn: 'שם באנגלית',
-      size: 'מידות',
-      status: 'סטטוס',
-      active: 'פעיל',
-      inactive: 'לא פעיל',
-      actions: 'פעולות',
-      edit: 'ערוך',
-      delete: 'מחק',
-      save: 'שמור',
-      cancel: 'ביטול',
-      noProducts: 'אין מוצרים במערכת',
-      addFirstProduct: 'הוסף את המוצר הראשון',
-      deleteConfirm: 'האם אתה בטוח שברצונך למחוק מוצר זה?',
-      productAdded: 'מוצר נוסף בהצלחה',
-      productUpdated: 'מוצר עודכן בהצלחה',
-      productDeleted: 'מוצר נמחק בהצלחה',
-      error: 'שגיאה',
-      requiredFields: 'יש למלא את כל השדות החובה',
-      totalProducts: 'סה״כ מוצרים'
-    },
-    en: {
-      title: 'Product Management',
-      addProduct: 'Add Product',
-      editProduct: 'Edit Product',
-      search: 'Search product...',
-      refresh: 'Refresh',
-      productId: 'Product ID',
-      nameHe: 'Name in Hebrew',
-      nameEn: 'Name in English',
-      size: 'Size',
-      status: 'Status',
-      active: 'Active',
-      inactive: 'Inactive',
-      actions: 'Actions',
-      edit: 'Edit',
-      delete: 'Delete',
-      save: 'Save',
-      cancel: 'Cancel',
-      noProducts: 'No products in the system',
-      addFirstProduct: 'Add your first product',
-      deleteConfirm: 'Are you sure you want to delete this product?',
-      productAdded: 'Product added successfully',
-      productUpdated: 'Product updated successfully',
-      productDeleted: 'Product deleted successfully',
-      error: 'Error',
-      requiredFields: 'Please fill all required fields',
-      totalProducts: 'Total Products'
-    }
-  };
-
-  const t = translations[language];
-  const isRTL = language === 'he';
 
   useEffect(() => {
     loadProducts();
@@ -99,9 +36,9 @@ export const ProductManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading products:', error);
       toast({
-        title: t.error,
-        description: 'Failed to load products',
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל בטעינת המוצרים',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -110,12 +47,12 @@ export const ProductManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.product_id.trim() || !formData.name_he.trim() || !formData.name_en.trim()) {
+
+    if (!formData.product_id || !formData.name_he || !formData.name_en || !formData.supplier) {
       toast({
-        title: t.error,
-        description: t.requiredFields,
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'אנא מלא את כל השדות הנדרשים',
+        variant: 'destructive',
       });
       return;
     }
@@ -123,21 +60,27 @@ export const ProductManagement: React.FC = () => {
     try {
       if (editingProduct) {
         await Product.update(editingProduct.id, formData);
-        toast({ title: t.productUpdated });
+        toast({
+          title: 'הצלחה!',
+          description: 'המוצר עודכן בהצלחה',
+        });
       } else {
         await Product.create(formData);
-        toast({ title: t.productAdded });
+        toast({
+          title: 'הצלחה!',
+          description: 'המוצר נוצר בהצלחה',
+        });
       }
-      
-      setIsDialogOpen(false);
+
+      setDialogOpen(false);
       resetForm();
       loadProducts();
     } catch (error) {
       console.error('Error saving product:', error);
       toast({
-        title: t.error,
-        description: 'Failed to save product',
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל בשמירת המוצר',
+        variant: 'destructive',
       });
     }
   };
@@ -149,24 +92,28 @@ export const ProductManagement: React.FC = () => {
       name_he: product.name_he,
       name_en: product.name_en,
       size: product.size || '',
-      is_active: product.is_active ?? true
+      supplier: product.supplier || '',
+      is_active: product.is_active
     });
-    setIsDialogOpen(true);
+    setDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t.deleteConfirm)) return;
+    if (!confirm('האם אתה בטוח שברצונך למחוק מוצר זה?')) return;
 
     try {
       await Product.delete(id);
-      toast({ title: t.productDeleted });
+      toast({
+        title: 'הצלחה!',
+        description: 'המוצר נמחק בהצלחה',
+      });
       loadProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast({
-        title: t.error,
-        description: 'Failed to delete product',
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל במחיקת המוצר',
+        variant: 'destructive',
       });
     }
   };
@@ -177,195 +124,190 @@ export const ProductManagement: React.FC = () => {
       name_he: '',
       name_en: '',
       size: '',
+      supplier: '',
       is_active: true
     });
     setEditingProduct(null);
   };
 
-  const filteredProducts = products.filter(product => {
-    const searchLower = searchTerm.toLowerCase();
+  const suppliers = [
+    { id: 'shifuli_har', name_he: 'שיפולי הר', name_en: 'Shifuli Har' },
+    { id: 'maavar_rabin', name_he: 'מעבר רבין', name_en: 'Maavar Rabin' }
+  ];
+
+  const getSupplierName = (supplierId: string) => {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier ? supplier.name_he : supplierId;
+  };
+
+  if (loading) {
     return (
-      product.name_he?.toLowerCase().includes(searchLower) ||
-      product.name_en?.toLowerCase().includes(searchLower) ||
-      product.product_id?.toLowerCase().includes(searchLower) ||
-      product.size?.toLowerCase().includes(searchLower)
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+      </div>
     );
-  });
+  }
 
   return (
-    <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div className="relative flex-1">
-          <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
-          <Input
-            placeholder={t.search}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={isRTL ? 'pr-10' : 'pl-10'}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="piter-yellow flex-1 sm:flex-none">
-                <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {t.addProduct}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]" dir={isRTL ? 'rtl' : 'ltr'}>
-              <DialogHeader>
-                <DialogTitle>{editingProduct ? t.editProduct : t.addProduct}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="product_id">{t.productId}</Label>
-                  <Input
-                    id="product_id"
-                    value={formData.product_id}
-                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                    placeholder="p_new_sand_0_4"
-                    disabled={!!editingProduct}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name_he">{t.nameHe}</Label>
-                  <Input
-                    id="name_he"
-                    value={formData.name_he}
-                    onChange={(e) => setFormData({ ...formData, name_he: e.target.value })}
-                    placeholder="חול חדש 0-4"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name_en">{t.nameEn}</Label>
-                  <Input
-                    id="name_en"
-                    value={formData.name_en}
-                    onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-                    placeholder="New Sand 0-4"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="size">{t.size}</Label>
-                  <Input
-                    id="size"
-                    value={formData.size}
-                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    placeholder="0-4"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">{t.status}</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
-                      {formData.is_active ? t.active : t.inactive}
-                    </span>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="piter-yellow flex-1">
-                    {t.save}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    {t.cancel}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={loadProducts} size="icon" className="flex-shrink-0">
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">ניהול מוצרים</h2>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) resetForm();
+        }}>
+          <DialogTrigger asChild>
+            <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
+              <Plus className="h-4 w-4 ml-2" />
+              מוצר חדש
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-right">
+                {editingProduct ? 'עריכת מוצר' : 'מוצר חדש'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="product_id">מזהה מוצר *</Label>
+                <Input
+                  id="product_id"
+                  value={formData.product_id}
+                  onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                  placeholder="לדוגמה: granite_10_60"
+                  className="text-right"
+                  disabled={!!editingProduct}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name_he">שם בעברית *</Label>
+                <Input
+                  id="name_he"
+                  value={formData.name_he}
+                  onChange={(e) => setFormData({ ...formData, name_he: e.target.value })}
+                  placeholder="לדוגמה: גרניט 10-60"
+                  className="text-right"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name_en">שם באנגלית *</Label>
+                <Input
+                  id="name_en"
+                  value={formData.name_en}
+                  onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+                  placeholder="e.g., Granite 10-60"
+                  className="text-right"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="size">גודל</Label>
+                <Input
+                  id="size"
+                  value={formData.size}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                  placeholder="לדוגמה: 10-60 מ״מ"
+                  className="text-right"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supplier">ספק *</Label>
+                <Select
+                  value={formData.supplier}
+                  onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                >
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר ספק" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name_he}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black">
+                  {editingProduct ? 'עדכן' : 'צור'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setDialogOpen(false);
+                    resetForm();
+                  }}
+                  className="flex-1"
+                >
+                  ביטול
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Info Card */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <p className="text-sm text-blue-800">
-            {t.totalProducts}: {filteredProducts.length}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Products List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
-        </div>
-      ) : filteredProducts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-600 mb-2">{t.noProducts}</p>
-            <p className="text-sm text-gray-500">{t.addFirstProduct}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredProducts.map((product) => (
-            <Card key={product.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
-                      {language === 'he' ? product.name_he : product.name_en}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">{product.product_id}</p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {product.size && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {product.size}
-                        </span>
-                      )}
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {product.is_active ? t.active : t.inactive}
-                      </span>
-                    </div>
+      <div className="grid gap-4">
+        {products.map((product) => (
+          <Card key={product.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-5 w-5 text-gray-500" />
+                    <h3 className="font-bold text-lg">{product.name_he}</h3>
+                    {!product.is_active && (
+                      <Badge variant="secondary">לא פעיל</Badge>
+                    )}
                   </div>
-                  <Package2 className="w-5 h-5 text-gray-400" />
+                  <p className="text-sm text-gray-600 mb-1">{product.name_en}</p>
+                  {product.size && (
+                    <p className="text-sm text-gray-500 mb-2">גודל: {product.size}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Factory className="h-4 w-4 text-gray-400" />
+                    <Badge variant="outline" className="text-xs">
+                      {getSupplierName(product.supplier)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">מזהה: {product.product_id}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    size="sm"
                     variant="outline"
+                    size="sm"
                     onClick={() => handleEdit(product)}
-                    className="flex-1"
                   >
-                    <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                    {t.edit}
+                    <Edit className="h-4 w-4" />
                   </Button>
                   <Button
+                    variant="outline"
                     size="sm"
-                    variant="destructive"
                     onClick={() => handleDelete(product.id)}
-                    className="flex-1"
                   >
-                    <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                    {t.delete}
+                    <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {products.length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center text-gray-500">
+              אין מוצרים במערכת. לחץ על "מוצר חדש" כדי להוסיף.
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

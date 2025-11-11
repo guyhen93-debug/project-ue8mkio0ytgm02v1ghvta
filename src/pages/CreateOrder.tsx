@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client } from '@/entities';
+import { ProductSelector } from '@/components/order/ProductSelector';
 import { superdevClient } from '@/lib/superdev/client';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory } from 'lucide-react';
 import { format } from 'date-fns';
 
 const CreateOrder = () => {
@@ -27,6 +28,7 @@ const CreateOrder = () => {
   const [formData, setFormData] = useState({
     client_id: '',
     site_id: '',
+    supplier: '',
     product_id: '',
     quantity_tons: '',
     delivery_date: '',
@@ -35,7 +37,6 @@ const CreateOrder = () => {
     notes: ''
   });
 
-  // Conversion factor: 1 cubic meter ≈ 1.6 tons (average for aggregates)
   const CUBIC_TO_TON_RATIO = 1.6;
 
   useEffect(() => {
@@ -55,6 +56,12 @@ const CreateOrder = () => {
       setFormData(prev => ({ ...prev, site_id: '' }));
     }
   }, [formData.client_id, sites]);
+
+  useEffect(() => {
+    if (formData.supplier) {
+      setFormData(prev => ({ ...prev, product_id: '' }));
+    }
+  }, [formData.supplier]);
 
   const loadData = async () => {
     try {
@@ -79,10 +86,6 @@ const CreateOrder = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuantityChange = (value: string) => {
-    setFormData({ ...formData, quantity_tons: value });
   };
 
   const getDisplayQuantity = () => {
@@ -116,8 +119,8 @@ const CreateOrder = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.client_id || !formData.site_id || !formData.product_id || 
-        !formData.quantity_tons || !formData.delivery_date || 
+    if (!formData.client_id || !formData.site_id || !formData.supplier || 
+        !formData.product_id || !formData.quantity_tons || !formData.delivery_date || 
         !formData.delivery_window || !formData.delivery_method) {
       toast({
         title: 'שגיאה',
@@ -147,6 +150,7 @@ const CreateOrder = () => {
         delivery_date: formData.delivery_date,
         delivery_window: formData.delivery_window,
         delivery_method: formData.delivery_method,
+        supplier: formData.supplier,
         notes: formData.notes,
         status: 'pending',
         unlinked_site: false
@@ -172,14 +176,9 @@ const CreateOrder = () => {
     }
   };
 
-  const products = [
-    { id: 'granite_10_60', name: 'גרניט 10-60' },
-    { id: 'granite_0_10', name: 'גרניט 0-10' },
-    { id: 'p_new_sand_0_4', name: 'חול חדש 0-4' },
-    { id: 'sand_0_4', name: 'חול 0-4' },
-    { id: 'sand_dune', name: 'חול דיונות' },
-    { id: 'gravel_10_20', name: 'חצץ 10-20' },
-    { id: 'gravel_20_40', name: 'חצץ 20-40' }
+  const suppliers = [
+    { id: 'shifuli_har', name_he: 'שיפולי הר', name_en: 'Shifuli Har' },
+    { id: 'maavar_rabin', name_he: 'מעבר רבין', name_en: 'Maavar Rabin' }
   ];
 
   if (loading) {
@@ -204,7 +203,6 @@ const CreateOrder = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -258,7 +256,6 @@ const CreateOrder = () => {
             </CardContent>
           </Card>
 
-          {/* Product and Quantity */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -268,27 +265,35 @@ const CreateOrder = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="product_id" className="text-right block">
-                  מוצר <span className="text-red-500">*</span>
+                <Label htmlFor="supplier" className="text-right block">
+                  ספק <span className="text-red-500">*</span>
                 </Label>
-                <Select
-                  value={formData.product_id}
-                  onValueChange={(value) => setFormData({ ...formData, product_id: value })}
-                >
-                  <SelectTrigger className="text-right">
-                    <SelectValue placeholder="בחר מוצר" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Factory className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
+                  <Select
+                    value={formData.supplier}
+                    onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                  >
+                    <SelectTrigger className="text-right pr-10">
+                      <SelectValue placeholder="בחר ספק" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.name_he}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Unit Toggle */}
+              <ProductSelector
+                value={formData.product_id}
+                onChange={(value) => setFormData({ ...formData, product_id: value })}
+                supplier={formData.supplier}
+              />
+
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
                   <ArrowRightLeft className="h-4 w-4 text-gray-500" />
@@ -332,7 +337,6 @@ const CreateOrder = () => {
             </CardContent>
           </Card>
 
-          {/* Delivery Details */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -406,7 +410,6 @@ const CreateOrder = () => {
             </CardContent>
           </Card>
 
-          {/* Notes */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -425,7 +428,6 @@ const CreateOrder = () => {
             </CardContent>
           </Card>
 
-          {/* Submit Button */}
           <div className="sticky bottom-20 pt-4">
             <Button
               type="submit"
