@@ -8,7 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText } from 'lucide-react';
-import { OrderEditDialog } from './OrderEditDialog';
+import OrderEditDialog from './OrderEditDialog';
 
 const PRODUCTS = [
   { id: 'p_new_sand_0_4', name_he: 'חול חדש 0-4', name_en: 'New Sand 0-4' },
@@ -35,6 +35,7 @@ export const OrderManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const translations = {
     he: {
@@ -435,9 +436,14 @@ export const OrderManagement: React.FC = () => {
       {editingOrder && (
         <OrderEditDialog
           order={editingOrder}
-          onClose={() => setEditingOrder(null)}
+          isOpen={isEditDialogOpen}
+          onClose={() => {
+            setEditingOrder(null);
+            setIsEditDialogOpen(false);
+          }}
           onSave={() => {
             setEditingOrder(null);
+            setIsEditDialogOpen(false);
             loadData();
           }}
         />
