@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { Order } from '@/entities';
 import { superdevClient } from '@/lib/superdev/client';
 import { productsApi } from '@/functions';
-import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
+import { Package, RefreshCw, CheckCircle, XCircle, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +18,7 @@ const ManagerDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -29,42 +30,76 @@ const ManagerDashboard: React.FC = () => {
     loadUserAndOrders();
   }, []);
 
-  const loadUserAndOrders = async () => {
+  const loadUserAndOrders = async (retryCount = 0) => {
     try {
       setLoading(true);
+      setError(null);
       
-      const currentUser = await superdevClient.auth.me();
-      console.log('Current user:', currentUser);
-      setUser(currentUser);
+      console.log('Loading user and orders, attempt:', retryCount + 1);
+      
+      // טעינת משתמש עם retry
+      let currentUser;
+      try {
+        currentUser = await superdevClient.auth.me();
+        console.log('Current user:', currentUser);
+        setUser(currentUser);
+      } catch (userError) {
+        console.error('Error loading user:', userError);
+        if (retryCount < 2) {
+          console.log('Retrying user load...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return loadUserAndOrders(retryCount + 1);
+        }
+        throw new Error('נכשל בטעינת פרטי המשתמש');
+      }
       
       // טעינת מוצרים
-      const productsData = await productsApi();
-      console.log('Products loaded:', productsData);
-      setProducts(productsData || []);
+      try {
+        const productsData = await productsApi();
+        console.log('Products loaded:', productsData);
+        setProducts(productsData || []);
+      } catch (productsError) {
+        console.error('Error loading products:', productsError);
+        // ממשיכים גם אם המוצרים לא נטענו
+        setProducts([]);
+      }
       
-      const allOrders = await Order.list('-created_at', 100);
-      console.log('Loaded orders:', allOrders.length);
-      setOrders(allOrders);
+      // טעינת הזמנות
+      try {
+        const allOrders = await Order.list('-created_at', 100);
+        console.log('Loaded orders:', allOrders.length);
+        setOrders(allOrders);
+        
+        // חישוב סטטיסטיקות
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        setStats({
+          total: allOrders.length,
+          pending: allOrders.filter(o => o.status === 'pending').length,
+          approved: allOrders.filter(o => {
+            const orderDate = new Date(o.updated_at || o.created_at);
+            orderDate.setHours(0, 0, 0, 0);
+            return o.status === 'approved' && orderDate.getTime() === today.getTime();
+          }).length,
+          completed: allOrders.filter(o => o.status === 'completed').length
+        });
+      } catch (ordersError) {
+        console.error('Error loading orders:', ordersError);
+        if (retryCount < 2) {
+          console.log('Retrying orders load...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return loadUserAndOrders(retryCount + 1);
+        }
+        throw new Error('נכשל בטעינת ההזמנות');
+      }
       
-      // חישוב סטטיסטיקות
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      setStats({
-        total: allOrders.length,
-        pending: allOrders.filter(o => o.status === 'pending').length,
-        approved: allOrders.filter(o => {
-          const orderDate = new Date(o.updated_at || o.created_at);
-          orderDate.setHours(0, 0, 0, 0);
-          return o.status === 'approved' && orderDate.getTime() === today.getTime();
-        }).length,
-        completed: allOrders.filter(o => o.status === 'completed').length
-      });
-    } catch (error) {
-      console.error('Error loading orders:', error);
+    } catch (error: any) {
+      console.error('Error loading data:', error);
+      setError(error.message || 'אירעה שגיאה בטעינת הנתונים');
       toast({
         title: 'שגיאה',
-        description: 'נכשל בטעינת ההזמנות',
+        description: error.message || 'נכשל בטעינת הנתונים. אנא נסה שוב.',
         variant: 'destructive',
       });
     } finally {
@@ -101,8 +136,33 @@ const ManagerDashboard: React.FC = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">טוען...</p>
+            <p className="text-gray-600">טוען נתונים...</p>
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="דשבורד מנהל">
+        <div className="flex items-center justify-center min-h-[400px] p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">שגיאה בטעינת הנתונים</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button 
+                  onClick={() => loadUserAndOrders()}
+                  className="piter-yellow"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  נסה שוב
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -120,7 +180,7 @@ const ManagerDashboard: React.FC = () => {
             <p className="text-sm sm:text-base text-gray-600">סקירה כללית של המערכת</p>
           </div>
           <Button 
-            onClick={loadUserAndOrders}
+            onClick={() => loadUserAndOrders()}
             variant="outline"
             size="sm"
             className="w-full sm:w-auto"
@@ -196,7 +256,7 @@ const ManagerDashboard: React.FC = () => {
   );
 };
 
-// קומפוננט כרטיס הזמנה - זהה לעיצוב של הלקוח עם כפתורי ניהול
+// קומפוננט כרטיס הזמנה
 const OrderCard: React.FC<{ 
   order: any; 
   onUpdateStatus: (id: string, status: string) => void;
@@ -256,7 +316,7 @@ const OrderCard: React.FC<{
           <p className="text-xs sm:text-sm text-gray-600">לקוח: {order.created_by}</p>
         </div>
         
-        {/* כפתורי אישור/דחייה - רק להזמנות ממתינות */}
+        {/* כפתורי אישור/דחייה */}
         {order.status === 'pending' && (
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
