@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Order, Site, Product, User, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ClipboardList, CheckCircle, Clock, Plus } from 'lucide-react';
+import { ClipboardList, CheckCircle, Clock, Plus, Package } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import { StatCard } from '@/components/StatCard';
 
@@ -27,6 +27,7 @@ const ClientDashboard: React.FC = () => {
       totalOrders: 'סה״כ הזמנות',
       pendingOrders: 'ממתינות לאישור',
       approvedOrders: 'הזמנות מאושרות',
+      completedOrders: 'הזמנות שהושלמו',
       recentOrders: 'הזמנות אחרונות',
       createOrder: 'צור הזמנה חדשה',
       noOrders: 'אין לך הזמנות עדיין'
@@ -38,6 +39,7 @@ const ClientDashboard: React.FC = () => {
       totalOrders: 'Total Orders',
       pendingOrders: 'Pending Approval',
       approvedOrders: 'Approved Orders',
+      completedOrders: 'Completed Orders',
       recentOrders: 'Recent Orders',
       createOrder: 'Create New Order',
       noOrders: 'You have no orders yet'
@@ -78,6 +80,10 @@ const ClientDashboard: React.FC = () => {
 
       if (matchingClient) {
         setUserClient(matchingClient);
+        
+        // Load client's orders
+        const clientOrders = await Order.filter({ client_id: matchingClient.id }, '-created_at', 1000);
+        setOrders(clientOrders);
       }
       
       setSites(sitesData);
@@ -88,6 +94,12 @@ const ClientDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Calculate statistics
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
+  const approvedOrders = orders.filter(o => o.status === 'approved').length;
+  const completedOrders = orders.filter(o => o.status === 'completed').length;
 
   return (
     <Layout title={t.title}>
@@ -101,6 +113,38 @@ const ClientDashboard: React.FC = () => {
             <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t.createOrder}
           </Button>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <StatCard
+            title={t.totalOrders}
+            value={totalOrders}
+            icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />}
+            trend="neutral"
+            className="bg-gradient-to-br from-blue-50 to-blue-100"
+          />
+          <StatCard
+            title={t.pendingOrders}
+            value={pendingOrders}
+            icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6" />}
+            trend="neutral"
+            className="bg-gradient-to-br from-yellow-50 to-yellow-100"
+          />
+          <StatCard
+            title={t.approvedOrders}
+            value={approvedOrders}
+            icon={<CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />}
+            trend="up"
+            className="bg-gradient-to-br from-green-50 to-green-100"
+          />
+          <StatCard
+            title={t.completedOrders}
+            value={completedOrders}
+            icon={<ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />}
+            trend="neutral"
+            className="bg-gradient-to-br from-purple-50 to-purple-100"
+          />
         </div>
 
         {/* Recent Orders */}
