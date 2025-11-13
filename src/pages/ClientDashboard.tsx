@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Order, Site, Product, User, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ClipboardList, CheckCircle, Clock, Plus, Package } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
-import { StatCard } from '@/components/StatCard';
 
 const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -24,11 +23,6 @@ const ClientDashboard: React.FC = () => {
       title: 'דשבורד לקוח',
       welcome: 'ברוך הבא',
       myOrders: 'ההזמנות שלי',
-      totalOrders: 'סה״כ הזמנות',
-      pendingOrders: 'ממתינות לאישור',
-      approvedOrders: 'הזמנות מאושרות',
-      completedOrders: 'הזמנות שהושלמו',
-      recentOrders: 'הזמנות אחרונות',
       createOrder: 'צור הזמנה חדשה',
       noOrders: 'אין לך הזמנות עדיין'
     },
@@ -36,11 +30,6 @@ const ClientDashboard: React.FC = () => {
       title: 'Client Dashboard',
       welcome: 'Welcome',
       myOrders: 'My Orders',
-      totalOrders: 'Total Orders',
-      pendingOrders: 'Pending Approval',
-      approvedOrders: 'Approved Orders',
-      completedOrders: 'Completed Orders',
-      recentOrders: 'Recent Orders',
       createOrder: 'Create New Order',
       noOrders: 'You have no orders yet'
     }
@@ -95,12 +84,6 @@ const ClientDashboard: React.FC = () => {
     }
   };
 
-  // Calculate statistics
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const approvedOrders = orders.filter(o => o.status === 'approved').length;
-  const completedOrders = orders.filter(o => o.status === 'completed').length;
-
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -113,34 +96,6 @@ const ClientDashboard: React.FC = () => {
             <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t.createOrder}
           </Button>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <StatCard
-            title={t.totalOrders}
-            value={totalOrders}
-            icon={Package}
-            color="blue"
-          />
-          <StatCard
-            title={t.pendingOrders}
-            value={pendingOrders}
-            icon={Clock}
-            color="yellow"
-          />
-          <StatCard
-            title={t.approvedOrders}
-            value={approvedOrders}
-            icon={CheckCircle}
-            color="green"
-          />
-          <StatCard
-            title={t.completedOrders}
-            value={completedOrders}
-            icon={ClipboardList}
-            color="purple"
-          />
         </div>
 
         {/* Recent Orders */}

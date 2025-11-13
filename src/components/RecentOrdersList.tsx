@@ -117,12 +117,19 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     setFilteredOrders(filtered);
   };
 
+  // Calculate counts for each status
+  const allCount = orders.length;
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const approvedCount = orders.filter(o => o.status === 'approved').length;
+  const rejectedCount = orders.filter(o => o.status === 'rejected').length;
+  const completedCount = orders.filter(o => o.status === 'completed').length;
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'ממתין', className: 'status-pending' },
-      approved: { label: 'אושר', className: 'status-approved' },
-      rejected: { label: 'נדחה', className: 'status-rejected' },
-      completed: { label: 'הושלם', className: 'status-completed' }
+      pending: { label: 'ממתין', className: 'bg-yellow-100 text-yellow-800' },
+      approved: { label: 'אושר', className: 'bg-green-100 text-green-800' },
+      rejected: { label: 'נדחה', className: 'bg-red-100 text-red-800' },
+      completed: { label: 'הושלם', className: 'bg-blue-100 text-blue-800' }
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -184,47 +191,47 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     <div className="space-y-4">
       {/* Filters Section */}
       <div className="space-y-3">
-        {/* Status Filter Buttons */}
+        {/* Status Filter Buttons with Counts */}
         <div className="flex flex-wrap gap-2">
           <Button
             variant={statusFilter === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('all')}
-            className={statusFilter === 'all' ? 'piter-yellow' : ''}
+            className={statusFilter === 'all' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
           >
-            הכל
+            הכל ({allCount})
           </Button>
           <Button
             variant={statusFilter === 'pending' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('pending')}
-            className={statusFilter === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+            className={statusFilter === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
           >
-            ממתין
+            ממתין ({pendingCount})
           </Button>
           <Button
             variant={statusFilter === 'approved' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('approved')}
-            className={statusFilter === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+            className={statusFilter === 'approved' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
           >
-            אושר
+            אושר ({approvedCount})
           </Button>
           <Button
             variant={statusFilter === 'rejected' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('rejected')}
-            className={statusFilter === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-200' : ''}
+            className={statusFilter === 'rejected' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
           >
-            נדחה
+            נדחה ({rejectedCount})
           </Button>
           <Button
             variant={statusFilter === 'completed' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('completed')}
-            className={statusFilter === 'completed' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
+            className={statusFilter === 'completed' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
           >
-            הושלם
+            הושלם ({completedCount})
           </Button>
         </div>
 
