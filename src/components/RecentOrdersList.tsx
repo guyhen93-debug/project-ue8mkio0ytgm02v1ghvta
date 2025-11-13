@@ -1,209 +1,171 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, MapPin, Calendar, Sunrise, Sunset, Building2, Factory } from 'lucide-react';
+import { Order, Product, Client, Site } from '@/entities';
+import { Package, Calendar, MapPin, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
 
 interface RecentOrdersListProps {
-  orders: any[];
-  sites: any[];
-  products: any[];
-  onOrderClick?: (order: any) => void;
+  limit?: number;
+  clientId?: string;
 }
 
-export const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ 
-  orders, 
-  sites, 
-  products,
-  onOrderClick 
-}) => {
-  const { language } = useLanguage();
+const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId }) => {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<Record<string, any>>({});
+  const [clients, setClients] = useState<Record<string, any>>({});
+  const [sites, setSites] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
 
-  const translations = {
-    he: {
-      orderNumber: 'הזמנה',
-      site: 'אתר',
-      region: 'אזור',
-      eilat: 'אילת',
-      outsideEilat: 'מחוץ לאילת',
-      supplier: 'ספק',
-      shifuliHar: 'שיפולי הר',
-      maavarRabin: 'מעבר רבין',
-      product: 'מוצר',
-      quantity: 'כמות',
-      deliveryDate: 'תאריך אספקה',
-      timeWindow: 'חלון זמן',
-      morning: 'בוקר',
-      afternoon: 'אחר הצהריים',
-      pending: 'ממתין לאישור',
-      approved: 'אושר',
-      rejected: 'נדחה',
-      completed: 'הושלם',
-      tons: 'טון',
-      noOrders: 'אין הזמנות'
-    },
-    en: {
-      orderNumber: 'Order',
-      site: 'Site',
-      region: 'Region',
-      eilat: 'Eilat',
-      outsideEilat: 'Outside Eilat',
-      supplier: 'Supplier',
-      shifuliHar: 'Shifuli Har',
-      maavarRabin: 'Maavar Rabin',
-      product: 'Product',
-      quantity: 'Quantity',
-      deliveryDate: 'Delivery Date',
-      timeWindow: 'Time Window',
-      morning: 'Morning',
-      afternoon: 'Afternoon',
-      pending: 'Pending Approval',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      completed: 'Completed',
-      tons: 'tons',
-      noOrders: 'No orders'
+  useEffect(() => {
+    loadOrders();
+  }, [clientId, limit]);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      
+      let ordersList;
+      if (clientId) {
+        ordersList = await Order.filter({ client_id: clientId }, '-created_at', limit);
+      } else {
+        ordersList = await Order.list('-created_at', limit);
+      }
+
+      // טעינת כל המוצרים, לקוחות ואתרים
+      const [allProducts, allClients, allSites] = await Promise.all([
+        Product.list('-created_at', 1000),
+        Client.list('-created_at', 1000),
+        Site.list('-created_at', 1000)
+      ]);
+
+      // יצירת מפות לגישה מהירה
+      const productsMap: Record<string, any> = {};
+      allProducts.forEach(product => {
+        productsMap[product.id] = product;
+      });
+
+      const clientsMap: Record<string, any> = {};
+      allClients.forEach(client => {
+        clientsMap[client.id] = client;
+      });
+
+      const sitesMap: Record<string, any> = {};
+      allSites.forEach(site => {
+        sitesMap[site.id] = site;
+      });
+
+      setProducts(productsMap);
+      setClients(clientsMap);
+      setSites(sitesMap);
+      setOrders(ordersList);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const t = translations[language];
-  const isRTL = language === 'he';
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: 'ממתין', className: 'status-pending' },
+      approved: { label: 'אושר', className: 'status-approved' },
+      rejected: { label: 'נדחה', className: 'status-rejected' },
+      completed: { label: 'הושלם', className: 'status-completed' }
+    };
 
-  const getProductName = (productId: string) => {
-    const product = products.find(p => p.product_id === productId);
-    return product ? (language === 'he' ? product.name_he : product.name_en) : productId;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  const getSite = (siteId: string) => {
-    return sites.find(s => s.id === siteId);
+  const getProductName = (productId: string) => {
+    const product = products[productId];
+    if (!product) return 'מוצר לא ידוע';
+    return product.name_he || product.name_en || product.product_id || 'מוצר לא ידוע';
+  };
+
+  const getClientName = (clientId: string) => {
+    const client = clients[clientId];
+    return client?.name || 'לקוח לא ידוע';
   };
 
   const getSiteName = (siteId: string) => {
-    const site = getSite(siteId);
-    return site?.site_name || t.site;
+    const site = sites[siteId];
+    return site?.site_name || 'אתר לא ידוע';
   };
 
-  const getRegionName = (siteId: string) => {
-    const site = getSite(siteId);
-    if (!site) return '';
-    return site.region_type === 'eilat' ? t.eilat : t.outsideEilat;
+  const getDeliveryMethodLabel = (method: string) => {
+    return method === 'self' ? 'הובלה עצמית' : 'הובלה חיצונית';
   };
 
-  const getSupplierName = (supplier: string) => {
-    if (!supplier) return '';
-    return supplier === 'shifuli_har' ? t.shifuliHar : t.maavarRabin;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pending: 'status-pending',
-      approved: 'status-approved',
-      rejected: 'status-rejected',
-      completed: 'status-completed'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-yellow-500" />
+      </div>
+    );
+  }
 
   if (orders.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-600">{t.noOrders}</p>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-gray-500">
+        <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+        <p>אין הזמנות להצגה</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
-      {orders.map((order) => {
-        const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
-        
-        return (
-          <Card 
-            key={order.id} 
-            className={onOrderClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
-            onClick={() => onOrderClick?.(order)}
-          >
-            <CardContent className="p-4">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-sm sm:text-base">
-                      {t.orderNumber} #{order.order_number || order.id.slice(-6)}
-                    </h3>
-                    <Badge className={`${getStatusColor(order.status)} text-xs`}>
-                      {t[order.status]}
-                    </Badge>
-                  </div>
+    <div className="space-y-3">
+      {orders.map((order) => (
+        <Card key={order.id} className="industrial-card hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-gray-900">#{order.order_number}</span>
+                  {getStatusBadge(order.status)}
                 </div>
+                <p className="text-sm text-gray-600">{getClientName(order.client_id)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-gray-700">
+                <Package className="h-4 w-4 text-gray-400" />
+                <span className="font-medium">{getProductName(order.product_id)}</span>
+                <span className="text-gray-500">•</span>
+                <span className="font-bold">{order.quantity_tons} טון</span>
               </div>
 
-              {/* Details */}
-              <div className="space-y-2">
-                {order.site_id && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-gray-500">{t.site}:</span>
-                    <span className="font-medium text-gray-900">{getSiteName(order.site_id)}</span>
-                  </div>
-                )}
-                {order.site_id && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                    <span className="text-gray-500">{t.region}:</span>
-                    <span className="font-medium text-blue-700">{getRegionName(order.site_id)}</span>
-                  </div>
-                )}
-                {order.supplier && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <Factory className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                    <span className="text-gray-500">{t.supplier}:</span>
-                    <span className="font-medium text-orange-700">{getSupplierName(order.supplier)}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-xs sm:text-sm">
-                  <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  <span className="text-gray-500">{t.product}:</span>
-                  <span className="font-medium text-gray-900">{getProductName(order.product_id)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs sm:text-sm">
-                  <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  <span className="text-gray-500">{t.quantity}:</span>
-                  <span className="font-medium text-gray-900">{order.quantity_tons} {t.tons}</span>
-                </div>
-                {order.delivery_date && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-gray-500">{t.deliveryDate}:</span>
-                    <span className="font-medium text-gray-900">{formatDate(order.delivery_date)}</span>
-                  </div>
-                )}
-                {order.delivery_window && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <TimeIcon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-                    <span className="text-gray-500">{t.timeWindow}:</span>
-                    <span className="font-medium text-gray-900">
-                      {order.delivery_window === 'morning' ? t.morning : t.afternoon}
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 text-gray-700">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <span>{getSiteName(order.site_id)}</span>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+
+              <div className="flex items-center gap-2 text-gray-700">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span>
+                  {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
+                </span>
+                <span className="text-gray-500">•</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {order.delivery_window === 'morning' ? 'בוקר' : 'צהריים'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 text-gray-700">
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  {getDeliveryMethodLabel(order.delivery_method)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };
+
+export default RecentOrdersList;

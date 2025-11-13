@@ -11,8 +11,9 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, User } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const CreateOrder = () => {
   const navigate = useNavigate();
@@ -84,15 +85,12 @@ const CreateOrder = () => {
       setClients(activeClients);
       setSites(activeSites);
 
-      // אם המשתמש הוא לקוח, מצא את הלקוח שלו ואתחל אוטומטית
       if (currentUser.role === 'client') {
-        // נסה למצוא לקוח לפי email או לפי company
         let matchingClient = activeClients.find(c => 
           c.created_by === currentUser.email || 
           (currentUser.company && c.name === currentUser.company)
         );
 
-        // אם לא נמצא, נסה למצוא לקוח שהאימייל שלו תואם לשם הלקוח
         if (!matchingClient && currentUser.email) {
           matchingClient = activeClients.find(c => 
             currentUser.email.toLowerCase().includes(c.name.toLowerCase()) ||
@@ -165,6 +163,45 @@ const CreateOrder = () => {
     }
   };
 
+  const getMinimumQuantity = () => {
+    if (formData.delivery_method !== 'external') {
+      return 0;
+    }
+
+    const site = getSelectedSite();
+    if (!site) {
+      return 20; // ברירת מחדל להובלה חיצונית
+    }
+
+    // אם האתר מחוץ לאילת והובלה חיצונית - מינימום 40 טון
+    if (site.region_type === 'outside_eilat') {
+      return 40;
+    }
+
+    // אחרת, מינימום 20 טון להובלה חיצונית
+    return 20;
+  };
+
+  const validateQuantity = () => {
+    if (!formData.quantity_tons || !formData.delivery_method) {
+      return { valid: true, message: '' };
+    }
+
+    const quantity = parseInt(formData.quantity_tons);
+    const minQuantity = getMinimumQuantity();
+
+    if (formData.delivery_method === 'external' && quantity < minQuantity) {
+      const site = getSelectedSite();
+      const regionText = site?.region_type === 'outside_eilat' ? 'לאתר מחוץ לאילת' : '';
+      return {
+        valid: false,
+        message: `מינימום הזמנה להובלה חיצונית ${regionText}: ${minQuantity} טון`
+      };
+    }
+
+    return { valid: true, message: '' };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -179,7 +216,17 @@ const CreateOrder = () => {
       return;
     }
 
-    // בדיקת אבטחה: ודא שלקוח לא יוצר הזמנה עבור לקוח אחר
+    // בדיקת כמות מינימלית
+    const quantityValidation = validateQuantity();
+    if (!quantityValidation.valid) {
+      toast({
+        title: 'כמות לא תקינה',
+        description: quantityValidation.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (user?.role === 'client' && userClient && formData.client_id !== userClient.id) {
       toast({
         title: 'שגיאה',
@@ -241,6 +288,7 @@ const CreateOrder = () => {
   ];
 
   const isManager = user?.role === 'manager';
+  const quantityValidation = validateQuantity();
 
   if (loading) {
     return (
@@ -503,19 +551,43 @@ const CreateOrder = () => {
                   <SelectContent>
                     <SelectItem value="self">
                       <div className="flex items-center gap-2">
-                        <PackageCheck className="h-4 w-4 text-green-600" />
-                        <span>משלוח עצמי</span>
+                        <TruckIcon className="h-4 w-4 text-green-600" />
+                        <span>הובלה עצמית</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="external">
                       <div className="flex items-center gap-2">
-                        <TruckIcon className="h-4 w-4 text-blue-600" />
+                        <PackageCheck className="h-4 w-4 text-blue-600" />
                         <span>הובלה חיצונית</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.delivery_method === 'external' && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-right text-blue-900">
+                    <strong>הגבלות הובלה חיצונית:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>מינימום הזמנה: 20 טון</li>
+                      {getSelectedSite()?.region_type === 'outside_eilat' && (
+                        <li className="font-bold">מינימום הזמנה לאתר מחוץ לאילת: 40 טון</li>
+                      )}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!quantityValidation.valid && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-right">
+                    {quantityValidation.message}
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
 
@@ -531,30 +603,41 @@ const CreateOrder = () => {
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="הוסף הערות נוספות (אופציונלי)"
+                placeholder="הערות נוספות להזמנה (אופציונלי)"
                 className="text-right min-h-[100px]"
               />
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg">
-            <Button
-              type="submit"
-              disabled={submitting || !formData.client_id}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg"
-            >
-              {submitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                  <span>שולח...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Send className="h-5 w-5" />
-                  <span>שלח הזמנה</span>
-                </div>
-              )}
-            </Button>
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-10">
+            <div className="max-w-md mx-auto flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(-1)}
+                className="flex-1"
+                disabled={submitting}
+              >
+                ביטול
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 piter-yellow"
+                disabled={submitting || !quantityValidation.valid}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black ml-2"></div>
+                    שולח...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 ml-2" />
+                    שלח הזמנה
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
