@@ -331,306 +331,309 @@ const CreateOrder = () => {
 
   return (
     <Layout title="יצירת הזמנה">
-      <div className="p-4 space-y-6 pb-32">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
-          <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
-        </div>
+      <div className="min-h-screen pb-32">
+        <div className="p-4 space-y-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
+            <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-gray-500" />
-                {isManager ? 'לקוח ואתר' : 'אתר'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isManager && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-gray-500" />
+                  {isManager ? 'לקוח ואתר' : 'אתר'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isManager && (
+                  <div className="space-y-2">
+                    <Label htmlFor="client_id" className="text-right block">
+                      לקוח <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.client_id}
+                      onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                    >
+                      <SelectTrigger className="text-right">
+                        <SelectValue placeholder="בחר לקוח" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {!isManager && userClient && (
+                  <div className="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border-2 border-yellow-300 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-yellow-500 p-2 rounded-full">
+                        <Building2 className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-yellow-700 font-medium mb-1">לקוח</p>
+                        <p className="text-base text-gray-900 font-bold">{userClient.name}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!isManager && !userClient && (
+                  <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-red-600" />
+                      <p className="text-sm text-red-700">לא נמצא לקוח משויך. אנא פנה למנהל המערכת.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label htmlFor="client_id" className="text-right block">
-                    לקוח <span className="text-red-500">*</span>
+                  <Label htmlFor="site_id" className="text-right block">
+                    אתר <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={formData.client_id}
-                    onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                    value={formData.site_id}
+                    onValueChange={(value) => setFormData({ ...formData, site_id: value })}
+                    disabled={!formData.client_id}
                   >
                     <SelectTrigger className="text-right">
-                      <SelectValue placeholder="בחר לקוח" />
+                      <SelectValue placeholder={formData.client_id ? "בחר אתר" : "בחר לקוח תחילה"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
+                      {filteredSites.length > 0 ? (
+                        filteredSites.map((site) => (
+                          <SelectItem key={site.id} value={site.id}>
+                            {site.site_name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-sites" disabled>
+                          אין אתרים זמינים
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
 
-              {!isManager && userClient && (
-                <div className="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border-2 border-yellow-300 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-yellow-500 p-2 rounded-full">
-                      <Building2 className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-yellow-700 font-medium mb-1">לקוח</p>
-                      <p className="text-base text-gray-900 font-bold">{userClient.name}</p>
+                {formData.site_id && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <span className="text-sm text-blue-900 font-medium">אזור:</span>
+                      <span className="text-sm text-blue-700 font-bold">{getRegionName()}</span>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {!isManager && !userClient && (
-                <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-5 w-5 text-red-600" />
-                    <p className="text-sm text-red-700">לא נמצא לקוח משויך. אנא פנה למנהל המערכת.</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="site_id" className="text-right block">
-                  אתר <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.site_id}
-                  onValueChange={(value) => setFormData({ ...formData, site_id: value })}
-                  disabled={!formData.client_id}
-                >
-                  <SelectTrigger className="text-right">
-                    <SelectValue placeholder={formData.client_id ? "בחר אתר" : "בחר לקוח תחילה"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSites.length > 0 ? (
-                      filteredSites.map((site) => (
-                        <SelectItem key={site.id} value={site.id}>
-                          {site.site_name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-sites" disabled>
-                        אין אתרים זמינים
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.site_id && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm text-blue-900 font-medium">אזור:</span>
-                    <span className="text-sm text-blue-700 font-bold">{getRegionName()}</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-5 w-5 text-gray-500" />
-                מוצר וכמות
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="supplier" className="text-right block">
-                  ספק <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Factory className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
-                  <Select
-                    value={formData.supplier}
-                    onValueChange={(value) => setFormData({ ...formData, supplier: value })}
-                  >
-                    <SelectTrigger className="text-right pr-10">
-                      <SelectValue placeholder="בחר ספק" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name_he}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <ProductSelector
-                value={formData.product_id}
-                onChange={(value) => setFormData({ ...formData, product_id: value })}
-                supplier={formData.supplier}
-              />
-
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <ArrowRightLeft className="h-4 w-4 text-gray-500" />
-                  <Label htmlFor="unit-toggle" className="text-sm font-medium cursor-pointer">
-                    הצג בקוב (מ"ק)
-                  </Label>
-                </div>
-                <Switch
-                  id="unit-toggle"
-                  checked={useCubicMeters}
-                  onCheckedChange={setUseCubicMeters}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantity" className="text-right block">
-                  כמות ({useCubicMeters ? 'מ"ק' : 'טון'}) <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={getDisplayQuantity()}
-                    onChange={(e) => handleDisplayQuantityChange(e.target.value)}
-                    placeholder={useCubicMeters ? 'הזן כמות במ"ק' : 'הזן כמות בטון'}
-                    className="text-right pr-10"
-                  />
-                </div>
-                {useCubicMeters && formData.quantity_tons && (
-                  <p className="text-xs text-gray-500 text-right">
-                    = {Math.round(parseFloat(formData.quantity_tons))} טון
-                  </p>
                 )}
-                <p className="text-xs text-gray-400 text-right">
-                  יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-gray-500" />
-                פרטי משלוח
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="delivery_date" className="text-right block">
-                  תאריך משלוח <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="delivery_date"
-                    type="date"
-                    value={formData.delivery_date}
-                    onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                    className="text-right pr-10"
-                    min={new Date().toISOString().split('T')[0]}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="h-5 w-5 text-gray-500" />
+                  מוצר וכמות
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier" className="text-right block">
+                    ספק <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Factory className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
+                    <Select
+                      value={formData.supplier}
+                      onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                    >
+                      <SelectTrigger className="text-right pr-10">
+                        <SelectValue placeholder="בחר ספק" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.name_he}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <ProductSelector
+                  value={formData.product_id}
+                  onChange={(value) => setFormData({ ...formData, product_id: value })}
+                  supplier={formData.supplier}
+                />
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <ArrowRightLeft className="h-4 w-4 text-gray-500" />
+                    <Label htmlFor="unit-toggle" className="text-sm font-medium cursor-pointer">
+                      הצג בקוב (מ"ק)
+                    </Label>
+                  </div>
+                  <Switch
+                    id="unit-toggle"
+                    checked={useCubicMeters}
+                    onCheckedChange={setUseCubicMeters}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="delivery_window" className="text-right block">
-                  חלון זמן <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.delivery_window}
-                  onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
-                >
-                  <SelectTrigger className="text-right">
-                    <SelectValue placeholder="בחר חלון זמן" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="morning">
-                      <div className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" />
-                        <span>בוקר (08:00-12:00)</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="afternoon">
-                      <div className="flex items-center gap-2">
-                        <Sunset className="h-4 w-4" />
-                        <span>אחר הצהריים (12:00-16:00)</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity" className="text-right block">
+                    כמות ({useCubicMeters ? 'מ"ק' : 'טון'}) <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={getDisplayQuantity()}
+                      onChange={(e) => handleDisplayQuantityChange(e.target.value)}
+                      placeholder={useCubicMeters ? 'הזן כמות במ"ק' : 'הזן כמות בטון'}
+                      className="text-right pr-10"
+                    />
+                  </div>
+                  {useCubicMeters && formData.quantity_tons && (
+                    <p className="text-xs text-gray-500 text-right">
+                      = {Math.round(parseFloat(formData.quantity_tons))} טון
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 text-right">
+                    יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="delivery_method" className="text-right block">
-                  שיטת משלוח <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.delivery_method}
-                  onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
-                >
-                  <SelectTrigger className="text-right">
-                    <SelectValue placeholder="בחר שיטת משלוח" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="self">
-                      <div className="flex items-center gap-2">
-                        <TruckIcon className="h-4 w-4" />
-                        <span>איסוף עצמי</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="external">
-                      <div className="flex items-center gap-2">
-                        <PackageCheck className="h-4 w-4" />
-                        <span>הובלה חיצונית</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-gray-500" />
+                  פרטי משלוח
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="delivery_date" className="text-right block">
+                    תאריך משלוח <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="delivery_date"
+                      type="date"
+                      value={formData.delivery_date}
+                      onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                      className="text-right pr-10"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
 
-              {!quantityValidation.valid && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {quantityValidation.message}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="delivery_window" className="text-right block">
+                    חלון זמן <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.delivery_window}
+                    onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
+                  >
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="בחר חלון זמן" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="morning">
+                        <div className="flex items-center gap-2">
+                          <Sun className="h-4 w-4" />
+                          <span>בוקר (07:00-12:00)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="afternoon">
+                        <div className="flex items-center gap-2">
+                          <Sunset className="h-4 w-4" />
+                          <span>צהריים (12:00-17:00)</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-5 w-5 text-gray-500" />
-                הערות
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="הערות נוספות להזמנה (אופציונלי)"
-                className="text-right min-h-[100px]"
-              />
-            </CardContent>
-          </Card>
-        </form>
+                <div className="space-y-2">
+                  <Label htmlFor="delivery_method" className="text-right block">
+                    שיטת משלוח <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.delivery_method}
+                    onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                  >
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="בחר שיטת משלוח" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">
+                        <div className="flex items-center gap-2">
+                          <TruckIcon className="h-4 w-4" />
+                          <span>איסוף עצמי</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="external">
+                        <div className="flex items-center gap-2">
+                          <PackageCheck className="h-4 w-4" />
+                          <span>הובלה חיצונית</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
+                {!quantityValidation.valid && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {quantityValidation.message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-gray-500" />
+                  הערות
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="הערות נוספות להזמנה (אופציונלי)"
+                  className="text-right min-h-[100px]"
+                />
+              </CardContent>
+            </Card>
+          </form>
+        </div>
+
+        {/* כפתור קבוע בתחתית */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 shadow-2xl z-50">
           <div className="max-w-md mx-auto">
             <Button
-              type="submit"
+              type="button"
               onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg"
+              disabled={submitting || !quantityValidation.valid}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg shadow-lg"
             >
               {submitting ? (
                 <div className="flex items-center justify-center gap-2">

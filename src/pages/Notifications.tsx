@@ -1,42 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { Notification } from '@/entities';
+import Layout from '@/components/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Notification, User } from '@/entities';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import NotificationItem from '@/components/notifications/NotificationItem';
 import { toast } from '@/hooks/use-toast';
-import { Bell, X, CheckCheck, Trash2, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { he, enUS } from 'date-fns/locale';
 
 const Notifications: React.FC = () => {
-  const { t, language } = useLanguage();
-  const { user } = useAuth();
+  const { language } = useLanguage();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  const translations = {
+    he: {
+      title: 'התראות',
+      markAllRead: 'סמן הכל כנקרא',
+      noNotifications: 'אין התראות',
+      noNotificationsDesc: 'כל ההתראות שלך יופיעו כאן'
+    },
+    en: {
+      title: 'Notifications',
+      markAllRead: 'Mark All as Read',
+      noNotifications: 'No Notifications',
+      noNotificationsDesc: 'All your notifications will appear here'
+    }
+  };
+
+  const t = translations[language];
+  const isRTL = language === 'he';
 
   useEffect(() => {
     loadNotifications();
-  }, [user]);
+  }, []);
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      if (user?.email) {
-        console.log('Loading notifications for user:', user.email);
-        const userNotifications = await Notification.filter(
-          { recipient_email: user.email }, 
-          '-created_at'
-        );
-        console.log('Loaded notifications:', userNotifications.length);
-        console.log('Notifications data:', userNotifications);
-        setNotifications(userNotifications);
-      }
+      const currentUser = await User.me();
+      setUser(currentUser);
+
+      const userNotifications = await Notification.filter(
+        { recipient_email: currentUser.email },
+        '-created_at',
+        100
+      );
+
+      console.log('Loaded notifications:', userNotifications);
+      setNotifications(userNotifications);
     } catch (error) {
       console.error('Error loading notifications:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'נכשל בטעינת ההתראות',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -44,12 +64,10 @@ const Notifications: React.FC = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      console.log('Marking notification as read:', notificationId);
       await Notification.update(notificationId, { is_read: true });
-      await loadNotifications();
-      // Trigger a custom event to notify Layout component
-      window.dispatchEvent(new CustomEvent('notificationRead'));
-      console.log('Notification marked as read and event dispatched');
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -58,245 +76,87 @@ const Notifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.is_read);
-      console.log('Marking all notifications as read:', unreadNotifications.length);
-      for (const notification of unreadNotifications) {
-        await Notification.update(notification.id, { is_read: true });
-      }
-      await loadNotifications();
-      // Trigger a custom event to notify Layout component
-      window.dispatchEvent(new CustomEvent('notificationRead'));
+      
+      await Promise.all(
+        unreadNotifications.map(n => Notification.update(n.id, { is_read: true }))
+      );
+
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      
       toast({
-        title: t('mark_all_read'),
-        description: t('notification_sent')
+        title: 'הצלחה',
+        description: 'כל ההתראות סומנו כנקראו',
       });
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      await Notification.delete(notificationId);
-      await loadNotifications();
-      // Trigger a custom event to notify Layout component
-      window.dispatchEvent(new CustomEvent('notificationRead'));
+      console.error('Error marking all as read:', error);
       toast({
-        title: t('notification_deleted'),
-        description: t('notification_deleted_successfully')
-      });
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      toast({
-        title: t('error'),
-        description: t('delete_failed'),
-        variant: 'destructive'
+        title: 'שגיאה',
+        description: 'נכשל בסימון ההתראות',
+        variant: 'destructive',
       });
     }
   };
-
-  // Debug function to create a test notification
-  const createTestNotification = async () => {
-    try {
-      await Notification.create({
-        recipient_email: user?.email,
-        type: 'order_approved',
-        message: 'הזמנה מספר 2001 אושרה בהצלחה',
-        is_read: false,
-        order_id: 'test-order-id'
-      });
-      await loadNotifications();
-      toast({
-        title: 'Test notification created',
-        description: 'A test notification has been created'
-      });
-    } catch (error) {
-      console.error('Error creating test notification:', error);
-    }
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-      return t('just_now');
-    } else if (diffInHours < 24) {
-      return `${diffInHours}${t('hours_ago')}`;
-    } else {
-      return format(date, 'MMM d', { locale: language === 'he' ? he : enUS });
-    }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'order_approved':
-      case 'order_rejected':
-      case 'order_completed':
-        return <Bell className="w-5 h-5 text-blue-600" />;
-      default:
-        return <Bell className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  if (loading) {
-    return (
-      <Layout title={t('notifications')}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('loading')}</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <Layout title={t('notifications')}>
-      <div className="p-4 space-y-4">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('notifications')}</h1>
-            <p className="text-gray-600">
-              {unreadCount} {t('new')} • {notifications.length} {t('total')}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {/* Debug button - remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={createTestNotification}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Test
-              </Button>
+    <Layout title={t.title}>
+      <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+        <Card className="industrial-card">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell className="h-6 w-6 text-gray-700" />
+                <div>
+                  <CardTitle className="text-lg sm:text-xl">{t.title}</CardTitle>
+                  {unreadCount > 0 && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {unreadCount} התראות חדשות
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {unreadCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs sm:text-sm"
+                >
+                  <CheckCheck className="h-4 w-4 ml-2" />
+                  {t.markAllRead}
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-3 sm:p-6 pt-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-12">
+                <Bell className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {t.noNotifications}
+                </h3>
+                <p className="text-gray-600">{t.noNotificationsDesc}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onClick={() => !notification.is_read && markAsRead(notification.id)}
+                  />
+                ))}
+              </div>
             )}
-            {notifications.some(n => !n.is_read) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={markAllAsRead}
-                className="flex items-center gap-2"
-              >
-                <CheckCheck className="w-4 h-4" />
-                {t('mark_all_read')}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Notifications List */}
-        {notifications.length === 0 ? (
-          <div className="text-center py-12">
-            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('no_notifications')}
-            </h3>
-            <p className="text-gray-600 mb-4">{t('all_caught_up')}</p>
-            {/* Debug button for empty state */}
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                onClick={createTestNotification}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Test Notification
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {notifications.map((notification) => (
-              <Card 
-                key={notification.id} 
-                className={`transition-all hover:shadow-md ${
-                  !notification.is_read ? 'bg-blue-50 border-blue-200' : ''
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      {/* Icon */}
-                      <div className="mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-900">
-                            {t(notification.type)}
-                          </h3>
-                          {!notification.is_read && (
-                            <Badge variant="secondary" className="text-xs">
-                              {t('new')}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-gray-700 text-sm leading-relaxed">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {getTimeAgo(notification.created_at)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1">
-                      {!notification.is_read && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => markAsRead(notification.id)}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <CheckCheck className="w-4 h-4" />
-                        </Button>
-                      )}
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t('confirm_delete')}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {t('confirm_delete_notification')}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteNotification(notification.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              {t('delete')}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
