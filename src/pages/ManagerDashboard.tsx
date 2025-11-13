@@ -7,6 +7,7 @@ import { Order } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
+import NotificationsCard from '@/components/NotificationsCard';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -52,12 +53,17 @@ const ManagerDashboard: React.FC = () => {
         {/* Quick Action */}
         <div className="mb-6">
           <Button 
-            className="piter-yellow w-full sm:w-auto"
+            className="bg-yellow-500 hover:bg-yellow-600 text-black w-full sm:w-auto"
             onClick={() => navigate('/create-order')}
           >
             <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t.createOrder}
           </Button>
+        </div>
+
+        {/* Notifications Card */}
+        <div className="mb-6">
+          <NotificationsCard />
         </div>
 
         {/* Recent Orders */}

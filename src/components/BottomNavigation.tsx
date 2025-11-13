@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Package, Settings, Mail, User } from 'lucide-react';
+import { Home, Package, Settings, Mail, User as UserIcon } from 'lucide-react';
+import { User } from '@/entities';
 
 export const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
+  const [userRole, setUserRole] = useState<string>('');
 
   const translations = {
     he: {
@@ -27,21 +29,41 @@ export const BottomNavigation: React.FC = () => {
 
   const t = translations[language];
 
+  useEffect(() => {
+    loadUserRole();
+  }, []);
+
+  const loadUserRole = async () => {
+    try {
+      const currentUser = await User.me();
+      setUserRole(currentUser.role || '');
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
+
   const navItems = [
-    { path: '/manager-dashboard', icon: Home, label: t.home },
-    { path: '/create-order', icon: Package, label: t.orders },
-    { path: '/inbox', icon: Mail, label: t.inbox },
-    { path: '/admin', icon: Settings, label: t.admin },
-    { path: '/profile', icon: User, label: t.profile }
+    { path: '/manager-dashboard', icon: Home, label: t.home, showForAll: true },
+    { path: '/create-order', icon: Package, label: t.orders, showForAll: true },
+    { path: '/inbox', icon: Mail, label: t.inbox, showForAll: true },
+    { path: '/admin', icon: Settings, label: t.admin, showForAll: false },
+    { path: '/profile', icon: UserIcon, label: t.profile, showForAll: true }
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Filter navigation items based on user role
+  const visibleNavItems = navItems.filter(item => {
+    if (item.showForAll) return true;
+    // Show admin only for managers and administrators
+    return userRole === 'manager' || userRole === 'administrator';
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
       <div className="max-w-7xl mx-auto px-2">
         <div className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             
