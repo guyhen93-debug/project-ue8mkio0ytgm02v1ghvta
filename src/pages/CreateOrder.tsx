@@ -332,7 +332,7 @@ const CreateOrder = () => {
   return (
     <Layout title="יצירת הזמנה">
       <div className="relative min-h-screen">
-        <div className="p-4 space-y-6 pb-40">
+        <div className="p-4 space-y-6 pb-48">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
             <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
@@ -626,9 +626,9 @@ const CreateOrder = () => {
           </form>
         </div>
 
-        {/* כפתור קבוע בתחתית - מעל הניווט */}
+        {/* כפתור קבוע בתחתית - מעל הניווט עם מרווח נוסף */}
         <div 
-          className="fixed bottom-16 left-0 right-0 bg-white border-t-2 border-gray-300 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
+          className="fixed bottom-20 left-0 right-0 bg-white border-t-2 border-gray-300 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
           style={{ zIndex: 100 }}
         >
           <div className="max-w-md mx-auto">
