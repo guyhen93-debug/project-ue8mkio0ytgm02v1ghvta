@@ -8,7 +8,8 @@ export const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
-  const [userRole, setUserRole] = useState<string>('');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const translations = {
     he: {
@@ -36,13 +37,19 @@ export const BottomNavigation: React.FC = () => {
   const loadUserRole = async () => {
     try {
       const currentUser = await User.me();
-      setUserRole(currentUser.role || '');
+      setUserRole(currentUser.role || 'client');
     } catch (error) {
       console.error('Error loading user role:', error);
+      setUserRole('client');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const navItems = [
+  const isActive = (path: string) => location.pathname === path;
+
+  // Define all navigation items
+  const allNavItems = [
     { path: '/manager-dashboard', icon: Home, label: t.home, showForAll: true },
     { path: '/create-order', icon: Package, label: t.orders, showForAll: true },
     { path: '/inbox', icon: Mail, label: t.inbox, showForAll: true },
@@ -50,14 +57,37 @@ export const BottomNavigation: React.FC = () => {
     { path: '/profile', icon: UserIcon, label: t.profile, showForAll: true }
   ];
 
-  const isActive = (path: string) => location.pathname === path;
-
   // Filter navigation items based on user role
-  const visibleNavItems = navItems.filter(item => {
+  const visibleNavItems = allNavItems.filter(item => {
     if (item.showForAll) return true;
     // Show admin only for managers and administrators
     return userRole === 'manager' || userRole === 'administrator';
   });
+
+  // Don't render until we know the user role to prevent flickering
+  if (isLoading) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
+        <div className="max-w-7xl mx-auto px-2">
+          <div className="flex justify-around items-center h-16">
+            {/* Show skeleton while loading */}
+            {allNavItems.filter(item => item.showForAll).map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.path}
+                  className="flex flex-col items-center justify-center flex-1 h-full text-gray-400"
+                >
+                  <Icon className="h-6 w-6 mb-1 opacity-50" />
+                  <span className="text-xs font-medium opacity-50">{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
