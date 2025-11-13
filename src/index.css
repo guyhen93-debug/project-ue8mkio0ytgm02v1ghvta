@@ -115,6 +115,20 @@
     @apply px-4 py-6;
   }
 
+  /* Page Transitions */
+  .page-transition {
+    animation: pageEnter 0.2s ease-out;
+  }
+
+  @keyframes pageEnter {
+    from {
+      opacity: 0.95;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   /* Animations */
   .fade-in {
     animation: fadeIn 0.3s ease-out;
@@ -174,4 +188,9 @@
   .hover\:bg-yellow-600:hover {
     background-color: rgb(202 138 4);
   }
+}
+
+/* Smooth transitions for navigation icons */
+svg {
+  transition: opacity 0.15s ease-in-out;
 }

@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
-import Index from './pages/Index';
-import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -106,8 +104,6 @@ const AuthWrapper = ({ children }) => {
 
 const App = () => {
   console.log('App rendering, React available:', !!React);
-  console.log('React type:', typeof React);
-  console.log('React keys:', React ? Object.keys(React) : 'React is null');
   
   return (
     <ErrorBoundary>
@@ -115,81 +111,75 @@ const App = () => {
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
             <Router>
-              <Routes>
-                <Route 
-                  path="/login" 
-                  element={
-                    <AuthWrapper>
-                      <Login />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/" 
-                  element={
-                    <AuthWrapper>
-                      <Index />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/manager-dashboard" 
-                  element={
-                    <AuthWrapper>
-                      <ManagerDashboard />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/client-dashboard" 
-                  element={
-                    <AuthWrapper>
-                      <ClientDashboard />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <AuthWrapper>
-                      <AdminPanel />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/create-order" 
-                  element={
-                    <AuthWrapper>
-                      <CreateOrder />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/inbox" 
-                  element={
-                    <AuthWrapper>
-                      <Inbox />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/notifications" 
-                  element={
-                    <AuthWrapper>
-                      <Notifications />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <AuthWrapper>
-                      <Profile />
-                    </AuthWrapper>
-                  } 
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <div className="page-transition">
+                <Routes>
+                  <Route 
+                    path="/" 
+                    element={
+                      <AuthWrapper>
+                        <ManagerDashboard />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/manager-dashboard" 
+                    element={
+                      <AuthWrapper>
+                        <ManagerDashboard />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/client-dashboard" 
+                    element={
+                      <AuthWrapper>
+                        <ClientDashboard />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <AuthWrapper>
+                        <AdminPanel />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/create-order" 
+                    element={
+                      <AuthWrapper>
+                        <CreateOrder />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/inbox" 
+                    element={
+                      <AuthWrapper>
+                        <Inbox />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/notifications" 
+                    element={
+                      <AuthWrapper>
+                        <Notifications />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <AuthWrapper>
+                        <Profile />
+                      </AuthWrapper>
+                    } 
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </div>
             </Router>
           </QueryClientProvider>
         </AuthProvider>
