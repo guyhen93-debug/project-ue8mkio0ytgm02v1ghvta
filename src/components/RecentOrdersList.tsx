@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Client, Site } from '@/entities';
-import { Package, Calendar, MapPin, Loader2 } from 'lucide-react';
+import { Package, Calendar, MapPin, Loader2, Factory } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
@@ -13,14 +15,21 @@ interface RecentOrdersListProps {
 
 const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId }) => {
   const [orders, setOrders] = useState<any[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<Record<string, any>>({});
   const [clients, setClients] = useState<Record<string, any>>({});
   const [sites, setSites] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [supplierFilter, setSupplierFilter] = useState<string>('all');
 
   useEffect(() => {
     loadOrders();
   }, [clientId, limit]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [orders, statusFilter, supplierFilter]);
 
   const loadOrders = async () => {
     try {
@@ -33,14 +42,12 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
         ordersList = await Order.list('-created_at', limit);
       }
 
-      // טעינת כל המוצרים, לקוחות ואתרים
       const [allProducts, allClients, allSites] = await Promise.all([
         Product.list('-created_at', 1000),
         Client.list('-created_at', 1000),
         Site.list('-created_at', 1000)
       ]);
 
-      // יצירת מפות לגישה מהירה
       const productsMap: Record<string, any> = {};
       allProducts.forEach(product => {
         productsMap[product.id] = product;
@@ -65,6 +72,20 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...orders];
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    if (supplierFilter !== 'all') {
+      filtered = filtered.filter(order => order.supplier === supplierFilter);
+    }
+
+    setFilteredOrders(filtered);
   };
 
   const getStatusBadge = (status: string) => {
@@ -99,6 +120,10 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     return method === 'self' ? 'הובלה עצמית' : 'הובלה חיצונית';
   };
 
+  const getSupplierName = (supplier: string) => {
+    return supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -107,63 +132,131 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     );
   }
 
-  if (orders.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-        <p>אין הזמנות להצגה</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {orders.map((order) => (
-        <Card key={order.id} className="industrial-card hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-gray-900">#{order.order_number}</span>
-                  {getStatusBadge(order.status)}
+    <div className="space-y-4">
+      {/* Filters Section */}
+      <div className="space-y-3">
+        {/* Status Filter Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('all')}
+            className={statusFilter === 'all' ? 'piter-yellow' : ''}
+          >
+            הכל
+          </Button>
+          <Button
+            variant={statusFilter === 'pending' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('pending')}
+            className={statusFilter === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+          >
+            ממתין
+          </Button>
+          <Button
+            variant={statusFilter === 'approved' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('approved')}
+            className={statusFilter === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+          >
+            אושר
+          </Button>
+          <Button
+            variant={statusFilter === 'rejected' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('rejected')}
+            className={statusFilter === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-200' : ''}
+          >
+            נדחה
+          </Button>
+          <Button
+            variant={statusFilter === 'completed' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('completed')}
+            className={statusFilter === 'completed' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
+          >
+            הושלם
+          </Button>
+        </div>
+
+        {/* Supplier Filter */}
+        <div className="flex items-center gap-2">
+          <Factory className="h-4 w-4 text-gray-500" />
+          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="בחר ספק" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">כל הספקים</SelectItem>
+              <SelectItem value="shifuli_har">שיפולי הר</SelectItem>
+              <SelectItem value="maavar_rabin">מעבר רבין</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Orders List */}
+      {filteredOrders.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <p>אין הזמנות להצגה</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredOrders.map((order) => (
+            <Card key={order.id} className="industrial-card hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-gray-900">#{order.order_number}</span>
+                      {getStatusBadge(order.status)}
+                    </div>
+                    <p className="text-sm text-gray-600">{getClientName(order.client_id)}</p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600">{getClientName(order.client_id)}</p>
-              </div>
-            </div>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-700">
-                <Package className="h-4 w-4 text-gray-400" />
-                <span className="font-medium">{getProductName(order.product_id)}</span>
-                <span className="text-gray-500">•</span>
-                <span className="font-bold">{order.quantity_tons} טון</span>
-              </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Package className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">{getProductName(order.product_id)}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="font-bold">{order.quantity_tons} טון</span>
+                  </div>
 
-              <div className="flex items-center gap-2 text-gray-700">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span>{getSiteName(order.site_id)}</span>
-              </div>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Factory className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium text-blue-700">{getSupplierName(order.supplier)}</span>
+                  </div>
 
-              <div className="flex items-center gap-2 text-gray-700">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span>
-                  {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
-                </span>
-                <span className="text-gray-500">•</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                  {order.delivery_window === 'morning' ? 'בוקר' : 'צהריים'}
-                </span>
-              </div>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span>{getSiteName(order.site_id)}</span>
+                  </div>
 
-              <div className="flex items-center gap-2 text-gray-700">
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                  {getDeliveryMethodLabel(order.delivery_method)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>
+                      {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
+                    </span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {order.delivery_window === 'morning' ? 'בוקר' : 'צהריים'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {getDeliveryMethodLabel(order.delivery_method)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
