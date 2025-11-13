@@ -114,14 +114,6 @@ const App = () => {
               <div className="page-transition">
                 <Routes>
                   <Route 
-                    path="/" 
-                    element={
-                      <AuthWrapper>
-                        <ManagerDashboard />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
                     path="/manager-dashboard" 
                     element={
                       <AuthWrapper>
@@ -177,7 +169,8 @@ const App = () => {
                       </AuthWrapper>
                     } 
                   />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="/" element={<Navigate to="/manager-dashboard" replace />} />
+                  <Route path="*" element={<Navigate to="/manager-dashboard" replace />} />
                 </Routes>
               </div>
             </Router>
