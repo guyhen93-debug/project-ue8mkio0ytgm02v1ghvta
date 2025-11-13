@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockDataService } from '@/services/mockDataService';
+import { Notification, User } from '@/entities';
 
 interface NotificationBadgeProps {
   children: React.ReactNode;
@@ -9,7 +9,16 @@ interface NotificationBadgeProps {
 
 export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children, className = '' }) => {
   const [unreadCount, setUnreadCount] = useState(0);
-  const { user } = useAuth();
+  
+  // Safe auth access - won't crash if AuthProvider is not available
+  let user = null;
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+  } catch (error) {
+    // AuthProvider not available yet, that's okay
+    console.log('AuthProvider not ready yet');
+  }
 
   useEffect(() => {
     if (user) {
@@ -21,13 +30,17 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children, 
   }, [user]);
 
   const loadUnreadCount = async () => {
-    if (user) {
-      try {
-        const count = await mockDataService.getUnreadNotificationCount(user.id);
-        setUnreadCount(count);
-      } catch (error) {
-        console.error('Error loading unread count:', error);
-      }
+    if (!user) return;
+    
+    try {
+      const notifications = await Notification.filter(
+        { recipient_email: user.email, is_read: false },
+        '-created_at',
+        100
+      );
+      setUnreadCount(notifications?.length || 0);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
     }
   };
 
