@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import BottomNavigation from './BottomNavigation';
+import { BottomNavigation } from './BottomNavigation';
 import LanguageToggle from './LanguageToggle';
 import NotificationBadge from './NotificationBadge';
 
