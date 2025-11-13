@@ -140,7 +140,7 @@ const ManagerDashboard: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
               </div>
             ) : (
-              <RecentOrdersList limit={5} />
+              <RecentOrdersList limit={100} />
             )}
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Order, Site, Product, User } from '@/entities';
+import { Order, Site, Product, User, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ClipboardList, CheckCircle, Clock, Plus } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
@@ -17,6 +17,7 @@ const ClientDashboard: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userClient, setUserClient] = useState<any>(null);
 
   const translations = {
     he: {
@@ -56,13 +57,29 @@ const ClientDashboard: React.FC = () => {
       const currentUser = await User.me();
       setUser(currentUser);
 
-      const [ordersData, sitesData, productsData] = await Promise.all([
-        Order.filter({ created_by: currentUser.email }, '-created_at', 1000),
+      const [allClients, sitesData, productsData] = await Promise.all([
+        Client.list('-created_at', 1000),
         Site.list('-created_at', 1000),
         Product.list('-created_at', 1000)
       ]);
+
+      // Find user's client
+      let matchingClient = allClients.find(c => 
+        c.created_by === currentUser.email || 
+        (currentUser.company && c.name === currentUser.company)
+      );
+
+      if (!matchingClient && currentUser.email) {
+        matchingClient = allClients.find(c => 
+          currentUser.email.toLowerCase().includes(c.name.toLowerCase()) ||
+          c.name.toLowerCase().includes(currentUser.email.split('@')[0].toLowerCase())
+        );
+      }
+
+      if (matchingClient) {
+        setUserClient(matchingClient);
+      }
       
-      setOrders(ordersData);
       setSites(sitesData);
       setProducts(productsData);
     } catch (error) {
@@ -71,14 +88,6 @@ const ClientDashboard: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    approved: orders.filter(o => o.status === 'approved').length
-  };
-
-  const recentOrders = orders.slice(0, 5);
 
   return (
     <Layout title={t.title}>
@@ -94,40 +103,22 @@ const ClientDashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-          <StatCard
-            title={t.totalOrders}
-            value={stats.total}
-            icon={ClipboardList}
-            color="blue"
-          />
-          <StatCard
-            title={t.pendingOrders}
-            value={stats.pending}
-            icon={Clock}
-            color="yellow"
-          />
-          <StatCard
-            title={t.approvedOrders}
-            value={stats.approved}
-            icon={CheckCircle}
-            color="green"
-          />
-        </div>
-
         {/* Recent Orders */}
         <Card className="industrial-card">
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">{t.recentOrders}</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">{t.myOrders}</CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
               </div>
+            ) : userClient ? (
+              <RecentOrdersList limit={100} clientId={userClient.id} />
             ) : (
-              <RecentOrdersList limit={5} />
+              <div className="text-center py-12 text-gray-500">
+                {t.noOrders}
+              </div>
             )}
           </CardContent>
         </Card>
