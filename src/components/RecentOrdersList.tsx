@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Client, Site } from '@/entities';
-import { Package, Calendar, MapPin, Loader2, Factory } from 'lucide-react';
+import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
@@ -20,12 +20,14 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
   const [clients, setClients] = useState<Record<string, any>>({});
   const [sites, setSites] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
 
   useEffect(() => {
     loadOrders();
-  }, [clientId, limit]);
+  }, [clientId, limit, retryCount]);
 
   useEffect(() => {
     applyFilters();
@@ -34,19 +36,38 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
   const loadOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      let ordersList;
-      if (clientId) {
-        ordersList = await Order.filter({ client_id: clientId }, '-created_at', limit);
-      } else {
-        ordersList = await Order.list('-created_at', limit);
+      // Add a small delay to ensure the system is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let ordersList = [];
+      let allProducts = [];
+      let allClients = [];
+      let allSites = [];
+
+      try {
+        if (clientId) {
+          ordersList = await Order.filter({ client_id: clientId }, '-created_at', limit);
+        } else {
+          ordersList = await Order.list('-created_at', limit);
+        }
+      } catch (orderError) {
+        console.error('Error fetching orders:', orderError);
+        // If orders fail, continue with empty array
+        ordersList = [];
       }
 
-      const [allProducts, allClients, allSites] = await Promise.all([
-        Product.list('-created_at', 1000),
-        Client.list('-created_at', 1000),
-        Site.list('-created_at', 1000)
-      ]);
+      try {
+        [allProducts, allClients, allSites] = await Promise.all([
+          Product.list('-created_at', 1000).catch(() => []),
+          Client.list('-created_at', 1000).catch(() => []),
+          Site.list('-created_at', 1000).catch(() => [])
+        ]);
+      } catch (dataError) {
+        console.error('Error fetching related data:', dataError);
+        // Continue with empty arrays
+      }
 
       const productsMap: Record<string, any> = {};
       allProducts.forEach(product => {
@@ -67,11 +88,23 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
       setClients(clientsMap);
       setSites(sitesMap);
       setOrders(ordersList);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading orders:', error);
-    } finally {
+      setError('שגיאה בטעינת ההזמנות. אנא נסה שוב.');
       setLoading(false);
+      
+      // Auto-retry once after 2 seconds if this is the first error
+      if (retryCount === 0) {
+        setTimeout(() => {
+          setRetryCount(1);
+        }, 2000);
+      }
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
   };
 
   const applyFilters = () => {
@@ -128,6 +161,19 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-yellow-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-400" />
+        <p className="text-red-600 mb-4">{error}</p>
+        <Button onClick={handleRetry} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          נסה שוב
+        </Button>
       </div>
     );
   }
