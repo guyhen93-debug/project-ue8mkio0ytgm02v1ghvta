@@ -78,16 +78,16 @@ const Profile = () => {
     try {
       console.log('Logging out...');
       await superdevClient.auth.logout();
-      console.log('Logout successful, redirecting to login...');
+      console.log('Logout successful');
       
       toast({
         title: 'התנתקת בהצלחה',
         description: 'להתראות!',
       });
       
-      // Redirect to login page
+      // Reload the page to trigger login
       setTimeout(() => {
-        navigate('/login');
+        window.location.reload();
       }, 500);
     } catch (error) {
       console.error('Error logging out:', error);
@@ -124,7 +124,7 @@ const Profile = () => {
 
   return (
     <Layout title="פרופיל">
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-24">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">הפרופיל שלי</h1>
@@ -229,7 +229,7 @@ const Profile = () => {
               <Label className="text-right block">תפקיד</Label>
               <div className="px-3 py-2 bg-gray-50 rounded-md text-right">
                 <span className="text-gray-700">
-                  {user.role === 'manager' ? 'מנהל' : 'לקוח'}
+                  {user.role === 'manager' ? 'מנהל' : user.role === 'administrator' ? 'מנהל מערכת' : 'לקוח'}
                 </span>
               </div>
             </div>
