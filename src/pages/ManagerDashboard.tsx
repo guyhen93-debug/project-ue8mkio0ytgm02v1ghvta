@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import NotificationsCard from '@/components/NotificationsCard';
+import QuickManagementCard from '@/components/QuickManagementCard';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +60,11 @@ const ManagerDashboard: React.FC = () => {
             <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t.createOrder}
           </Button>
+        </div>
+
+        {/* Quick Management Tools */}
+        <div className="mb-6">
+          <QuickManagementCard />
         </div>
 
         {/* Notifications Card */}
