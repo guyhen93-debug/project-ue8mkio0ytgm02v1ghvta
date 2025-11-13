@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client, User } from '@/entities';
+import { Order, Site, Client, User, Notification } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
 import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -170,15 +170,13 @@ const CreateOrder = () => {
 
     const site = getSelectedSite();
     if (!site) {
-      return 20; // ברירת מחדל להובלה חיצונית
+      return 20;
     }
 
-    // אם האתר מחוץ לאילת והובלה חיצונית - מינימום 40 טון
     if (site.region_type === 'outside_eilat') {
       return 40;
     }
 
-    // אחרת, מינימום 20 טון להובלה חיצונית
     return 20;
   };
 
@@ -202,6 +200,30 @@ const CreateOrder = () => {
     return { valid: true, message: '' };
   };
 
+  const createNotificationsForManagers = async (orderNumber: string, clientName: string) => {
+    try {
+      const allUsers = await User.list('-created_at', 1000);
+      const managers = allUsers.filter(u => u.role === 'manager');
+      
+      console.log('Creating notifications for managers:', managers);
+
+      const notificationPromises = managers.map(manager => 
+        Notification.create({
+          recipient_email: manager.email,
+          type: 'new_order',
+          message: `הזמנה חדשה #${orderNumber} מלקוח ${clientName}`,
+          is_read: false,
+          order_id: orderNumber
+        })
+      );
+
+      await Promise.all(notificationPromises);
+      console.log('Notifications created successfully');
+    } catch (error) {
+      console.error('Error creating notifications:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -216,7 +238,6 @@ const CreateOrder = () => {
       return;
     }
 
-    // בדיקת כמות מינימלית
     const quantityValidation = validateQuantity();
     if (!quantityValidation.valid) {
       toast({
@@ -264,6 +285,11 @@ const CreateOrder = () => {
 
       await Order.create(orderData);
 
+      const selectedClient = clients.find(c => c.id === formData.client_id);
+      const clientName = selectedClient?.name || 'לקוח';
+
+      await createNotificationsForManagers(nextOrderNumber, clientName);
+
       toast({
         title: 'הצלחה!',
         description: `הזמנה #${nextOrderNumber} נוצרה בהצלחה`,
@@ -305,7 +331,7 @@ const CreateOrder = () => {
 
   return (
     <Layout title="יצירת הזמנה">
-      <div className="p-4 space-y-6 pb-24">
+      <div className="p-4 space-y-6 pb-32">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
           <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
@@ -499,19 +525,22 @@ const CreateOrder = () => {
                 <Label htmlFor="delivery_date" className="text-right block">
                   תאריך משלוח <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="delivery_date"
-                  type="date"
-                  value={formData.delivery_date}
-                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  className="text-right"
-                />
+                <div className="relative">
+                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="delivery_date"
+                    type="date"
+                    value={formData.delivery_date}
+                    onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                    className="text-right pr-10"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="delivery_window" className="text-right block">
-                  חלון אספקה <span className="text-red-500">*</span>
+                  חלון זמן <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.delivery_window}
@@ -523,14 +552,14 @@ const CreateOrder = () => {
                   <SelectContent>
                     <SelectItem value="morning">
                       <div className="flex items-center gap-2">
-                        <Sun className="h-4 w-4 text-yellow-500" />
-                        <span>בוקר (07:00-12:00)</span>
+                        <Sun className="h-4 w-4" />
+                        <span>בוקר (08:00-12:00)</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="afternoon">
                       <div className="flex items-center gap-2">
-                        <Sunset className="h-4 w-4 text-orange-500" />
-                        <span>צהריים (12:00-17:00)</span>
+                        <Sunset className="h-4 w-4" />
+                        <span>אחר הצהריים (12:00-16:00)</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -539,25 +568,25 @@ const CreateOrder = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="delivery_method" className="text-right block">
-                  שיטת אספקה <span className="text-red-500">*</span>
+                  שיטת משלוח <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.delivery_method}
                   onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
                 >
                   <SelectTrigger className="text-right">
-                    <SelectValue placeholder="בחר שיטת אספקה" />
+                    <SelectValue placeholder="בחר שיטת משלוח" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="self">
                       <div className="flex items-center gap-2">
-                        <TruckIcon className="h-4 w-4 text-green-600" />
-                        <span>הובלה עצמית</span>
+                        <TruckIcon className="h-4 w-4" />
+                        <span>איסוף עצמי</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="external">
                       <div className="flex items-center gap-2">
-                        <PackageCheck className="h-4 w-4 text-blue-600" />
+                        <PackageCheck className="h-4 w-4" />
                         <span>הובלה חיצונית</span>
                       </div>
                     </SelectItem>
@@ -565,25 +594,10 @@ const CreateOrder = () => {
                 </Select>
               </div>
 
-              {formData.delivery_method === 'external' && (
-                <Alert className="bg-blue-50 border-blue-200">
-                  <AlertCircle className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-right text-blue-900">
-                    <strong>הגבלות הובלה חיצונית:</strong>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>מינימום הזמנה: 20 טון</li>
-                      {getSelectedSite()?.region_type === 'outside_eilat' && (
-                        <li className="font-bold">מינימום הזמנה לאתר מחוץ לאילת: 40 טון</li>
-                      )}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {!quantityValidation.valid && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-right">
+                  <AlertDescription>
                     {quantityValidation.message}
                   </AlertDescription>
                 </Alert>
@@ -608,38 +622,30 @@ const CreateOrder = () => {
               />
             </CardContent>
           </Card>
-
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-10">
-            <div className="max-w-md mx-auto flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(-1)}
-                className="flex-1"
-                disabled={submitting}
-              >
-                ביטול
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 piter-yellow"
-                disabled={submitting || !quantityValidation.valid}
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black ml-2"></div>
-                    שולח...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 ml-2" />
-                    שלח הזמנה
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </form>
+
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
+          <div className="max-w-md mx-auto">
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg"
+            >
+              {submitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                  <span>שולח...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Send className="h-5 w-5" />
+                  <span>שלח הזמנה</span>
+                </div>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </Layout>
   );
