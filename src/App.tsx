@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -70,10 +70,9 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Auth wrapper component
-const AuthWrapper = ({ children }) => {
-  const [user, setUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
+// Home redirect component that checks user role
+const HomeRedirect = () => {
+  const { user, loading, isManager } = useAuth();
 
   if (loading) {
     return (
@@ -99,7 +98,13 @@ const AuthWrapper = ({ children }) => {
     );
   }
 
-  return React.cloneElement(children, { user, setUser });
+  // Redirect based on user role
+  if (user) {
+    return <Navigate to={isManager ? '/manager-dashboard' : '/client-dashboard'} replace />;
+  }
+
+  // Default to manager dashboard if no user
+  return <Navigate to="/manager-dashboard" replace />;
 };
 
 const App = () => {
@@ -113,64 +118,15 @@ const App = () => {
             <Router>
               <div className="page-transition">
                 <Routes>
-                  <Route 
-                    path="/manager-dashboard" 
-                    element={
-                      <AuthWrapper>
-                        <ManagerDashboard />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/client-dashboard" 
-                    element={
-                      <AuthWrapper>
-                        <ClientDashboard />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <AuthWrapper>
-                        <AdminPanel />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/create-order" 
-                    element={
-                      <AuthWrapper>
-                        <CreateOrder />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/inbox" 
-                    element={
-                      <AuthWrapper>
-                        <Inbox />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/notifications" 
-                    element={
-                      <AuthWrapper>
-                        <Notifications />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route 
-                    path="/profile" 
-                    element={
-                      <AuthWrapper>
-                        <Profile />
-                      </AuthWrapper>
-                    } 
-                  />
-                  <Route path="/" element={<Navigate to="/manager-dashboard" replace />} />
-                  <Route path="*" element={<Navigate to="/manager-dashboard" replace />} />
+                  <Route path="/manager-dashboard" element={<ManagerDashboard />} />
+                  <Route path="/client-dashboard" element={<ClientDashboard />} />
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/create-order" element={<CreateOrder />} />
+                  <Route path="/inbox" element={<Inbox />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/" element={<HomeRedirect />} />
+                  <Route path="*" element={<HomeRedirect />} />
                 </Routes>
               </div>
             </Router>

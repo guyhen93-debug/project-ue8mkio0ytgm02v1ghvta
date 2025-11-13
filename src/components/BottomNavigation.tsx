@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Home, Package, Mail, User as UserIcon } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
+  const { user, isManager } = useAuth();
 
   const translations = {
     he: {
@@ -25,10 +27,23 @@ export const BottomNavigation: React.FC = () => {
 
   const t = translations[language];
 
-  const isActive = (path: string) => location.pathname === path;
+  // Determine home path based on user role
+  const getHomePath = () => {
+    if (!user) return '/manager-dashboard';
+    return isManager ? '/manager-dashboard' : '/client-dashboard';
+  };
+
+  const homePath = getHomePath();
+
+  const isActive = (path: string) => {
+    if (path === homePath) {
+      return location.pathname === '/manager-dashboard' || location.pathname === '/client-dashboard';
+    }
+    return location.pathname === path;
+  };
 
   const navItems = [
-    { path: '/manager-dashboard', icon: Home, label: t.home },
+    { path: homePath, icon: Home, label: t.home },
     { path: '/create-order', icon: Package, label: t.orders },
     { path: '/inbox', icon: Mail, label: t.inbox },
     { path: '/profile', icon: UserIcon, label: t.profile }
