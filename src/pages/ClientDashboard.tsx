@@ -120,30 +120,26 @@ const ClientDashboard: React.FC = () => {
           <StatCard
             title={t.totalOrders}
             value={totalOrders}
-            icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />}
-            trend="neutral"
-            className="bg-gradient-to-br from-blue-50 to-blue-100"
+            icon={Package}
+            color="blue"
           />
           <StatCard
             title={t.pendingOrders}
             value={pendingOrders}
-            icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6" />}
-            trend="neutral"
-            className="bg-gradient-to-br from-yellow-50 to-yellow-100"
+            icon={Clock}
+            color="yellow"
           />
           <StatCard
             title={t.approvedOrders}
             value={approvedOrders}
-            icon={<CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />}
-            trend="up"
-            className="bg-gradient-to-br from-green-50 to-green-100"
+            icon={CheckCircle}
+            color="green"
           />
           <StatCard
             title={t.completedOrders}
             value={completedOrders}
-            icon={<ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />}
-            trend="neutral"
-            className="bg-gradient-to-br from-purple-50 to-purple-100"
+            icon={ClipboardList}
+            color="purple"
           />
         </div>
 
