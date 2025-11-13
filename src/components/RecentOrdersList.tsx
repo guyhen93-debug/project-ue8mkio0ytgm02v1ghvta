@@ -38,7 +38,6 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
       setLoading(true);
       setError(null);
       
-      // Add a small delay to ensure the system is ready
       await new Promise(resolve => setTimeout(resolve, 300));
       
       let ordersList = [];
@@ -54,7 +53,6 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
         }
       } catch (orderError) {
         console.error('Error fetching orders:', orderError);
-        // If orders fail, continue with empty array
         ordersList = [];
       }
 
@@ -66,7 +64,6 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
         ]);
       } catch (dataError) {
         console.error('Error fetching related data:', dataError);
-        // Continue with empty arrays
       }
 
       const productsMap: Record<string, any> = {};
@@ -94,7 +91,6 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
       setError('שגיאה בטעינת ההזמנות. אנא נסה שוב.');
       setLoading(false);
       
-      // Auto-retry once after 2 seconds if this is the first error
       if (retryCount === 0) {
         setTimeout(() => {
           setRetryCount(1);
@@ -147,6 +143,12 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
   const getSiteName = (siteId: string) => {
     const site = sites[siteId];
     return site?.site_name || 'אתר לא ידוע';
+  };
+
+  const getSiteRegion = (siteId: string) => {
+    const site = sites[siteId];
+    if (!site || !site.region_type) return '';
+    return site.region_type === 'eilat' ? 'אילת' : 'מחוץ לאילת';
   };
 
   const getDeliveryMethodLabel = (method: string) => {
@@ -279,6 +281,14 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                   <div className="flex items-center gap-2 text-gray-700">
                     <MapPin className="h-4 w-4 text-gray-400" />
                     <span>{getSiteName(order.site_id)}</span>
+                    {getSiteRegion(order.site_id) && (
+                      <>
+                        <span className="text-gray-500">•</span>
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                          {getSiteRegion(order.site_id)}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 text-gray-700">
