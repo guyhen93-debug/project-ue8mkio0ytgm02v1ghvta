@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Order, Site, Product } from '@/entities';
+import { Order, Client, Site, Product } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ClipboardList, CheckCircle, XCircle, Clock, Plus, Settings } from 'lucide-react';
+import { Package, CheckCircle, Clock, XCircle, Plus } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import { StatCard } from '@/components/StatCard';
 
@@ -13,34 +13,26 @@ const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const translations = {
     he: {
       title: 'דשבורד מנהל',
-      welcome: 'ברוך הבא',
       totalOrders: 'סה״כ הזמנות',
       pendingOrders: 'ממתינות לאישור',
       approvedOrders: 'הזמנות מאושרות',
-      completedOrders: 'הזמנות שהושלמו',
+      rejectedOrders: 'הזמנות נדחו',
       recentOrders: 'הזמנות אחרונות',
-      viewAll: 'צפה בכל ההזמנות',
-      adminPanel: 'פאנל ניהול',
-      noOrders: 'אין הזמנות במערכת'
+      createOrder: 'צור הזמנה חדשה'
     },
     en: {
       title: 'Manager Dashboard',
-      welcome: 'Welcome',
       totalOrders: 'Total Orders',
       pendingOrders: 'Pending Approval',
       approvedOrders: 'Approved Orders',
-      completedOrders: 'Completed Orders',
+      rejectedOrders: 'Rejected Orders',
       recentOrders: 'Recent Orders',
-      viewAll: 'View All Orders',
-      adminPanel: 'Admin Panel',
-      noOrders: 'No orders in the system'
+      createOrder: 'Create New Order'
     }
   };
 
@@ -48,84 +40,66 @@ const ManagerDashboard: React.FC = () => {
   const isRTL = language === 'he';
 
   useEffect(() => {
-    loadData();
+    loadOrders();
   }, []);
 
-  const loadData = async () => {
+  const loadOrders = async () => {
     try {
       setLoading(true);
-      const [ordersData, sitesData, productsData] = await Promise.all([
-        Order.list('-created_at', 1000),
-        Site.list('-created_at', 1000),
-        Product.list('-created_at', 1000)
-      ]);
-      console.log('Loaded orders:', ordersData.length);
-      setOrders(ordersData);
-      setSites(sitesData);
-      setProducts(productsData);
+      const allOrders = await Order.list('-created_at', 1000);
+      setOrders(allOrders);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading orders:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    approved: orders.filter(o => o.status === 'approved').length,
-    completed: orders.filter(o => o.status === 'completed').length
-  };
-
-  const recentOrders = orders.slice(0, 5);
+  // Calculate statistics
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
+  const approvedOrders = orders.filter(o => o.status === 'approved').length;
+  const rejectedOrders = orders.filter(o => o.status === 'rejected').length;
 
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
-        {/* Quick Actions */}
-        <div className="mb-6 flex gap-3">
+        {/* Quick Action */}
+        <div className="mb-6">
           <Button 
-            className="piter-yellow flex-1 sm:flex-none"
-            onClick={() => navigate('/admin?tab=orders')}
+            className="piter-yellow w-full sm:w-auto"
+            onClick={() => navigate('/create-order')}
           >
-            <ClipboardList className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t.viewAll}
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => navigate('/admin')}
-            className="flex-1 sm:flex-none"
-          >
-            <Settings className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t.adminPanel}
+            <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t.createOrder}
           </Button>
         </div>
 
-        {/* Stats Grid */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <StatCard
             title={t.totalOrders}
-            value={stats.total}
-            icon={ClipboardList}
+            value={totalOrders}
+            icon={Package}
             color="blue"
           />
           <StatCard
             title={t.pendingOrders}
-            value={stats.pending}
+            value={pendingOrders}
             icon={Clock}
             color="yellow"
           />
           <StatCard
             title={t.approvedOrders}
-            value={stats.approved}
+            value={approvedOrders}
             icon={CheckCircle}
             color="green"
           />
           <StatCard
-            title={t.completedOrders}
-            value={stats.completed}
-            icon={CheckCircle}
-            color="blue"
+            title={t.rejectedOrders}
+            value={rejectedOrders}
+            icon={XCircle}
+            color="red"
           />
         </div>
 
