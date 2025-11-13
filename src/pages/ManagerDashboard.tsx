@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle, RefreshCw } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import NotificationsCard from '@/components/NotificationsCard';
 import QuickManagementCard from '@/components/QuickManagementCard';
@@ -15,17 +15,23 @@ const ManagerDashboard: React.FC = () => {
   const { language } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const translations = {
     he: {
       title: 'דשבורד מנהל',
       recentOrders: 'הזמנות אחרונות',
-      createOrder: 'צור הזמנה חדשה'
+      createOrder: 'צור הזמנה חדשה',
+      error: 'שגיאה בטעינת הזמנות',
+      retry: 'נסה שוב'
     },
     en: {
       title: 'Manager Dashboard',
       recentOrders: 'Recent Orders',
-      createOrder: 'Create New Order'
+      createOrder: 'Create New Order',
+      error: 'Error loading orders',
+      retry: 'Retry'
     }
   };
 
@@ -34,18 +40,32 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [retryCount]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const allOrders = await Order.list('-created_at', 1000);
-      setOrders(allOrders);
+      setError(null);
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 8000)
+      );
+      
+      const ordersPromise = Order.list('-created_at', 1000);
+      const allOrders = await Promise.race([ordersPromise, timeoutPromise]);
+      
+      setOrders(allOrders || []);
     } catch (error) {
       console.error('Error loading orders:', error);
+      setError(t.error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
   };
 
   return (
@@ -81,6 +101,15 @@ const ManagerDashboard: React.FC = () => {
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-400" />
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={handleRetry} variant="outline" className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  {t.retry}
+                </Button>
               </div>
             ) : (
               <RecentOrdersList limit={100} />
