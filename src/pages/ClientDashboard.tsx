@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Order, Site, Product, User } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ClipboardList, CheckCircle, Clock, Plus } from 'lucide-react';
-import { RecentOrdersList } from '@/components/RecentOrdersList';
+import RecentOrdersList from '@/components/RecentOrdersList';
 import { StatCard } from '@/components/StatCard';
 
 const ClientDashboard: React.FC = () => {
@@ -127,11 +127,7 @@ const ClientDashboard: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
               </div>
             ) : (
-              <RecentOrdersList 
-                orders={recentOrders} 
-                sites={sites}
-                products={products}
-              />
+              <RecentOrdersList limit={5} />
             )}
           </CardContent>
         </Card>
