@@ -1,100 +1,62 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'client' | 'manager';
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '@/entities';
 
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<User | null>;
+  user: any;
+  loading: boolean;
+  isManager: boolean;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-// Initialize context with a default value to prevent undefined errors
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
-  login: async () => null,
-  logout: async () => {}
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'client@demo.com',
-    full_name: 'Demo Client',
-    role: 'client'
-  },
-  {
-    id: '2',
-    email: 'manager@demo.com',
-    full_name: 'Demo Manager',
-    role: 'manager'
-  }
-];
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const loadUser = async () => {
+    try {
+      setLoading(true);
+      const currentUser = await User.me();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Error loading user:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('user');
-      }
-    }
-    setIsLoading(false);
+    loadUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<User | null> => {
-    // Mock authentication - in real app, this would call an API
-    if (password !== 'demo123') {
-      throw new Error('Invalid credentials');
+  const logout = async () => {
+    try {
+      await User.logout();
+      setUser(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
-
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (!foundUser) {
-      throw new Error('User not found');
-    }
-
-    setUser(foundUser);
-    localStorage.setItem('user', JSON.stringify(foundUser));
-    return foundUser;
   };
 
-  const logout = async (): Promise<void> => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const refreshUser = async () => {
+    await loadUser();
   };
 
-  const contextValue: AuthContextType = {
-    user,
-    isLoading,
-    login,
-    logout
-  };
+  const isManager = user?.role === 'manager' || user?.role === 'administrator';
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ user, loading, isManager, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

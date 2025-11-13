@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Message, User } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Mail, MailOpen, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { Mail, Loader2, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import MessageThreadView from '@/components/messaging/MessageThreadView';
+import NewMessageForm from '@/components/messaging/NewMessageForm';
+import MessageList from '@/components/messaging/MessageList';
 
 const Inbox: React.FC = () => {
   const { language } = useLanguage();
@@ -17,24 +15,25 @@ const Inbox: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [showNewMessage, setShowNewMessage] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   const translations = {
     he: {
       title: 'תיבת דואר',
       noMessages: 'אין הודעות',
-      unread: 'לא נקרא',
       loading: 'טוען...',
       error: 'שגיאה בטעינת ההודעות',
-      retry: 'נסה שוב'
+      retry: 'נסה שוב',
+      newMessage: 'הודעה חדשה'
     },
     en: {
       title: 'Inbox',
       noMessages: 'No messages',
-      unread: 'Unread',
       loading: 'Loading...',
       error: 'Error loading messages',
-      retry: 'Retry'
+      retry: 'Retry',
+      newMessage: 'New Message'
     }
   };
 
@@ -53,32 +52,37 @@ const Inbox: React.FC = () => {
       const currentUser = await User.me();
       setUser(currentUser);
 
-      const userMessages = await Message.filter(
+      // Get messages where user is sender or recipient
+      const sentMessages = await Message.filter(
+        { sender_email: currentUser.email },
+        '-created_at',
+        1000
+      );
+      
+      const receivedMessages = await Message.filter(
         { recipient_email: currentUser.email },
         '-created_at',
         1000
       );
 
-      // Group messages by thread
+      // Combine and deduplicate by thread
+      const allMessages = [...sentMessages, ...receivedMessages];
       const threadMap = new Map();
-      userMessages.forEach(msg => {
+      
+      allMessages.forEach(msg => {
         const threadId = msg.thread_id || msg.id;
-        if (!threadMap.has(threadId)) {
-          threadMap.set(threadId, []);
+        const existing = threadMap.get(threadId);
+        
+        if (!existing || new Date(msg.created_at) > new Date(existing.created_at)) {
+          threadMap.set(threadId, msg);
         }
-        threadMap.get(threadId).push(msg);
       });
 
-      // Get the latest message from each thread
-      const threads = Array.from(threadMap.values()).map(threadMessages => {
-        return threadMessages.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )[0];
-      });
-
-      setMessages(threads.sort((a, b) => 
+      const threads = Array.from(threadMap.values()).sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ));
+      );
+
+      setMessages(threads);
     } catch (error) {
       console.error('Error loading messages:', error);
       setError(t.error);
@@ -97,6 +101,12 @@ const Inbox: React.FC = () => {
 
   const handleBackToList = () => {
     setSelectedThread(null);
+    setShowNewMessage(false);
+    loadMessages();
+  };
+
+  const handleNewMessageSuccess = () => {
+    setShowNewMessage(false);
     loadMessages();
   };
 
@@ -109,9 +119,32 @@ const Inbox: React.FC = () => {
     );
   }
 
+  if (showNewMessage) {
+    return (
+      <Layout title={t.newMessage}>
+        <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+          <NewMessageForm
+            onSuccess={handleNewMessageSuccess}
+            onCancel={handleBackToList}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="mb-4">
+          <Button
+            onClick={() => setShowNewMessage(true)}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {t.newMessage}
+          </Button>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
@@ -131,48 +164,10 @@ const Inbox: React.FC = () => {
             <p className="text-lg">{t.noMessages}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {messages.map((message) => (
-              <Card
-                key={message.id}
-                className="industrial-card hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleThreadClick(message.thread_id || message.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {message.is_read ? (
-                        <MailOpen className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Mail className="h-5 w-5 text-yellow-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate">
-                          {message.subject}
-                        </h3>
-                        {!message.is_read && (
-                          <Badge className="bg-yellow-100 text-yellow-800 flex-shrink-0">
-                            {t.unread}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {language === 'he' ? 'מאת:' : 'From:'} {message.sender_email}
-                      </p>
-                      <p className="text-sm text-gray-700 line-clamp-2 mb-2">
-                        {message.content}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {format(new Date(message.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <MessageList
+            messages={messages}
+            onThreadClick={handleThreadClick}
+          />
         )}
       </div>
     </Layout>
