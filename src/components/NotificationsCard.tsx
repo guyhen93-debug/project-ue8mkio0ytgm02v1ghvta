@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Bell, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NotificationItem from './notifications/NotificationItem';
+import { toast } from '@/hooks/use-toast';
 
 const NotificationsCard: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -21,14 +22,18 @@ const NotificationsCard: React.FC = () => {
       viewAll: 'צפה בכל ההתראות',
       noNotifications: 'אין התראות חדשות',
       error: 'שגיאה בטעינת התראות',
-      retry: 'נסה שוב'
+      retry: 'נסה שוב',
+      deleteSuccess: 'ההתראה נמחקה בהצלחה',
+      deleteError: 'שגיאה במחיקת ההתראה'
     },
     en: {
       title: 'Recent Notifications',
       viewAll: 'View All Notifications',
       noNotifications: 'No new notifications',
       error: 'Error loading notifications',
-      retry: 'Retry'
+      retry: 'Retry',
+      deleteSuccess: 'Notification deleted successfully',
+      deleteError: 'Error deleting notification'
     }
   };
 
@@ -94,6 +99,22 @@ const NotificationsCard: React.FC = () => {
     }
   };
 
+  const handleDelete = async (notificationId: string) => {
+    try {
+      await Notification.delete(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      toast({
+        title: t.deleteSuccess,
+      });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast({
+        title: t.deleteError,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
   };
@@ -156,7 +177,7 @@ const NotificationsCard: React.FC = () => {
               <NotificationItem
                 key={notification.id}
                 notification={notification}
-                onUpdate={loadNotifications}
+                onDelete={handleDelete}
               />
             ))}
             <Button

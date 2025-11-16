@@ -1,16 +1,18 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Package, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Bell, Package, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 interface NotificationItemProps {
   notification: any;
   onClick?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onClick }) => {
+const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onClick, onDelete }) => {
   const getIcon = () => {
     switch (notification.type) {
       case 'new_order':
@@ -48,6 +50,13 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onCli
     return 'bg-gray-100 text-gray-600';
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(notification.id);
+    }
+  };
+
   return (
     <Card 
       className={`cursor-pointer transition-all hover:shadow-md ${
@@ -82,6 +91,19 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onCli
               </span>
             </div>
           </div>
+
+          {onDelete && (
+            <div className="flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

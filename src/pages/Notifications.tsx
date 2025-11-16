@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Notification, User } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { Bell, CheckCheck, Loader2, Trash2 } from 'lucide-react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,14 +18,24 @@ const Notifications: React.FC = () => {
     he: {
       title: 'התראות',
       markAllRead: 'סמן הכל כנקרא',
+      deleteAll: 'מחק הכל',
       noNotifications: 'אין התראות',
-      noNotificationsDesc: 'כל ההתראות שלך יופיעו כאן'
+      noNotificationsDesc: 'כל ההתראות שלך יופיעו כאן',
+      deleteSuccess: 'ההתראה נמחקה בהצלחה',
+      deleteError: 'שגיאה במחיקת ההתראה',
+      deleteAllSuccess: 'כל ההתראות נמחקו בהצלחה',
+      deleteAllError: 'שגיאה במחיקת ההתראות'
     },
     en: {
       title: 'Notifications',
       markAllRead: 'Mark All as Read',
+      deleteAll: 'Delete All',
       noNotifications: 'No Notifications',
-      noNotificationsDesc: 'All your notifications will appear here'
+      noNotificationsDesc: 'All your notifications will appear here',
+      deleteSuccess: 'Notification deleted successfully',
+      deleteError: 'Error deleting notification',
+      deleteAllSuccess: 'All notifications deleted successfully',
+      deleteAllError: 'Error deleting notifications'
     }
   };
 
@@ -97,6 +107,42 @@ const Notifications: React.FC = () => {
     }
   };
 
+  const handleDelete = async (notificationId: string) => {
+    try {
+      await Notification.delete(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      toast({
+        title: t.deleteSuccess,
+      });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast({
+        title: t.deleteError,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    try {
+      await Promise.all(
+        notifications.map(n => Notification.delete(n.id))
+      );
+
+      setNotifications([]);
+      
+      toast({
+        title: t.deleteAllSuccess,
+      });
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      toast({
+        title: t.deleteAllError,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
@@ -117,16 +163,29 @@ const Notifications: React.FC = () => {
                 </div>
               </div>
               
-              {unreadCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={markAllAsRead}
-                  className="text-xs sm:text-sm"
-                >
-                  <CheckCheck className="h-4 w-4 ml-2" />
-                  {t.markAllRead}
-                </Button>
+              {notifications.length > 0 && (
+                <div className="flex gap-2">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={markAllAsRead}
+                      className="text-xs sm:text-sm"
+                    >
+                      <CheckCheck className="h-4 w-4 ml-2" />
+                      {t.markAllRead}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={deleteAllNotifications}
+                    className="text-xs sm:text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                  >
+                    <Trash2 className="h-4 w-4 ml-2" />
+                    {t.deleteAll}
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -151,6 +210,7 @@ const Notifications: React.FC = () => {
                     key={notification.id}
                     notification={notification}
                     onClick={() => !notification.is_read && markAsRead(notification.id)}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
