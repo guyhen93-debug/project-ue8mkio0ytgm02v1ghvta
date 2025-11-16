@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, User, Notification } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle, Info } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle, Info, User as UserIcon, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -336,6 +336,7 @@ const CreateOrder = () => {
   const isManager = user?.role === 'manager';
   const quantityValidation = validateQuantity();
   const isMaavarRabin = formData.supplier === 'maavar_rabin';
+  const selectedSite = getSelectedSite();
 
   if (loading) {
     return (
@@ -442,12 +443,50 @@ const CreateOrder = () => {
                   </Select>
                 </div>
 
-                {formData.site_id && (
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-600" />
-                      <span className="text-sm text-blue-900 font-medium">אזור:</span>
-                      <span className="text-sm text-blue-700 font-bold">{getRegionName()}</span>
+                {formData.site_id && selectedSite && (
+                  <div className="space-y-3">
+                    {/* Region Info */}
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm text-blue-900 font-medium">אזור:</span>
+                        <span className="text-sm text-blue-700 font-bold">{getRegionName()}</span>
+                      </div>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-2 border-green-200 shadow-sm">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-green-200">
+                          <UserIcon className="h-5 w-5 text-green-600" />
+                          <span className="text-sm font-bold text-green-900">איש קשר באתר</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <UserIcon className="h-4 w-4 text-green-600" />
+                            <span className="text-sm text-green-700 font-medium">שם:</span>
+                            <span className="text-sm text-gray-900 font-bold">
+                              {selectedSite.contact_name || 'לא צוין'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-green-600" />
+                            <span className="text-sm text-green-700 font-medium">טלפון:</span>
+                            {selectedSite.contact_phone ? (
+                              <a 
+                                href={`tel:${selectedSite.contact_phone}`}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-bold hover:underline"
+                              >
+                                {selectedSite.contact_phone}
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-500">לא צוין</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
