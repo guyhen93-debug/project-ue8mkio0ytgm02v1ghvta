@@ -191,6 +191,20 @@ const CreateOrder = () => {
     return 20;
   };
 
+  const getMultipleRequirement = () => {
+    // Shifuli Har: multiples of 20
+    if (formData.supplier === 'shifuli_har') {
+      return 20;
+    }
+    
+    // Maavar Rabin: multiples of 40
+    if (formData.supplier === 'maavar_rabin') {
+      return 40;
+    }
+    
+    return 0;
+  };
+
   const validateQuantity = () => {
     if (!formData.quantity_tons) {
       return { valid: true, message: '' };
@@ -198,8 +212,18 @@ const CreateOrder = () => {
 
     const quantity = parseInt(formData.quantity_tons);
     const minQuantity = getMinimumQuantity();
+    const multipleRequirement = getMultipleRequirement();
 
-    // Special validation for Maavar Rabin
+    // Check multiples requirement
+    if (multipleRequirement > 0 && quantity % multipleRequirement !== 0) {
+      const supplierName = formData.supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין';
+      return {
+        valid: false,
+        message: `הזמנה מ${supplierName} חייבת להיות בכפולות של ${multipleRequirement} טון (${multipleRequirement}, ${multipleRequirement * 2}, ${multipleRequirement * 3}...)`
+      };
+    }
+
+    // Special validation for Maavar Rabin minimum
     if (formData.supplier === 'maavar_rabin' && quantity < 40) {
       return {
         valid: false,
@@ -337,6 +361,7 @@ const CreateOrder = () => {
   const quantityValidation = validateQuantity();
   const isMaavarRabin = formData.supplier === 'maavar_rabin';
   const selectedSite = getSelectedSite();
+  const multipleRequirement = getMultipleRequirement();
 
   if (loading) {
     return (
@@ -505,91 +530,101 @@ const CreateOrder = () => {
                   <Label htmlFor="supplier" className="text-right block">
                     ספק <span className="text-red-500">*</span>
                   </Label>
-                  <div className="relative">
-                    <Factory className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none" />
-                    <Select
-                      value={formData.supplier}
-                      onValueChange={(value) => setFormData({ ...formData, supplier: value })}
-                    >
-                      <SelectTrigger className="text-right pr-10">
-                        <SelectValue placeholder="בחר ספק" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map((supplier) => (
-                          <SelectItem key={supplier.id} value={supplier.id}>
+                  <Select
+                    value={formData.supplier}
+                    onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                  >
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="בחר ספק" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          <div className="flex items-center gap-2">
+                            <Factory className="h-4 w-4" />
                             {supplier.name_he}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Maavar Rabin Special Rules Alert */}
-                {isMaavarRabin && (
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-900">
-                      <strong>כללים מיוחדים למעבר רבין:</strong>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                        <li>מינימום הזמנה: 40 טון</li>
-                        <li>שיטת משלוח: הובלה חיצונית בלבד (אין אפשרות לאיסוף עצמי)</li>
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <ProductSelector
-                  value={formData.product_id}
-                  onChange={(value) => setFormData({ ...formData, product_id: value })}
-                  supplier={formData.supplier}
-                />
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <ArrowRightLeft className="h-4 w-4 text-gray-500" />
-                    <Label htmlFor="unit-toggle" className="text-sm font-medium cursor-pointer">
-                      הצג בקוב (מ"ק)
-                    </Label>
-                  </div>
-                  <Switch
-                    id="unit-toggle"
-                    checked={useCubicMeters}
-                    onCheckedChange={setUseCubicMeters}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity" className="text-right block">
-                    כמות ({useCubicMeters ? 'מ"ק' : 'טון'}) <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={getDisplayQuantity()}
-                      onChange={(e) => handleDisplayQuantityChange(e.target.value)}
-                      placeholder={useCubicMeters ? 'הזן כמות במ"ק' : 'הזן כמות בטון'}
-                      className="text-right pr-10"
+                {formData.supplier && (
+                  <>
+                    <ProductSelector
+                      supplier={formData.supplier}
+                      value={formData.product_id}
+                      onChange={(value) => setFormData({ ...formData, product_id: value })}
                     />
-                  </div>
-                  {useCubicMeters && formData.quantity_tons && (
-                    <p className="text-xs text-gray-500 text-right">
-                      = {Math.round(parseFloat(formData.quantity_tons))} טון
-                    </p>
-                  )}
-                  {isMaavarRabin && (
-                    <p className="text-xs text-blue-600 font-medium text-right">
-                      מינימום: 40 טון
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 text-right">
-                    יחס המרה: 1 מ"ק ≈ {CUBIC_TO_TON_RATIO} טון
-                  </p>
-                </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="quantity" className="text-right">
+                          כמות <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="unit-toggle" className="text-sm text-gray-600">
+                            {useCubicMeters ? 'מ״ק' : 'טון'}
+                          </Label>
+                          <Switch
+                            id="unit-toggle"
+                            checked={useCubicMeters}
+                            onCheckedChange={setUseCubicMeters}
+                          />
+                        </div>
+                      </div>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="0"
+                        step={multipleRequirement || "1"}
+                        value={getDisplayQuantity()}
+                        onChange={(e) => handleDisplayQuantityChange(e.target.value)}
+                        placeholder={`הכנס כמות ב${useCubicMeters ? 'מ״ק' : 'טון'}`}
+                        className="text-right"
+                      />
+                      <p className="text-xs text-gray-500 text-right">
+                        {useCubicMeters 
+                          ? `≈ ${formData.quantity_tons || '0'} טון` 
+                          : `≈ ${formData.quantity_tons ? Math.round(parseInt(formData.quantity_tons) / CUBIC_TO_TON_RATIO) : '0'} מ״ק`
+                        }
+                      </p>
+                    </div>
+
+                    {/* Quantity Requirements Info */}
+                    {formData.supplier && (
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-sm text-blue-900">
+                          <div className="space-y-1">
+                            <p className="font-bold">
+                              {formData.supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין'}:
+                            </p>
+                            <p>
+                              • הזמנה בכפולות של {multipleRequirement} טון בלבד
+                            </p>
+                            {formData.supplier === 'maavar_rabin' && (
+                              <p>• מינימום הזמנה: 40 טון</p>
+                            )}
+                            {formData.supplier === 'shifuli_har' && formData.delivery_method === 'external' && (
+                              <p>• מינימום הזמנה להובלה חיצונית: {getMinimumQuantity()} טון</p>
+                            )}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!quantityValidation.valid && formData.quantity_tons && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-sm">
+                          {quantityValidation.message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -597,25 +632,22 @@ const CreateOrder = () => {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-gray-500" />
-                  פרטי משלוח
+                  מועד אספקה
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="delivery_date" className="text-right block">
-                    תאריך משלוח <span className="text-red-500">*</span>
+                    תאריך אספקה <span className="text-red-500">*</span>
                   </Label>
-                  <div className="relative">
-                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="delivery_date"
-                      type="date"
-                      value={formData.delivery_date}
-                      onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                      className="text-right pr-10"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
+                  <Input
+                    id="delivery_date"
+                    type="date"
+                    value={formData.delivery_date}
+                    onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                    className="text-right"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -632,70 +664,63 @@ const CreateOrder = () => {
                     <SelectContent>
                       <SelectItem value="morning">
                         <div className="flex items-center gap-2">
-                          <Sun className="h-4 w-4" />
-                          <span>בוקר (07:00-12:00)</span>
+                          <Sun className="h-4 w-4 text-yellow-500" />
+                          בוקר (08:00-12:00)
                         </div>
                       </SelectItem>
                       <SelectItem value="afternoon">
                         <div className="flex items-center gap-2">
-                          <Sunset className="h-4 w-4" />
-                          <span>צהריים (12:00-17:00)</span>
+                          <Sunset className="h-4 w-4 text-orange-500" />
+                          אחר הצהריים (12:00-16:00)
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-gray-500" />
+                  שיטת אספקה
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="delivery_method" className="text-right block">
-                    שיטת משלוח <span className="text-red-500">*</span>
+                    סוג הובלה <span className="text-red-500">*</span>
                   </Label>
-                  {isMaavarRabin ? (
-                    <div className="p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
-                      <div className="flex items-center gap-3">
-                        <PackageCheck className="h-5 w-5 text-gray-700" />
-                        <div>
-                          <p className="font-medium text-gray-900">הובלה חיצונית</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            הזמנות ממעבר רבין כוללות הובלה חיצונית בלבד
-                          </p>
+                  <Select
+                    value={formData.delivery_method}
+                    onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                    disabled={isMaavarRabin}
+                  >
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="בחר סוג הובלה" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">
+                        <div className="flex items-center gap-2">
+                          <TruckIcon className="h-4 w-4 text-blue-600" />
+                          איסוף עצמי
                         </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.delivery_method}
-                      onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
-                    >
-                      <SelectTrigger className="text-right">
-                        <SelectValue placeholder="בחר שיטת משלוח" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="self">
-                          <div className="flex items-center gap-2">
-                            <TruckIcon className="h-4 w-4" />
-                            <span>איסוף עצמי</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="external">
-                          <div className="flex items-center gap-2">
-                            <PackageCheck className="h-4 w-4" />
-                            <span>הובלה חיצונית</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      </SelectItem>
+                      <SelectItem value="external">
+                        <div className="flex items-center gap-2">
+                          <PackageCheck className="h-4 w-4 text-green-600" />
+                          הובלה חיצונית
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {isMaavarRabin && (
+                    <p className="text-xs text-gray-500 text-right">
+                      מעבר רבין: הובלה חיצונית בלבד
+                    </p>
                   )}
                 </div>
-
-                {!quantityValidation.valid && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {quantityValidation.message}
-                    </AlertDescription>
-                  </Alert>
-                )}
               </CardContent>
             </Card>
 
@@ -713,37 +738,33 @@ const CreateOrder = () => {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="הערות נוספות להזמנה (אופציונלי)"
                   className="text-right min-h-[100px]"
+                  rows={4}
                 />
               </CardContent>
             </Card>
-          </form>
-        </div>
 
-        {/* כפתור קבוע בתחתית - מעל הניווט עם מרווח נוסף */}
-        <div 
-          className="fixed bottom-20 left-0 right-0 bg-white border-t-2 border-gray-300 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
-          style={{ zIndex: 100 }}
-        >
-          <div className="max-w-md mx-auto">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || !quantityValidation.valid}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 text-lg shadow-lg transition-all hover:shadow-xl"
-            >
-              {submitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                  <span>שולח...</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <Send className="h-5 w-5" />
-                  <span>שלח הזמנה</span>
-                </div>
-              )}
-            </Button>
-          </div>
+            <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-30">
+              <div className="max-w-7xl mx-auto">
+                <Button
+                  type="submit"
+                  disabled={submitting || !quantityValidation.valid}
+                  className="w-full piter-yellow text-lg py-6 font-bold"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
+                      שולח הזמנה...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5 ml-2" />
+                      שלח הזמנה
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </Layout>
