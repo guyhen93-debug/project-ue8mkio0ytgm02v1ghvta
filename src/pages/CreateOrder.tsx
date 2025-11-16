@@ -169,16 +169,17 @@ const CreateOrder = () => {
   };
 
   const getMinimumQuantity = () => {
-    // Special rule for Maavar Rabin: minimum 40 tons for all orders
-    if (formData.supplier === 'maavar_rabin') {
-      return 40;
-    }
-
-    // For Shifuli Har, only external delivery has minimum requirements
+    // Only for external delivery
     if (formData.delivery_method !== 'external') {
       return 0;
     }
 
+    // Special rule for Maavar Rabin: minimum 40 tons for external delivery
+    if (formData.supplier === 'maavar_rabin') {
+      return 40;
+    }
+
+    // For Shifuli Har external delivery
     const site = getSelectedSite();
     if (!site) {
       return 20;
@@ -192,12 +193,17 @@ const CreateOrder = () => {
   };
 
   const getMultipleRequirement = () => {
-    // Shifuli Har: multiples of 20
+    // Only for external delivery
+    if (formData.delivery_method !== 'external') {
+      return 0;
+    }
+
+    // Shifuli Har: multiples of 20 for external delivery
     if (formData.supplier === 'shifuli_har') {
       return 20;
     }
     
-    // Maavar Rabin: multiples of 40
+    // Maavar Rabin: multiples of 40 for external delivery
     if (formData.supplier === 'maavar_rabin') {
       return 40;
     }
@@ -214,20 +220,20 @@ const CreateOrder = () => {
     const minQuantity = getMinimumQuantity();
     const multipleRequirement = getMultipleRequirement();
 
-    // Check multiples requirement
-    if (multipleRequirement > 0 && quantity % multipleRequirement !== 0) {
+    // Check multiples requirement (only for external delivery)
+    if (formData.delivery_method === 'external' && multipleRequirement > 0 && quantity % multipleRequirement !== 0) {
       const supplierName = formData.supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין';
       return {
         valid: false,
-        message: `הזמנה מ${supplierName} חייבת להיות בכפולות של ${multipleRequirement} טון (${multipleRequirement}, ${multipleRequirement * 2}, ${multipleRequirement * 3}...)`
+        message: `הובלה חיצונית מ${supplierName} חייבת להיות בכפולות של ${multipleRequirement} טון (${multipleRequirement}, ${multipleRequirement * 2}, ${multipleRequirement * 3}...)`
       };
     }
 
-    // Special validation for Maavar Rabin minimum
-    if (formData.supplier === 'maavar_rabin' && quantity < 40) {
+    // Special validation for Maavar Rabin minimum (only for external delivery)
+    if (formData.supplier === 'maavar_rabin' && formData.delivery_method === 'external' && quantity < 40) {
       return {
         valid: false,
-        message: 'מינימום הזמנה ממעבר רבין: 40 טון'
+        message: 'מינימום הזמנה להובלה חיצונית ממעבר רבין: 40 טון'
       };
     }
 
@@ -592,14 +598,14 @@ const CreateOrder = () => {
                       </p>
                     </div>
 
-                    {/* Quantity Requirements Info */}
-                    {formData.supplier && (
+                    {/* Quantity Requirements Info - Only for external delivery */}
+                    {formData.supplier && formData.delivery_method === 'external' && (
                       <Alert className="bg-blue-50 border-blue-200">
                         <Info className="h-4 w-4 text-blue-600" />
                         <AlertDescription className="text-sm text-blue-900">
                           <div className="space-y-1">
                             <p className="font-bold">
-                              {formData.supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין'}:
+                              הובלה חיצונית - {formData.supplier === 'shifuli_har' ? 'שיפולי הר' : 'מעבר רבין'}:
                             </p>
                             <p>
                               • הזמנה בכפולות של {multipleRequirement} טון בלבד
@@ -607,10 +613,19 @@ const CreateOrder = () => {
                             {formData.supplier === 'maavar_rabin' && (
                               <p>• מינימום הזמנה: 40 טון</p>
                             )}
-                            {formData.supplier === 'shifuli_har' && formData.delivery_method === 'external' && (
-                              <p>• מינימום הזמנה להובלה חיצונית: {getMinimumQuantity()} טון</p>
+                            {formData.supplier === 'shifuli_har' && (
+                              <p>• מינימום הזמנה: {getMinimumQuantity()} טון</p>
                             )}
                           </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {formData.supplier && formData.delivery_method === 'self' && (
+                      <Alert className="bg-green-50 border-green-200">
+                        <Info className="h-4 w-4 text-green-600" />
+                        <AlertDescription className="text-sm text-green-900">
+                          <p className="font-bold">איסוף עצמי - ללא מגבלת כמות</p>
                         </AlertDescription>
                       </Alert>
                     )}
