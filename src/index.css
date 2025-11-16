@@ -115,14 +115,14 @@
     @apply px-4 py-6;
   }
 
-  /* Page Transitions */
+  /* Page Transitions - Smoother and faster */
   .page-transition {
-    animation: pageEnter 0.2s ease-out;
+    animation: pageEnter 0.15s ease-out;
   }
 
   @keyframes pageEnter {
     from {
-      opacity: 0.95;
+      opacity: 0.98;
     }
     to {
       opacity: 1;
@@ -131,13 +131,13 @@
 
   /* Animations */
   .fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.2s ease-out;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(5px);
     }
     to {
       opacity: 1;
@@ -146,13 +146,13 @@
   }
 
   .slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.2s ease-out;
   }
 
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;

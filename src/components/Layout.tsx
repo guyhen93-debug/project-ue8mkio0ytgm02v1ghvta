@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { BottomNavigation } from './BottomNavigation';
 import { LanguageToggle } from './LanguageToggle';
-import { NotificationBadge } from './NotificationBadge';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -42,7 +41,6 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <NotificationBadge />
               <LanguageToggle />
             </div>
           </div>
