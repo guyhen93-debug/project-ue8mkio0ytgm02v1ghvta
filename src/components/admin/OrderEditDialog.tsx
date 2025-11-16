@@ -112,12 +112,35 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
   const isRTL = language === 'he';
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
-    if (order) {
+    if (isOpen && !order) {
+      // Reset form for new order
+      setFormData({
+        client_id: '',
+        site_id: '',
+        product_id: '',
+        quantity_tons: 0,
+        delivery_date: new Date(),
+        delivery_window: 'morning',
+        delivery_method: 'self',
+        supplier: 'shifuli_har',
+        notes: '',
+        status: 'pending'
+      });
+    }
+  }, [isOpen, order]);
+
+  useEffect(() => {
+    if (order && sites.length > 0) {
+      console.log('Loading order data:', order);
       const site = sites.find(s => s.id === order.site_id);
+      console.log('Found site:', site);
+      
       setFormData({
         client_id: site?.client_id || '',
         site_id: order.site_id || '',
@@ -149,6 +172,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         Site.list('-created_at', 1000),
         Product.list('-created_at', 1000)
       ]);
+      console.log('Loaded clients:', clientsData.length);
+      console.log('Loaded sites:', sitesData.length);
+      console.log('Loaded products:', productsData.length);
       setClients(clientsData);
       setSites(sitesData);
       setProducts(productsData);
