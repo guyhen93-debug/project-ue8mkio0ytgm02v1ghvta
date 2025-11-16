@@ -43,28 +43,50 @@ const NotificationsCard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 8000)
-      );
-      
-      const userPromise = User.me();
-      const currentUser = await Promise.race([userPromise, timeoutPromise]);
-
-      if (!currentUser) {
+      // Get current user with timeout
+      let currentUser;
+      try {
+        const userTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('User request timeout')), 10000)
+        );
+        
+        const userPromise = User.me();
+        currentUser = await Promise.race([userPromise, userTimeoutPromise]);
+      } catch (userError) {
+        console.error('Error getting user:', userError);
         setNotifications([]);
+        setLoading(false);
         return;
       }
 
-      const notificationsPromise = Notification.filter(
-        { recipient_email: currentUser.email },
-        '-created_at',
-        5
-      );
-      
-      const userNotifications = await Promise.race([notificationsPromise, timeoutPromise]);
-      setNotifications(userNotifications || []);
+      if (!currentUser || !currentUser.email) {
+        console.log('No user found or user has no email');
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get notifications with separate timeout
+      try {
+        const notificationsTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Notifications request timeout')), 10000)
+        );
+        
+        const notificationsPromise = Notification.filter(
+          { recipient_email: currentUser.email },
+          '-created_at',
+          5
+        );
+        
+        const userNotifications = await Promise.race([notificationsPromise, notificationsTimeoutPromise]);
+        setNotifications(userNotifications || []);
+      } catch (notifError) {
+        console.error('Error loading notifications:', notifError);
+        // Don't show error to user, just set empty array
+        setNotifications([]);
+      }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error('Unexpected error in loadNotifications:', error);
       setError(t.error);
       setNotifications([]);
     } finally {
