@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Notification, User } from '@/entities';
+import { Notification } from '@/entities';
 
 interface NotificationBadgeProps {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children, 
     user = auth?.user;
   } catch (error) {
     // AuthProvider not available yet, that's okay
-    console.log('AuthProvider not ready yet');
+    return <div className={className}>{children}</div>;
   }
 
   useEffect(() => {
@@ -33,14 +33,23 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children, 
     if (!user) return;
     
     try {
-      const notifications = await Notification.filter(
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 5000)
+      );
+      
+      const notificationsPromise = Notification.filter(
         { recipient_email: user.email, is_read: false },
         '-created_at',
         100
       );
+      
+      const notifications = await Promise.race([notificationsPromise, timeoutPromise]);
       setUnreadCount(notifications?.length || 0);
     } catch (error) {
-      console.error('Error loading unread count:', error);
+      // Silently fail - this is just a badge, no need to show errors
+      console.log('Could not load notification count (this is okay)');
+      // Keep the previous count instead of resetting to 0
     }
   };
 
