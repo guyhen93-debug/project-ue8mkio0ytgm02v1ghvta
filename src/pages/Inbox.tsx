@@ -3,7 +3,7 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Message, User } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Mail, Loader2, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Mail, Loader2, AlertCircle, RefreshCw, Plus, Sparkles } from 'lucide-react';
 import MessageThreadView from '@/components/messaging/MessageThreadView';
 import NewMessageForm from '@/components/messaging/NewMessageForm';
 import MessageList from '@/components/messaging/MessageList';
@@ -135,14 +135,19 @@ const Inbox: React.FC = () => {
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Highlighted New Message Button */}
         <div className="mb-4">
-          <Button
-            onClick={() => setShowNewMessage(true)}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {t.newMessage}
-          </Button>
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg blur opacity-30 animate-pulse"></div>
+            <Button
+              onClick={() => setShowNewMessage(true)}
+              className="relative w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+            >
+              <Sparkles className="h-5 w-5 mr-2 animate-pulse" />
+              {t.newMessage}
+              <Plus className="h-5 w-5 ml-2" />
+            </Button>
+          </div>
         </div>
 
         {loading ? (

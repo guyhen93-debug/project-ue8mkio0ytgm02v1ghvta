@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import NotificationsCard from '@/components/NotificationsCard';
 import QuickManagementCard from '@/components/QuickManagementCard';
@@ -71,15 +71,19 @@ const ManagerDashboard: React.FC = () => {
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
-        {/* Quick Action */}
+        {/* Highlighted Quick Action */}
         <div className="mb-6">
-          <Button 
-            className="bg-yellow-500 hover:bg-yellow-600 text-black w-full sm:w-auto"
-            onClick={() => navigate('/create-order')}
-          >
-            <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t.createOrder}
-          </Button>
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg blur opacity-30 animate-pulse"></div>
+            <Button 
+              className="relative w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+              onClick={() => navigate('/create-order')}
+            >
+              <Sparkles className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'} animate-pulse`} />
+              {t.createOrder}
+              <Plus className={`w-5 h-5 ${isRTL ? 'mr-2' : 'ml-2'}`} />
+            </Button>
+          </div>
         </div>
 
         {/* Quick Management Tools */}

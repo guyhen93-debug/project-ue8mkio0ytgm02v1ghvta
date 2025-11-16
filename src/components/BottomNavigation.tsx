@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Notification } from '@/entities';
 import { Home, Package, Mail, User as UserIcon } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
@@ -9,6 +10,7 @@ export const BottomNavigation: React.FC = () => {
   const location = useLocation();
   const { language } = useLanguage();
   const { user, isManager } = useAuth();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const translations = {
     he: {
@@ -27,6 +29,37 @@ export const BottomNavigation: React.FC = () => {
 
   const t = translations[language];
 
+  // Load unread notifications count
+  useEffect(() => {
+    if (user) {
+      loadUnreadCount();
+      // Poll every 30 seconds
+      const interval = setInterval(loadUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const loadUnreadCount = async () => {
+    if (!user) return;
+    
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 5000)
+      );
+      
+      const notificationsPromise = Notification.filter(
+        { recipient_email: user.email, is_read: false },
+        '-created_at',
+        100
+      );
+      
+      const notifications = await Promise.race([notificationsPromise, timeoutPromise]);
+      setUnreadNotifications(notifications?.length || 0);
+    } catch (error) {
+      console.log('Could not load notification count');
+    }
+  };
+
   // Determine home path based on user role
   const getHomePath = () => {
     if (!user) return '/manager-dashboard';
@@ -43,10 +76,10 @@ export const BottomNavigation: React.FC = () => {
   };
 
   const navItems = [
-    { path: homePath, icon: Home, label: t.home },
-    { path: '/create-order', icon: Package, label: t.orders },
-    { path: '/inbox', icon: Mail, label: t.inbox },
-    { path: '/profile', icon: UserIcon, label: t.profile }
+    { path: homePath, icon: Home, label: t.home, showBadge: true },
+    { path: '/create-order', icon: Package, label: t.orders, showBadge: false },
+    { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
+    { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }
   ];
 
   return (
@@ -61,13 +94,20 @@ export const BottomNavigation: React.FC = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                className={`relative flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                   active 
                     ? 'text-yellow-600' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Icon className={`h-6 w-6 mb-1 transition-all ${active ? 'scale-110' : ''}`} />
+                <div className="relative">
+                  <Icon className={`h-6 w-6 mb-1 transition-all ${active ? 'scale-110' : ''}`} />
+                  {item.showBadge && unreadNotifications > 0 && (
+                    <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </div>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </button>
             );
