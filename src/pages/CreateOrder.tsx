@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, User, Notification } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -61,6 +61,11 @@ const CreateOrder = () => {
   useEffect(() => {
     if (formData.supplier) {
       setFormData(prev => ({ ...prev, product_id: '' }));
+      
+      // Auto-set delivery method to external for Maavar Rabin
+      if (formData.supplier === 'maavar_rabin') {
+        setFormData(prev => ({ ...prev, delivery_method: 'external' }));
+      }
     }
   }, [formData.supplier]);
 
@@ -164,6 +169,12 @@ const CreateOrder = () => {
   };
 
   const getMinimumQuantity = () => {
+    // Special rule for Maavar Rabin: minimum 40 tons for all orders
+    if (formData.supplier === 'maavar_rabin') {
+      return 40;
+    }
+
+    // For Shifuli Har, only external delivery has minimum requirements
     if (formData.delivery_method !== 'external') {
       return 0;
     }
@@ -181,14 +192,23 @@ const CreateOrder = () => {
   };
 
   const validateQuantity = () => {
-    if (!formData.quantity_tons || !formData.delivery_method) {
+    if (!formData.quantity_tons) {
       return { valid: true, message: '' };
     }
 
     const quantity = parseInt(formData.quantity_tons);
     const minQuantity = getMinimumQuantity();
 
-    if (formData.delivery_method === 'external' && quantity < minQuantity) {
+    // Special validation for Maavar Rabin
+    if (formData.supplier === 'maavar_rabin' && quantity < 40) {
+      return {
+        valid: false,
+        message: 'מינימום הזמנה ממעבר רבין: 40 טון'
+      };
+    }
+
+    // Validation for Shifuli Har external delivery
+    if (formData.supplier === 'shifuli_har' && formData.delivery_method === 'external' && quantity < minQuantity) {
       const site = getSelectedSite();
       const regionText = site?.region_type === 'outside_eilat' ? 'לאתר מחוץ לאילת' : '';
       return {
@@ -315,6 +335,7 @@ const CreateOrder = () => {
 
   const isManager = user?.role === 'manager';
   const quantityValidation = validateQuantity();
+  const isMaavarRabin = formData.supplier === 'maavar_rabin';
 
   if (loading) {
     return (
@@ -465,6 +486,20 @@ const CreateOrder = () => {
                   </div>
                 </div>
 
+                {/* Maavar Rabin Special Rules Alert */}
+                {isMaavarRabin && (
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-900">
+                      <strong>כללים מיוחדים למעבר רבין:</strong>
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                        <li>מינימום הזמנה: 40 טון</li>
+                        <li>שיטת משלוח: הובלה חיצונית בלבד (אין אפשרות לאיסוף עצמי)</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <ProductSelector
                   value={formData.product_id}
                   onChange={(value) => setFormData({ ...formData, product_id: value })}
@@ -505,6 +540,11 @@ const CreateOrder = () => {
                   {useCubicMeters && formData.quantity_tons && (
                     <p className="text-xs text-gray-500 text-right">
                       = {Math.round(parseFloat(formData.quantity_tons))} טון
+                    </p>
+                  )}
+                  {isMaavarRabin && (
+                    <p className="text-xs text-blue-600 font-medium text-right">
+                      מינימום: 40 טון
                     </p>
                   )}
                   <p className="text-xs text-gray-400 text-right">
@@ -571,28 +611,42 @@ const CreateOrder = () => {
                   <Label htmlFor="delivery_method" className="text-right block">
                     שיטת משלוח <span className="text-red-500">*</span>
                   </Label>
-                  <Select
-                    value={formData.delivery_method}
-                    onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
-                  >
-                    <SelectTrigger className="text-right">
-                      <SelectValue placeholder="בחר שיטת משלוח" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="self">
-                        <div className="flex items-center gap-2">
-                          <TruckIcon className="h-4 w-4" />
-                          <span>איסוף עצמי</span>
+                  {isMaavarRabin ? (
+                    <div className="p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
+                      <div className="flex items-center gap-3">
+                        <PackageCheck className="h-5 w-5 text-gray-700" />
+                        <div>
+                          <p className="font-medium text-gray-900">הובלה חיצונית</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            הזמנות ממעבר רבין כוללות הובלה חיצונית בלבד
+                          </p>
                         </div>
-                      </SelectItem>
-                      <SelectItem value="external">
-                        <div className="flex items-center gap-2">
-                          <PackageCheck className="h-4 w-4" />
-                          <span>הובלה חיצונית</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                      </div>
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.delivery_method}
+                      onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                    >
+                      <SelectTrigger className="text-right">
+                        <SelectValue placeholder="בחר שיטת משלוח" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="self">
+                          <div className="flex items-center gap-2">
+                            <TruckIcon className="h-4 w-4" />
+                            <span>איסוף עצמי</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="external">
+                          <div className="flex items-center gap-2">
+                            <PackageCheck className="h-4 w-4" />
+                            <span>הובלה חיצונית</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {!quantityValidation.valid && (
