@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client, Product } from '@/entities';
+import { Order, Site, Client, Product, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -196,6 +196,57 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
     }
   };
 
+  const createStatusChangeNotifications = async (orderNumber: string, newStatus: string, orderCreatedBy: string) => {
+    try {
+      const statusMessages = {
+        approved: `הזמנה #${orderNumber} אושרה`,
+        rejected: `הזמנה #${orderNumber} נדחתה`,
+        completed: `הזמנה #${orderNumber} הושלמה`,
+        pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`
+      };
+
+      const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
+
+      // Get all users
+      const allUsers = await User.list('-created_at', 1000);
+      
+      // Get managers
+      const managers = allUsers.filter(u => u.role === 'manager');
+      
+      // Get the client who created the order
+      const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
+      
+      // Create notifications for managers
+      const notifications = managers.map(manager => 
+        Notification.create({
+          recipient_email: manager.email,
+          type: 'order_status_change',
+          message: message,
+          is_read: false,
+          order_id: orderNumber
+        })
+      );
+
+      // Create notification for the client who created the order
+      if (orderCreator && orderCreator.role === 'client') {
+        notifications.push(
+          Notification.create({
+            recipient_email: orderCreator.email,
+            type: 'order_status_change',
+            message: message,
+            is_read: false,
+            order_id: orderNumber
+          })
+        );
+      }
+
+      await Promise.all(notifications);
+      console.log('Status change notifications created successfully');
+    } catch (error) {
+      console.error('Error creating status change notifications:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -222,7 +273,16 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
       };
 
       if (order) {
+        // Check if status changed
+        const statusChanged = order.status !== formData.status;
+        
         await Order.update(order.id, orderData);
+        
+        // Create notifications if status changed
+        if (statusChanged) {
+          await createStatusChangeNotifications(order.order_number, formData.status, order.created_by);
+        }
+        
         toast({ title: t.orderUpdated });
       } else {
         await Order.create(orderData);

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client, Product } from '@/entities';
+import { Order, Site, Client, Product, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2, Building2, Factory } from 'lucide-react';
 import OrderEditDialog from './OrderEditDialog';
@@ -163,9 +163,69 @@ export const OrderManagement: React.FC = () => {
     }
   };
 
+  const createStatusChangeNotifications = async (order: any, newStatus: string) => {
+    try {
+      const statusMessages = {
+        approved: `הזמנה #${order.order_number} אושרה`,
+        rejected: `הזמנה #${order.order_number} נדחתה`,
+        completed: `הזמנה #${order.order_number} הושלמה`,
+        pending: `הזמנה #${order.order_number} הוחזרה לסטטוס ממתין`
+      };
+
+      const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה`;
+
+      // Get all users
+      const allUsers = await User.list('-created_at', 1000);
+      
+      // Get managers
+      const managers = allUsers.filter(u => u.role === 'manager');
+      
+      // Get the client who created the order
+      const orderCreator = allUsers.find(u => u.email === order.created_by);
+      
+      // Create notifications for managers
+      const managerNotifications = managers.map(manager => 
+        Notification.create({
+          recipient_email: manager.email,
+          type: 'order_status_change',
+          message: message,
+          is_read: false,
+          order_id: order.order_number
+        })
+      );
+
+      // Create notification for the client who created the order
+      if (orderCreator && orderCreator.role === 'client') {
+        managerNotifications.push(
+          Notification.create({
+            recipient_email: orderCreator.email,
+            type: 'order_status_change',
+            message: message,
+            is_read: false,
+            order_id: order.order_number
+          })
+        );
+      }
+
+      await Promise.all(managerNotifications);
+      console.log('Status change notifications created successfully');
+    } catch (error) {
+      console.error('Error creating status change notifications:', error);
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      // Get the order before updating
+      const order = orders.find(o => o.id === orderId);
+      
       await Order.update(orderId, { status: newStatus });
+      
+      // Create notifications for status change
+      if (order) {
+        await createStatusChangeNotifications(order, newStatus);
+      }
+      
       const messages = {
         approved: t.orderApproved,
         rejected: t.orderRejected,
