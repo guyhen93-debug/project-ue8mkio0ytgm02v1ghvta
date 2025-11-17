@@ -24,25 +24,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-      
-      const userPromise = User.me();
-      const currentUser = await Promise.race([userPromise, timeoutPromise]);
+      console.log('Loading user...');
+      const currentUser = await User.me();
+      console.log('User loaded successfully:', currentUser);
       
       setUser(currentUser);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error loading user:', error);
-      setError(error?.message || 'Failed to load user');
-      setUser(null);
       
-      // Auto retry once after 2 seconds
-      if (retryCount === 0) {
-        setTimeout(() => {
-          setRetryCount(1);
-        }, 2000);
+      // Check if it's an authentication error (user not logged in)
+      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+        console.log('User not authenticated, this is normal');
+        setUser(null);
+        setError(null); // Don't show error for not being logged in
+      } else {
+        // For other errors, set error state
+        setError(error?.message || 'Failed to load user');
+        setUser(null);
+        
+        // Auto retry once after 3 seconds for network errors
+        if (retryCount === 0 && !error?.message?.includes('401')) {
+          console.log('Will retry loading user in 3 seconds...');
+          setTimeout(() => {
+            setRetryCount(1);
+          }, 3000);
+        }
       }
     } finally {
       setLoading(false);
@@ -55,18 +62,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('Logging out...');
       await User.logout();
       setUser(null);
+      setError(null);
+      console.log('Logged out successfully');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
   const refreshUser = async () => {
+    console.log('Refreshing user...');
     await loadUser();
   };
 
   const retry = () => {
+    console.log('Manual retry triggered');
     setRetryCount(prev => prev + 1);
   };
 
