@@ -7,8 +7,9 @@ import { ClientManagement } from '@/components/admin/ClientManagement';
 import { SiteManagement } from '@/components/admin/SiteManagement';
 import { ProductManagement } from '@/components/admin/ProductManagement';
 import { OrderManagement } from '@/components/admin/OrderManagement';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Users, Building2, Package2, ClipboardList } from 'lucide-react';
+import { Users, Building2, Package2, ClipboardList, UserCog } from 'lucide-react';
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -22,14 +23,16 @@ const AdminPanel: React.FC = () => {
       orders: 'הזמנות',
       clients: 'לקוחות',
       sites: 'אתרים',
-      products: 'מוצרים'
+      products: 'מוצרים',
+      users: 'משתמשים'
     },
     en: {
       title: 'Admin Panel',
       orders: 'Orders',
       clients: 'Clients',
       sites: 'Sites',
-      products: 'Products'
+      products: 'Products',
+      users: 'Users'
     }
   };
 
@@ -51,7 +54,7 @@ const AdminPanel: React.FC = () => {
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-2 h-auto bg-transparent p-0 mb-6">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-2 h-auto bg-transparent p-0 mb-6">
                 <TabsTrigger 
                   value="orders" 
                   className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
@@ -80,6 +83,13 @@ const AdminPanel: React.FC = () => {
                   <Package2 className="w-4 h-4" />
                   <span>{t.products}</span>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="users"
+                  className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black flex items-center gap-2 py-3 px-4"
+                >
+                  <UserCog className="w-4 h-4" />
+                  <span>{t.users}</span>
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="orders" className="mt-0">
@@ -96,6 +106,10 @@ const AdminPanel: React.FC = () => {
 
               <TabsContent value="products" className="mt-0">
                 <ProductManagement />
+              </TabsContent>
+
+              <TabsContent value="users" className="mt-0">
+                <UserManagement />
               </TabsContent>
             </Tabs>
           </CardContent>
