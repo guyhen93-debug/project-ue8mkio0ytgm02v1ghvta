@@ -55,6 +55,11 @@
       "type": "boolean",
       "description": "Whether this is a legacy order without proper site linking",
       "default": false
+    },
+    "truck_access_space": {
+      "type": "boolean",
+      "description": "Whether there is space at the site for unloading a bath truck / full trailer (truck and trailer)",
+      "default": false
     }
   }
 }

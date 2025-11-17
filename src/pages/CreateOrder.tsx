@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, User, Notification } from '@/entities';
 import { ProductSelector } from '@/components/order/ProductSelector';
-import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle, Info, User as UserIcon, Phone } from 'lucide-react';
+import { Calendar, MapPin, Package, FileText, Truck, Hash, Sun, Sunset, Send, ArrowRightLeft, Factory, Building2, TruckIcon, PackageCheck, AlertCircle, Info, User as UserIcon, Phone, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -25,6 +26,7 @@ const CreateOrder = () => {
   const [submitting, setSubmitting] = useState(false);
   const [useCubicMeters, setUseCubicMeters] = useState(false);
   const [userClient, setUserClient] = useState<any>(null);
+  const [truckAccessSpace, setTruckAccessSpace] = useState(false);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -65,9 +67,18 @@ const CreateOrder = () => {
       // Auto-set delivery method to external for Maavar Rabin
       if (formData.supplier === 'maavar_rabin') {
         setFormData(prev => ({ ...prev, delivery_method: 'external' }));
+        // Auto-check truck access space for Maavar Rabin
+        setTruckAccessSpace(true);
       }
     }
   }, [formData.supplier]);
+
+  // Auto-check truck access space for Maavar Rabin when quantity or delivery method changes
+  useEffect(() => {
+    if (formData.supplier === 'maavar_rabin' && formData.delivery_method === 'external') {
+      setTruckAccessSpace(true);
+    }
+  }, [formData.supplier, formData.delivery_method, formData.quantity_tons]);
 
   const loadData = async () => {
     try {
@@ -250,6 +261,20 @@ const CreateOrder = () => {
     return { valid: true, message: '' };
   };
 
+  const shouldShowTruckAccessCheckbox = () => {
+    // Show only for external delivery with at least 40 tons
+    if (formData.delivery_method !== 'external') return false;
+    if (!formData.quantity_tons) return false;
+    
+    const quantity = parseInt(formData.quantity_tons);
+    return quantity >= 40;
+  };
+
+  const isTruckAccessDisabled = () => {
+    // Disabled (and checked) for Maavar Rabin
+    return formData.supplier === 'maavar_rabin';
+  };
+
   const createNotificationsForManagers = async (orderNumber: string, clientName: string) => {
     try {
       const allUsers = await User.list('-created_at', 1000);
@@ -330,7 +355,8 @@ const CreateOrder = () => {
         supplier: formData.supplier,
         notes: formData.notes,
         status: 'pending',
-        unlinked_site: false
+        unlinked_site: false,
+        truck_access_space: truckAccessSpace
       };
 
       await Order.create(orderData);
@@ -736,6 +762,42 @@ const CreateOrder = () => {
                     </p>
                   )}
                 </div>
+
+                {/* Truck Access Space Checkbox - Only for external delivery with 40+ tons */}
+                {shouldShowTruckAccessCheckbox() && (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border-2 border-orange-200 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="truck_access"
+                          checked={truckAccessSpace}
+                          onCheckedChange={(checked) => setTruckAccessSpace(checked as boolean)}
+                          disabled={isTruckAccessDisabled()}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <Label 
+                            htmlFor="truck_access" 
+                            className={`text-sm font-bold cursor-pointer ${isTruckAccessDisabled() ? 'text-gray-500' : 'text-gray-900'}`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <TruckIcon className="h-5 w-5 text-orange-600" />
+                              <span>יש מקום באתר לפריקה של משאית אמבטיה / פול טריילר</span>
+                            </div>
+                          </Label>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            משאית אמבטיה או פול טריילר (משאית ועגלה) דורשים מקום רחב יותר לפריקה. 
+                            {isTruckAccessDisabled() && (
+                              <span className="block mt-1 text-orange-700 font-medium">
+                                מעבר רבין: תיבה זו מסומנת אוטומטית ולא ניתנת לשינוי
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
