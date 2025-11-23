@@ -34,17 +34,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error loading user:', error);
       
       // Check if it's an authentication error (user not logged in)
-      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+      // This includes 401, Unauthorized, and "Failed to fetch" errors
+      const isAuthError = 
+        error?.message?.includes('401') || 
+        error?.message?.includes('Unauthorized') ||
+        error?.message?.includes('Failed to fetch');
+      
+      if (isAuthError) {
         console.log('User not authenticated, this is normal');
         setUser(null);
         setError(null); // Don't show error for not being logged in
       } else {
-        // For other errors, set error state
+        // For other unexpected errors, set error state
+        console.error('Unexpected error loading user:', error);
         setError(error?.message || 'Failed to load user');
         setUser(null);
         
-        // Auto retry once after 3 seconds for network errors
-        if (retryCount === 0 && !error?.message?.includes('401')) {
+        // Auto retry once after 3 seconds for unexpected errors
+        if (retryCount === 0) {
           console.log('Will retry loading user in 3 seconds...');
           setTimeout(() => {
             setRetryCount(1);
