@@ -94,7 +94,7 @@ class MockDataService {
   private sites: MockSite[] = [];
   private orderCounter: number = 2000; // Start from 2000 for new orders
   
-  // Updated demo users with client-site linkage
+  // Demo users - removed Piter user to avoid confusion
   private demoUsers: MockUser[] = [
     {
       id: 'c1',
@@ -117,15 +117,6 @@ class MockDataService {
       company: 'ארד בנייה',
       assigned_site_id: 's3',
       assigned_site_name: 'אתר נווה מדבר (אילת)'
-    },
-    {
-      id: 'admin',
-      email: 'david@piternoufi.com',
-      name: 'David Cohen',
-      role: 'manager',
-      client_id: 'admin',
-      client_name: 'Piter Noufi Ltd',
-      company: 'Piter Noufi Ltd'
     }
   ];
   
@@ -330,8 +321,8 @@ class MockDataService {
       {
         id: '1',
         order_id: '2001',
-        from_user_id: 'admin',
-        to_user_id: 'c1',
+        from_user_id: 'c1',
+        to_user_id: 'c2',
         content: 'הזמנתכם אושרה. האספקה מתוזמנת למחר בבוקר.',
         read: false,
         created_at: now,
