@@ -25,7 +25,7 @@ export const UserManagement: React.FC = () => {
   const [deletingUser, setDeletingUser] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    full_name: '',
     phone: '',
     company: '',
     language: 'he'
@@ -64,11 +64,13 @@ export const UserManagement: React.FC = () => {
       english: 'אנגלית',
       createdAt: 'נוצר ב',
       cannotEditEmail: 'לא ניתן לערוך אימייל או תפקיד',
-      note: 'הערה: ניתן לערוך רק פרטים אישיים. לשינוי אימייל או תפקיד, יש ליצור משתמש חדש.',
+      note: 'הערה: ניתן לערוך רק את הפרטים האישיים שלך. לעריכת משתמשים אחרים, השתמש בטאב "Manage" של Superdev.',
       deleteWarning: 'האם אתה בטוח שברצונך למחוק את המשתמש?',
       deleteWarningDetails: 'פעולה זו תמחק את המשתמש לצמיתות ולא ניתן לשחזר אותו.',
       cannotDeleteManager: 'אין לך הרשאה למחוק מנהלים אחרים',
-      cannotDeleteOthers: 'אין לך הרשאה למחוק משתמשים אחרים'
+      cannotDeleteOthers: 'אין לך הרשאה למחוק משתמשים אחרים',
+      cannotEditOthers: 'לא ניתן לערוך משתמשים אחרים דרך האפליקציה. ניתן לערוך רק את הפרטים האישיים שלך.',
+      editYourself: 'ערוך את הפרופיל שלי'
     },
     en: {
       title: 'User Management',
@@ -102,11 +104,13 @@ export const UserManagement: React.FC = () => {
       english: 'English',
       createdAt: 'Created at',
       cannotEditEmail: 'Cannot edit email or role',
-      note: 'Note: You can only edit personal details. To change email or role, create a new user.',
+      note: 'Note: You can only edit your own personal details. To edit other users, use the Superdev "Manage" tab.',
       deleteWarning: 'Are you sure you want to delete this user?',
       deleteWarningDetails: 'This action will permanently delete the user and cannot be undone.',
       cannotDeleteManager: 'You do not have permission to delete other managers',
-      cannotDeleteOthers: 'You do not have permission to delete other users'
+      cannotDeleteOthers: 'You do not have permission to delete other users',
+      cannotEditOthers: 'Cannot edit other users through the app. You can only edit your own profile.',
+      editYourself: 'Edit My Profile'
     }
   };
 
@@ -158,10 +162,26 @@ export const UserManagement: React.FC = () => {
     return false;
   };
 
+  const canEditUser = (userToEdit: any) => {
+    if (!currentUser) return false;
+    // Only allow editing yourself
+    return currentUser.id === userToEdit.id;
+  };
+
   const handleEdit = (user: any) => {
+    // Check if user can edit this user
+    if (!canEditUser(user)) {
+      toast({
+        title: t.error,
+        description: t.cannotEditOthers,
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setEditingUser(user);
     setFormData({
-      name: user.name || '',
+      full_name: user.name || user.full_name || '',
       phone: user.phone || '',
       company: user.company || '',
       language: user.language || 'he'
@@ -214,20 +234,42 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!editingUser) return;
+    if (!editingUser || !currentUser) return;
+
+    // Double check that user is editing themselves
+    if (editingUser.id !== currentUser.id) {
+      toast({
+        title: t.error,
+        description: t.cannotEditOthers,
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
-      await User.update(editingUser.id, formData);
+      console.log('Updating profile with data:', formData);
+      
+      // Use User.updateProfile() which is the correct method for updating user data
+      await User.updateProfile(formData);
       
       toast({ title: t.userUpdated });
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      loadData();
+      
+      // Reload users list and refresh current user
+      await loadData();
+      
+      // If language was changed, reload the page to apply it
+      if (formData.language !== currentUser.language) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
         title: t.error,
-        description: 'Failed to update user. Please try editing through the user profile page.',
+        description: 'Failed to update profile. Please try again.',
         variant: 'destructive'
       });
     }
@@ -370,15 +412,28 @@ export const UserManagement: React.FC = () => {
                 {/* Actions */}
                 <div className="pt-3 border-t border-gray-100">
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(user)}
-                      className="flex-1"
-                    >
-                      <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                      {t.edit}
-                    </Button>
+                    {canEditUser(user) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(user)}
+                        className="flex-1"
+                      >
+                        <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                        {currentUser && currentUser.id === user.id ? t.editYourself : t.edit}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="flex-1 opacity-50"
+                        title={t.cannotEditOthers}
+                      >
+                        <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                        {t.edit}
+                      </Button>
+                    )}
                     {canDeleteUser(user) && (
                       <Button
                         size="sm"
@@ -430,8 +485,8 @@ export const UserManagement: React.FC = () => {
             <div className="space-y-2">
               <Label>{t.name}</Label>
               <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
               />
             </div>
 
