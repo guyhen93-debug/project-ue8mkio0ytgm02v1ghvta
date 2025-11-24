@@ -6,12 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { User } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, RefreshCw, UserPlus, Edit, Mail, Building2, Globe, Shield, User as UserIcon, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, Edit, Mail, Building2, Globe, User as UserIcon } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
   const { language } = useLanguage();
@@ -22,8 +21,6 @@ export const UserManagement: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [deletingUser, setDeletingUser] = useState<any>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -50,27 +47,20 @@ export const UserManagement: React.FC = () => {
       administrator: 'מנהל מערכת',
       actions: 'פעולות',
       edit: 'ערוך',
-      delete: 'מחק',
       noUsers: 'אין משתמשים במערכת',
       userUpdated: 'משתמש עודכן בהצלחה',
-      userDeleted: 'משתמש נמחק בהצלחה',
       error: 'שגיאה',
       editUser: 'ערוך משתמש',
-      deleteUser: 'מחק משתמש',
       save: 'שמור',
       cancel: 'ביטול',
-      confirmDelete: 'אישור מחיקה',
       hebrew: 'עברית',
       english: 'אנגלית',
       createdAt: 'נוצר ב',
       cannotEditEmail: 'לא ניתן לערוך אימייל או תפקיד',
       note: 'הערה: ניתן לערוך רק את הפרטים האישיים שלך. לעריכת משתמשים אחרים, השתמש בטאב "Manage" של Superdev.',
-      deleteWarning: 'האם אתה בטוח שברצונך למחוק את המשתמש?',
-      deleteWarningDetails: 'פעולה זו תמחק את המשתמש לצמיתות ולא ניתן לשחזר אותו.',
-      cannotDeleteManager: 'אין לך הרשאה למחוק מנהלים אחרים',
-      cannotDeleteOthers: 'אין לך הרשאה למחוק משתמשים אחרים',
       cannotEditOthers: 'לא ניתן לערוך משתמשים אחרים דרך האפליקציה. ניתן לערוך רק את הפרטים האישיים שלך.',
-      editYourself: 'ערוך את הפרופיל שלי'
+      editYourself: 'ערוך את הפרופיל שלי',
+      manageNote: 'להוספת, עריכת תפקיד או מחיקת משתמשים - השתמש בטאב "Manage" של Superdev'
     },
     en: {
       title: 'User Management',
@@ -90,27 +80,20 @@ export const UserManagement: React.FC = () => {
       administrator: 'Administrator',
       actions: 'Actions',
       edit: 'Edit',
-      delete: 'Delete',
       noUsers: 'No users in the system',
       userUpdated: 'User updated successfully',
-      userDeleted: 'User deleted successfully',
       error: 'Error',
       editUser: 'Edit User',
-      deleteUser: 'Delete User',
       save: 'Save',
       cancel: 'Cancel',
-      confirmDelete: 'Confirm Delete',
       hebrew: 'Hebrew',
       english: 'English',
       createdAt: 'Created at',
       cannotEditEmail: 'Cannot edit email or role',
       note: 'Note: You can only edit your own personal details. To edit other users, use the Superdev "Manage" tab.',
-      deleteWarning: 'Are you sure you want to delete this user?',
-      deleteWarningDetails: 'This action will permanently delete the user and cannot be undone.',
-      cannotDeleteManager: 'You do not have permission to delete other managers',
-      cannotDeleteOthers: 'You do not have permission to delete other users',
       cannotEditOthers: 'Cannot edit other users through the app. You can only edit your own profile.',
-      editYourself: 'Edit My Profile'
+      editYourself: 'Edit My Profile',
+      manageNote: 'To add, change roles, or delete users - use the Superdev "Manage" tab'
     }
   };
 
@@ -138,30 +121,6 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const canDeleteUser = (userToDelete: any) => {
-    if (!currentUser) return false;
-    
-    // Everyone can delete themselves
-    if (currentUser.id === userToDelete.id) {
-      return true;
-    }
-    
-    // Clients cannot delete anyone else
-    if (currentUser.role === 'client') {
-      return false;
-    }
-    
-    // Managers can delete clients but not other managers
-    if (currentUser.role === 'manager' || currentUser.role === 'administrator') {
-      if (userToDelete.role === 'manager' || userToDelete.role === 'administrator') {
-        return false;
-      }
-      return true;
-    }
-    
-    return false;
-  };
-
   const canEditUser = (userToEdit: any) => {
     if (!currentUser) return false;
     // Only allow editing yourself
@@ -187,50 +146,6 @@ export const UserManagement: React.FC = () => {
       language: user.language || 'he'
     });
     setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteClick = (user: any) => {
-    if (!canDeleteUser(user)) {
-      const isManager = user.role === 'manager' || user.role === 'administrator';
-      toast({
-        title: t.error,
-        description: isManager ? t.cannotDeleteManager : t.cannotDeleteOthers,
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    setDeletingUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingUser) return;
-
-    try {
-      console.log('Deleting user:', deletingUser.id);
-      await User.delete(deletingUser.id);
-      
-      toast({ title: t.userDeleted });
-      setIsDeleteDialogOpen(false);
-      setDeletingUser(null);
-      
-      // If user deleted themselves, logout
-      if (currentUser && currentUser.id === deletingUser.id) {
-        console.log('User deleted themselves, logging out...');
-        await User.logout();
-        window.location.href = '/';
-      } else {
-        loadData();
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: t.error,
-        description: 'Failed to delete user',
-        variant: 'destructive'
-      });
-    }
   };
 
   const handleSave = async () => {
@@ -310,6 +225,13 @@ export const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Info Banner */}
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-900">
+          ℹ️ {t.manageNote}
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
@@ -410,43 +332,19 @@ export const UserManagement: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="flex gap-2">
-                    {canEditUser(user) ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(user)}
-                        className="flex-1"
-                      >
-                        <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                        {currentUser && currentUser.id === user.id ? t.editYourself : t.edit}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled
-                        className="flex-1 opacity-50"
-                        title={t.cannotEditOthers}
-                      >
-                        <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                        {t.edit}
-                      </Button>
-                    )}
-                    {canDeleteUser(user) && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteClick(user)}
-                        className="flex-1"
-                      >
-                        <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                        {t.delete}
-                      </Button>
-                    )}
+                {canEditUser(user) && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(user)}
+                      className="w-full"
+                    >
+                      <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                      {t.editYourself}
+                    </Button>
                   </div>
-                </div>
+                )}
 
                 {/* Created Date */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
@@ -527,67 +425,6 @@ export const UserManagement: React.FC = () => {
                 {t.save}
               </Button>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
-                {t.cancel}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]" dir={isRTL ? 'rtl' : 'ltr'}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
-              {t.deleteUser}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <Alert className="bg-red-50 border-red-200">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-sm text-red-900">
-                <p className="font-bold mb-2">{t.deleteWarning}</p>
-                <p>{t.deleteWarningDetails}</p>
-              </AlertDescription>
-            </Alert>
-
-            {deletingUser && (
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-gray-500" />
-                    <span className="font-bold">{deletingUser.name || deletingUser.full_name || deletingUser.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-700">{deletingUser.email}</span>
-                  </div>
-                  <Badge className={`${getRoleBadgeColor(deletingUser.role)} text-xs w-fit`}>
-                    {getRoleLabel(deletingUser.role)}
-                  </Badge>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="destructive" 
-                onClick={handleDeleteConfirm} 
-                className="flex-1"
-              >
-                <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                {t.confirmDelete}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsDeleteDialogOpen(false);
-                  setDeletingUser(null);
-                }} 
-                className="flex-1"
-              >
                 {t.cancel}
               </Button>
             </div>
