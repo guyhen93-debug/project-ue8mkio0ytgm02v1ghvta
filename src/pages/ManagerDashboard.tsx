@@ -47,17 +47,18 @@ const ManagerDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 8000)
-      );
-      
-      const ordersPromise = Order.list('-created_at', 1000);
-      const allOrders = await Promise.race([ordersPromise, timeoutPromise]);
+      console.log('Loading orders...');
+      const allOrders = await Order.list('-created_at', 1000);
+      console.log('Orders loaded successfully:', allOrders?.length || 0);
       
       setOrders(allOrders || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading orders:', error);
-      setError(t.error);
+      
+      // Only show error if it's not an auth issue
+      if (!error?.message?.includes('401') && !error?.message?.includes('Unauthorized')) {
+        setError(t.error);
+      }
       setOrders([]);
     } finally {
       setLoading(false);

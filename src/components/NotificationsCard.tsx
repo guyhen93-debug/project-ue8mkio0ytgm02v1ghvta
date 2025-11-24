@@ -48,42 +48,36 @@ const NotificationsCard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Get current user with timeout
+      // Get current user
       let currentUser;
       try {
-        const userTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('User request timeout')), 10000)
-        );
-        
-        const userPromise = User.me();
-        currentUser = await Promise.race([userPromise, userTimeoutPromise]);
-      } catch (userError) {
-        console.error('Error getting user:', userError);
+        console.log('Loading user for notifications...');
+        currentUser = await User.me();
+        console.log('User loaded for notifications:', currentUser?.email);
+      } catch (userError: any) {
+        console.log('Could not get user for notifications:', userError?.message);
+        // If user is not logged in, just show no notifications
         setNotifications([]);
         setLoading(false);
         return;
       }
 
       if (!currentUser || !currentUser.email) {
-        console.log('No user found or user has no email');
+        console.log('No user or email found');
         setNotifications([]);
         setLoading(false);
         return;
       }
 
-      // Get notifications with separate timeout
+      // Get notifications
       try {
-        const notificationsTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Notifications request timeout')), 10000)
-        );
-        
-        const notificationsPromise = Notification.filter(
+        console.log('Loading notifications for user:', currentUser.email);
+        const userNotifications = await Notification.filter(
           { recipient_email: currentUser.email },
           '-created_at',
           5
         );
-        
-        const userNotifications = await Promise.race([notificationsPromise, notificationsTimeoutPromise]);
+        console.log('Notifications loaded:', userNotifications?.length || 0);
         setNotifications(userNotifications || []);
       } catch (notifError) {
         console.error('Error loading notifications:', notifError);
@@ -92,7 +86,7 @@ const NotificationsCard: React.FC = () => {
       }
     } catch (error) {
       console.error('Unexpected error in loadNotifications:', error);
-      setError(t.error);
+      // Don't show error for auth issues
       setNotifications([]);
     } finally {
       setLoading(false);
