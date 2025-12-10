@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -115,24 +117,89 @@ const App = () => {
         <ErrorBoundary>
             <LanguageProvider>
                 <AuthProvider>
-                    <QueryClientProvider client={queryClient}>
-                        <Router>
-                            <div className="page-transition">
-                                <Routes>
-                                    <Route path="/manager-dashboard" element={<ManagerDashboard />} />
-                                    <Route path="/client-dashboard" element={<ClientDashboard />} />
-                                    <Route path="/admin" element={<AdminPanel />} />
-                                    <Route path="/create-order" element={<CreateOrder />} />
-                                    <Route path="/order-history" element={<OrderHistory />} />
-                                    <Route path="/inbox" element={<Inbox />} />
-                                    <Route path="/notifications" element={<Notifications />} />
-                                    <Route path="/profile" element={<Profile />} />
-                                    <Route path="/" element={<HomeRedirect />} />
-                                    <Route path="*" element={<HomeRedirect />} />
-                                </Routes>
-                            </div>
-                        </Router>
-                    </QueryClientProvider>
+                    <DataProvider>
+                        <QueryClientProvider client={queryClient}>
+                            <Router>
+                                <div className="page-transition">
+                                    <Routes>
+                                        {/* Manager Routes */}
+                                        <Route
+                                            path="/manager-dashboard"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <ManagerDashboard />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/admin"
+                                            element={
+                                                <ProtectedRoute requireAuth={true} requireManager={true}>
+                                                    <AdminPanel />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        {/* Client Routes */}
+                                        <Route
+                                            path="/client-dashboard"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <ClientDashboard />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        {/* Shared Routes */}
+                                        <Route
+                                            path="/create-order"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <CreateOrder />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/order-history"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <OrderHistory />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/inbox"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <Inbox />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/notifications"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <Notifications />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/profile"
+                                            element={
+                                                <ProtectedRoute requireAuth={true}>
+                                                    <Profile />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        {/* Default Routes */}
+                                        <Route path="/" element={<HomeRedirect />} />
+                                        <Route path="*" element={<HomeRedirect />} />
+                                    </Routes>
+                                </div>
+                            </Router>
+                        </QueryClientProvider>
+                    </DataProvider>
                 </AuthProvider>
             </LanguageProvider>
         </ErrorBoundary>

@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Order, Site, Client, Product, User, Notification } from '@/entities';
+import { Order, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2, Building2, Factory, Star } from 'lucide-react';
+import { useData } from '@/contexts/DataContext';
+import { Package } from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { OrderFilters } from './OrderFilters';
+import { OrderCard } from './OrderCard';
 import OrderEditDialog from './OrderEditDialog';
+import { getProductName, getSiteName, getClientName } from '@/lib/orderUtils';
 
 export const OrderManagement: React.FC = () => {
     const { language } = useLanguage();
+    const { products, sites, clients, productsMap, sitesMap, clientsMap, loading: dataLoading } = useData();
     const [orders, setOrders] = useState<any[]>([]);
-    const [sites, setSites] = useState<any[]>([]);
-    const [clients, setClients] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -145,22 +144,16 @@ export const OrderManagement: React.FC = () => {
     const isRTL = language === 'he';
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (!dataLoading) {
+            loadData();
+        }
+    }, [dataLoading]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const [ordersData, sitesData, clientsData, productsData] = await Promise.all([
-                Order.list('-created_at', 1000),
-                Site.list('-created_at', 1000),
-                Client.list('-created_at', 1000),
-                Product.list('-created_at', 1000)
-            ]);
+            const ordersData = await Order.list('-created_at', 1000);
             setOrders(ordersData);
-            setSites(sitesData);
-            setClients(clientsData);
-            setProducts(productsData);
         } catch (error) {
             console.error('Error loading data:', error);
             toast({
@@ -261,116 +254,40 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
-    const getProductName = (productId: string) => {
-        const product = products.find(p => p.product_id === productId);
-        return product ? (language === 'he' ? product.name_he : product.name_en) : productId;
-    };
-
-    const getSite = (siteId: string) => {
-        return sites.find(s => s.id === siteId);
-    };
-
-    const getSiteName = (siteId: string) => {
-        const site = getSite(siteId);
-        return site?.site_name || t.site;
-    };
-
-    const getClientName = (siteId: string) => {
-        const site = getSite(siteId);
-        if (!site) return '';
-        const client = clients.find(c => c.id === site.client_id);
-        return client?.name || '';
-    };
-
-    const getRegionName = (siteId: string) => {
-        const site = getSite(siteId);
-        if (!site) return '';
-        return site.region_type === 'eilat' ? t.eilat : t.outsideEilat;
-    };
-
-    const getSupplierName = (supplier: string) => {
-        if (!supplier) return '';
-        return supplier === 'shifuli_har' ? t.shifuliHar : t.maavarRabin;
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
-
-    const getStatusColor = (status: string) => {
-        const colors = {
-            pending: 'status-pending',
-            approved: 'status-approved',
-            rejected: 'status-rejected',
-            completed: 'status-completed'
-        };
-        return colors[status] || 'bg-gray-100 text-gray-800';
-    };
-
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getSiteName(order.site_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getProductName(order.product_id).toLowerCase().includes(searchTerm.toLowerCase());
+            getSiteName(order.site_id, sitesMap).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            getProductName(order.product_id, productsMap, language).toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
 
+    if (loading || dataLoading) {
+        return <LoadingSpinner />;
+    }
+
     return (
         <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <div className="relative flex-1">
-                    <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
-                    <Input
-                        placeholder={t.search}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className={isRTL ? 'pr-10' : 'pl-10'}
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        className="piter-yellow flex-1 sm:flex-none"
-                        onClick={() => {
-                            setEditingOrder(null);
-                            setIsEditDialogOpen(true);
-                        }}
-                    >
-                        <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                        {t.addOrder}
-                    </Button>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t.filterAll}</SelectItem>
-                            <SelectItem value="pending">{t.filterPending}</SelectItem>
-                            <SelectItem value="approved">{t.filterApproved}</SelectItem>
-                            <SelectItem value="rejected">{t.filterRejected}</SelectItem>
-                            <SelectItem value="completed">{t.filterCompleted}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" onClick={loadData} size="icon" className="flex-shrink-0">
-                        <RefreshCw className="w-4 h-4" />
-                    </Button>
-                </div>
-            </div>
+            {/* Filters */}
+            <OrderFilters
+                searchTerm={searchTerm}
+                statusFilter={statusFilter}
+                onSearchChange={setSearchTerm}
+                onStatusChange={setStatusFilter}
+                onRefresh={loadData}
+                onAddNew={() => {
+                    setEditingOrder(null);
+                    setIsEditDialogOpen(true);
+                }}
+                translations={t}
+                isRTL={isRTL}
+            />
 
             {/* Orders List */}
-            {loading ? (
-                <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
-                </div>
-            ) : filteredOrders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -379,225 +296,23 @@ export const OrderManagement: React.FC = () => {
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    {filteredOrders.map((order) => {
-                        const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
-
-                        return (
-                            <Card key={order.id}>
-                                <CardContent className="p-4">
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                <h3 className="font-bold text-sm sm:text-base">
-                                                    {t.orderNumber} #{order.order_number || order.id.slice(-6)}
-                                                </h3>
-                                                <Badge className={`${getStatusColor(order.status)} text-xs`}>
-                                                    {t[order.status]}
-                                                </Badge>
-                                                {/* Client confirmation status badges */}
-                                                {order.is_delivered && !order.is_client_confirmed && (
-                                                    <Badge className="bg-orange-100 text-orange-800 text-xs">
-                                                        <Clock className="w-3 h-3 ml-1" />
-                                                        {t.waitingClientConfirm}
-                                                    </Badge>
-                                                )}
-                                                {order.is_client_confirmed && (
-                                                    <Badge className="bg-green-100 text-green-800 text-xs">
-                                                        <CheckCircle className="w-3 h-3 ml-1" />
-                                                        {t.clientConfirmed}
-                                                    </Badge>
-                                                )}
-                                                {/* Rating badge */}
-                                                {order.rating && (
-                                                    <Badge className="bg-purple-100 text-purple-800 text-xs">
-                                                        <Star className="w-3 h-3 ml-1 fill-purple-600" />
-                                                        {order.rating}/5
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-gray-600">
-                                                {getClientName(order.site_id)}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div className="space-y-2 mb-3">
-                                        {order.site_id && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.site}:</span>
-                                                <span className="font-medium text-gray-900">{getSiteName(order.site_id)}</span>
-                                            </div>
-                                        )}
-                                        {order.site_id && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.region}:</span>
-                                                <span className="font-medium text-blue-700">{getRegionName(order.site_id)}</span>
-                                            </div>
-                                        )}
-                                        {order.supplier && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <Factory className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.supplier}:</span>
-                                                <span className="font-medium text-orange-700">{getSupplierName(order.supplier)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                            <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                            <span className="text-gray-500">{t.product}:</span>
-                                            <span className="font-medium text-gray-900">{getProductName(order.product_id)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                            <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                            <span className="text-gray-500">{t.quantity}:</span>
-                                            <span className="font-medium text-gray-900">{order.quantity_tons} {t.tons}</span>
-                                        </div>
-                                        {order.delivery_date && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.deliveryDate}:</span>
-                                                <span className="font-medium text-gray-900">{formatDate(order.delivery_date)}</span>
-                                            </div>
-                                        )}
-                                        {order.delivery_window && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <TimeIcon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.timeWindow}:</span>
-                                                <span className="font-medium text-gray-900">
-                                                    {order.delivery_window === 'morning' ? t.morning : t.afternoon}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {order.delivery_method && (
-                                            <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                                <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                                <span className="text-gray-500">{t.deliveryMethod}:</span>
-                                                <span className="font-medium text-gray-900">
-                                                    {order.delivery_method === 'self' ? t.self : t.external}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Notes */}
-                                    {order.notes && (
-                                        <div className="mb-3 pt-3 border-t border-gray-100">
-                                            <div className="flex items-start gap-2">
-                                                <FileText className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-                                                <div className="flex-1">
-                                                    <p className="text-xs text-gray-500">{t.notes}:</p>
-                                                    <p className="text-xs sm:text-sm text-gray-700 mt-1">{order.notes}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Actions */}
-                                    <div className="space-y-2 pt-3 border-t border-gray-100">
-                                        <div className="flex gap-2">
-                                            {order.status === 'pending' && (
-                                                <>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => updateOrderStatus(order.id, 'approved')}
-                                                        className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                                                    >
-                                                        <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                        {t.approve}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => updateOrderStatus(order.id, 'rejected')}
-                                                        className="flex-1"
-                                                    >
-                                                        <XCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                        {t.reject}
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {order.status === 'approved' && (
-                                                <>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => updateOrderStatus(order.id, 'completed')}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
-                                                    >
-                                                        <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                        {t.markCompleted}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => updateOrderStatus(order.id, 'pending')}
-                                                        className="flex-1"
-                                                    >
-                                                        <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                        {t.returnToPending}
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {order.status === 'rejected' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => updateOrderStatus(order.id, 'pending')}
-                                                    className="w-full"
-                                                >
-                                                    <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                    {t.returnToPending}
-                                                </Button>
-                                            )}
-                                            {order.status === 'completed' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => updateOrderStatus(order.id, 'approved')}
-                                                    className="w-full"
-                                                >
-                                                    <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                    {t.returnToApproved}
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setEditingOrder(order);
-                                                    setIsEditDialogOpen(true);
-                                                }}
-                                                className="flex-1"
-                                            >
-                                                <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                {t.edit}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={() => handleDelete(order.id)}
-                                                className="flex-1"
-                                            >
-                                                <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                {t.delete}
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {/* Created Date */}
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <p className="text-xs text-gray-400">
-                                            {t.createdAt} {formatDate(order.created_at)}
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
+                    {filteredOrders.map((order) => (
+                        <OrderCard
+                            key={order.id}
+                            order={order}
+                            products={productsMap}
+                            sites={sitesMap}
+                            clients={clientsMap}
+                            language={language}
+                            translations={t}
+                            onEdit={(order) => {
+                                setEditingOrder(order);
+                                setIsEditDialogOpen(true);
+                            }}
+                            onDelete={handleDelete}
+                            onStatusChange={updateOrderStatus}
+                        />
+                    ))}
                 </div>
             )}
 
