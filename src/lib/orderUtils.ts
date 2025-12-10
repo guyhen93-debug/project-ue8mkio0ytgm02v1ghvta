@@ -1,0 +1,135 @@
+import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
+
+/**
+ * Get product name by ID
+ */
+export const getProductName = (
+    productId: string,
+    products: Record<string, any>,
+    language: string = 'he'
+): string => {
+    const product = products[productId];
+    if (!product) return 'מוצר לא ידוע';
+    return product.name_he || product.name_en || product.product_id || 'מוצר לא ידוע';
+};
+
+/**
+ * Get site name by ID
+ */
+export const getSiteName = (siteId: string, sites: Record<string, any>): string => {
+    const site = sites[siteId];
+    return site?.site_name || 'אתר לא ידוע';
+};
+
+/**
+ * Get client name by site ID
+ */
+export const getClientName = (
+    siteId: string,
+    sites: Record<string, any>,
+    clients: Record<string, any>
+): string => {
+    const site = sites[siteId];
+    if (!site) return 'לקוח לא ידוע';
+    const client = clients[site.client_id];
+    return client?.name || 'לקוח לא ידוע';
+};
+
+/**
+ * Get supplier name
+ */
+export const getSupplierName = (supplier: string, language: string = 'he'): string => {
+    const names = {
+        shifuli_har: { he: 'שיפולי הר', en: 'Shifuli Har' },
+        maavar_rabin: { he: 'מעבר רבין', en: 'Maavar Rabin' }
+    };
+    return names[supplier]?.[language] || supplier;
+};
+
+/**
+ * Format date
+ */
+export const formatOrderDate = (dateString: string, language: string = 'he'): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
+/**
+ * Format date with time
+ */
+export const formatOrderDateTime = (dateString: string, language: string = 'he'): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+/**
+ * Get status badge configuration
+ */
+export const getStatusConfig = (status: string, language: string = 'he') => {
+    const configs = {
+        pending: {
+            label: { he: 'ממתין', en: 'Pending' },
+            className: 'bg-yellow-100 text-yellow-800'
+        },
+        approved: {
+            label: { he: 'מאושר', en: 'Approved' },
+            className: 'bg-green-100 text-green-800'
+        },
+        rejected: {
+            label: { he: 'נדחה', en: 'Rejected' },
+            className: 'bg-red-100 text-red-800'
+        },
+        completed: {
+            label: { he: 'הושלם', en: 'Completed' },
+            className: 'bg-blue-100 text-blue-800'
+        }
+    };
+    
+    const config = configs[status] || configs.pending;
+    return {
+        label: config.label[language],
+        className: config.className
+    };
+};
+
+/**
+ * Get client ID from site
+ */
+export const getClientIdFromSite = (siteId: string, sites: any[]): string | null => {
+    const site = sites.find(s => s.id === siteId);
+    return site?.client_id || null;
+};
+
+/**
+ * Find user's client
+ */
+export const findUserClient = (user: any, clients: any[]): any | null => {
+    if (!user) return null;
+
+    // Try to find by created_by
+    let matchingClient = clients.find(
+        c => c.created_by === user.email || (user.company && c.name === user.company)
+    );
+
+    // Fallback: try to match by email pattern
+    if (!matchingClient && user.email) {
+        matchingClient = clients.find(
+            c =>
+                user.email.toLowerCase().includes(c.name.toLowerCase()) ||
+                c.name.toLowerCase().includes(user.email.split('@')[0].toLowerCase())
+        );
+    }
+
+    return matchingClient || null;
+};
