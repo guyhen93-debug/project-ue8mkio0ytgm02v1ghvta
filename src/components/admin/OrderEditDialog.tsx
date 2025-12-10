@@ -3,499 +3,607 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, Product, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface OrderEditDialogProps {
-  order?: any;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: () => void;
+    order?: any;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: () => void;
 }
 
 const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClose, onSave }) => {
-  const { language } = useLanguage();
-  const [clients, setClients] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [filteredSites, setFilteredSites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    client_id: '',
-    site_id: '',
-    product_id: '',
-    quantity_tons: 0,
-    delivery_date: new Date(),
-    delivery_window: 'morning',
-    delivery_method: 'self',
-    supplier: 'shifuli_har',
-    notes: '',
-    status: 'pending'
-  });
+    const { language } = useLanguage();
+    const [clients, setClients] = useState<any[]>([]);
+    const [sites, setSites] = useState<any[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [filteredSites, setFilteredSites] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [formData, setFormData] = useState({
+        client_id: '',
+        site_id: '',
+        product_id: '',
+        quantity_tons: 0,
+        delivery_date: new Date(),
+        delivery_window: 'morning',
+        delivery_method: 'self',
+        supplier: 'shifuli_har',
+        notes: '',
+        status: 'pending',
+        is_delivered: false
+    });
 
-  const translations = {
-    he: {
-      editOrder: 'ערוך הזמנה',
-      createOrder: 'צור הזמנה',
-      client: 'לקוח',
-      site: 'אתר',
-      product: 'מוצר',
-      quantity: 'כמות (טון)',
-      deliveryDate: 'תאריך אספקה',
-      timeWindow: 'חלון זמן',
-      morning: 'בוקר',
-      afternoon: 'אחר הצהריים',
-      deliveryMethod: 'שיטת אספקה',
-      self: 'עצמי',
-      external: 'חיצוני',
-      supplier: 'ספק',
-      shifuliHar: 'שיפולי הר',
-      maavarRabin: 'מעבר רבין',
-      notes: 'הערות',
-      status: 'סטטוס',
-      pending: 'ממתין',
-      approved: 'מאושר',
-      rejected: 'נדחה',
-      completed: 'הושלם',
-      save: 'שמור',
-      cancel: 'ביטול',
-      selectClient: 'בחר לקוח',
-      selectSite: 'בחר אתר',
-      selectProduct: 'בחר מוצר',
-      requiredFields: 'יש למלא את כל השדות החובה',
-      orderUpdated: 'הזמנה עודכנה בהצלחה',
-      orderCreated: 'הזמנה נוצרה בהצלחה',
-      error: 'שגיאה',
-      loading: 'טוען...'
-    },
-    en: {
-      editOrder: 'Edit Order',
-      createOrder: 'Create Order',
-      client: 'Client',
-      site: 'Site',
-      product: 'Product',
-      quantity: 'Quantity (tons)',
-      deliveryDate: 'Delivery Date',
-      timeWindow: 'Time Window',
-      morning: 'Morning',
-      afternoon: 'Afternoon',
-      deliveryMethod: 'Delivery Method',
-      self: 'Self',
-      external: 'External',
-      supplier: 'Supplier',
-      shifuliHar: 'Shifuli Har',
-      maavarRabin: 'Maavar Rabin',
-      notes: 'Notes',
-      status: 'Status',
-      pending: 'Pending',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      completed: 'Completed',
-      save: 'Save',
-      cancel: 'Cancel',
-      selectClient: 'Select client',
-      selectSite: 'Select site',
-      selectProduct: 'Select product',
-      requiredFields: 'Please fill all required fields',
-      orderUpdated: 'Order updated successfully',
-      orderCreated: 'Order created successfully',
-      error: 'Error',
-      loading: 'Loading...'
-    }
-  };
-
-  const t = translations[language];
-  const isRTL = language === 'he';
-
-  useEffect(() => {
-    if (isOpen) {
-      loadDataAndPopulateForm();
-    }
-  }, [isOpen, order]);
-
-  useEffect(() => {
-    if (formData.client_id && sites.length > 0) {
-      const clientSites = sites.filter(s => s.client_id === formData.client_id);
-      setFilteredSites(clientSites);
-    } else {
-      setFilteredSites([]);
-    }
-  }, [formData.client_id, sites]);
-
-  const loadDataAndPopulateForm = async () => {
-    try {
-      setLoading(true);
-      
-      // Load all data first
-      const [clientsData, sitesData, productsData] = await Promise.all([
-        Client.list('-created_at', 1000),
-        Site.list('-created_at', 1000),
-        Product.list('-created_at', 1000)
-      ]);
-      
-      console.log('Loaded clients:', clientsData.length);
-      console.log('Loaded sites:', sitesData.length);
-      console.log('Loaded products:', productsData.length);
-      
-      setClients(clientsData);
-      setSites(sitesData);
-      setProducts(productsData);
-
-      // Now populate form if editing
-      if (order) {
-        console.log('Populating form with order:', order);
-        const site = sitesData.find(s => s.id === order.site_id);
-        console.log('Found site for order:', site);
-        
-        const newFormData = {
-          client_id: site?.client_id || '',
-          site_id: order.site_id || '',
-          product_id: order.product_id || '',
-          quantity_tons: order.quantity_tons || 0,
-          delivery_date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
-          delivery_window: order.delivery_window || 'morning',
-          delivery_method: order.delivery_method || 'self',
-          supplier: order.supplier || 'shifuli_har',
-          notes: order.notes || '',
-          status: order.status || 'pending'
-        };
-        
-        console.log('Setting form data:', newFormData);
-        setFormData(newFormData);
-      } else {
-        // Reset form for new order
-        setFormData({
-          client_id: '',
-          site_id: '',
-          product_id: '',
-          quantity_tons: 0,
-          delivery_date: new Date(),
-          delivery_window: 'morning',
-          delivery_method: 'self',
-          supplier: 'shifuli_har',
-          notes: '',
-          status: 'pending'
-        });
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast({
-        title: t.error,
-        description: 'Failed to load data',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createStatusChangeNotifications = async (orderNumber: string, newStatus: string, orderCreatedBy: string) => {
-    try {
-      const statusMessages = {
-        approved: `הזמנה #${orderNumber} אושרה`,
-        rejected: `הזמנה #${orderNumber} נדחתה`,
-        completed: `הזמנה #${orderNumber} הושלמה`,
-        pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`
-      };
-
-      const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
-
-      // Get all users
-      const allUsers = await User.list('-created_at', 1000);
-      
-      // Get managers
-      const managers = allUsers.filter(u => u.role === 'manager');
-      
-      // Get the client who created the order
-      const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
-      
-      // Create notifications for managers
-      const notifications = managers.map(manager => 
-        Notification.create({
-          recipient_email: manager.email,
-          type: 'order_status_change',
-          message: message,
-          is_read: false,
-          order_id: orderNumber
-        })
-      );
-
-      // Create notification for the client who created the order
-      if (orderCreator && orderCreator.role === 'client') {
-        notifications.push(
-          Notification.create({
-            recipient_email: orderCreator.email,
-            type: 'order_status_change',
-            message: message,
-            is_read: false,
-            order_id: orderNumber
-          })
-        );
-      }
-
-      await Promise.all(notifications);
-      console.log('Status change notifications created successfully');
-    } catch (error) {
-      console.error('Error creating status change notifications:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.site_id || !formData.product_id || formData.quantity_tons <= 0) {
-      toast({
-        title: t.error,
-        description: t.requiredFields,
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    try {
-      const orderData = {
-        site_id: formData.site_id,
-        product_id: formData.product_id,
-        quantity_tons: formData.quantity_tons,
-        delivery_date: formData.delivery_date.toISOString(),
-        delivery_window: formData.delivery_window,
-        delivery_method: formData.delivery_method,
-        supplier: formData.supplier,
-        notes: formData.notes,
-        status: formData.status
-      };
-
-      if (order) {
-        // Check if status changed
-        const statusChanged = order.status !== formData.status;
-        
-        await Order.update(order.id, orderData);
-        
-        // Create notifications if status changed
-        if (statusChanged) {
-          await createStatusChangeNotifications(order.order_number, formData.status, order.created_by);
+    const translations = {
+        he: {
+            editOrder: 'ערוך הזמנה',
+            createOrder: 'צור הזמנה',
+            client: 'לקוח',
+            site: 'אתר',
+            product: 'מוצר',
+            quantity: 'כמות (טון)',
+            deliveryDate: 'תאריך אספקה',
+            timeWindow: 'חלון זמן',
+            morning: 'בוקר',
+            afternoon: 'אחר הצהריים',
+            deliveryMethod: 'שיטת אספקה',
+            self: 'עצמי',
+            external: 'חיצוני',
+            supplier: 'ספק',
+            shifuliHar: 'שיפולי הר',
+            maavarRabin: 'מעבר רבין',
+            notes: 'הערות',
+            status: 'סטטוס',
+            pending: 'ממתין',
+            approved: 'מאושר',
+            rejected: 'נדחה',
+            completed: 'הושלם',
+            save: 'שמור',
+            cancel: 'ביטול',
+            selectClient: 'בחר לקוח',
+            selectSite: 'בחר אתר',
+            selectProduct: 'בחר מוצר',
+            requiredFields: 'יש למלא את כל השדות החובה',
+            orderUpdated: 'הזמנה עודכנה בהצלחה',
+            orderCreated: 'הזמנה נוצרה בהצלחה',
+            error: 'שגיאה',
+            loading: 'טוען...',
+            markAsDelivered: 'סמן כסופק',
+            deliveryStatus: 'סטטוס אספקה',
+            notDelivered: 'לא סופק',
+            delivered: 'סופק',
+            clientConfirmation: 'אישור לקוח',
+            waitingConfirmation: 'ממתין לאישור לקוח',
+            confirmedByClient: 'אושר ע"י לקוח',
+            notConfirmed: 'טרם אושר'
+        },
+        en: {
+            editOrder: 'Edit Order',
+            createOrder: 'Create Order',
+            client: 'Client',
+            site: 'Site',
+            product: 'Product',
+            quantity: 'Quantity (tons)',
+            deliveryDate: 'Delivery Date',
+            timeWindow: 'Time Window',
+            morning: 'Morning',
+            afternoon: 'Afternoon',
+            deliveryMethod: 'Delivery Method',
+            self: 'Self',
+            external: 'External',
+            supplier: 'Supplier',
+            shifuliHar: 'Shifuli Har',
+            maavarRabin: 'Maavar Rabin',
+            notes: 'Notes',
+            status: 'Status',
+            pending: 'Pending',
+            approved: 'Approved',
+            rejected: 'Rejected',
+            completed: 'Completed',
+            save: 'Save',
+            cancel: 'Cancel',
+            selectClient: 'Select client',
+            selectSite: 'Select site',
+            selectProduct: 'Select product',
+            requiredFields: 'Please fill all required fields',
+            orderUpdated: 'Order updated successfully',
+            orderCreated: 'Order created successfully',
+            error: 'Error',
+            loading: 'Loading...',
+            markAsDelivered: 'Mark as delivered',
+            deliveryStatus: 'Delivery Status',
+            notDelivered: 'Not delivered',
+            delivered: 'Delivered',
+            clientConfirmation: 'Client Confirmation',
+            waitingConfirmation: 'Waiting for client confirmation',
+            confirmedByClient: 'Confirmed by client',
+            notConfirmed: 'Not confirmed'
         }
-        
-        toast({ title: t.orderUpdated });
-      } else {
-        await Order.create(orderData);
-        toast({ title: t.orderCreated });
-      }
+    };
 
-      onSave();
-    } catch (error) {
-      console.error('Error saving order:', error);
-      toast({
-        title: t.error,
-        description: 'Failed to save order',
-        variant: 'destructive'
-      });
-    }
-  };
+    const t = translations[language];
+    const isRTL = language === 'he';
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
-        <DialogHeader>
-          <DialogTitle>{order ? t.editOrder : t.createOrder}</DialogTitle>
-        </DialogHeader>
-        
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
-            <span className="mr-3 text-gray-600">{t.loading}</span>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="client_id">{t.client}</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, client_id: value, site_id: '' });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectClient} />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    useEffect(() => {
+        if (isOpen) {
+            loadDataAndPopulateForm();
+        }
+    }, [isOpen, order]);
 
-            <div className="space-y-2">
-              <Label htmlFor="site_id">{t.site}</Label>
-              <Select
-                value={formData.site_id}
-                onValueChange={(value) => setFormData({ ...formData, site_id: value })}
-                disabled={!formData.client_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectSite} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredSites.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.site_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    useEffect(() => {
+        if (formData.client_id && sites.length > 0) {
+            const clientSites = sites.filter(s => s.client_id === formData.client_id);
+            setFilteredSites(clientSites);
+        } else {
+            setFilteredSites([]);
+        }
+    }, [formData.client_id, sites]);
 
-            <div className="space-y-2">
-              <Label htmlFor="product_id">{t.product}</Label>
-              <Select
-                value={formData.product_id}
-                onValueChange={(value) => setFormData({ ...formData, product_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectProduct} />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.product_id}>
-                      {language === 'he' ? product.name_he : product.name_en}
-                      {product.size && ` (${product.size})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    const loadDataAndPopulateForm = async () => {
+        try {
+            setLoading(true);
 
-            <div className="space-y-2">
-              <Label htmlFor="quantity_tons">{t.quantity}</Label>
-              <Input
-                id="quantity_tons"
-                type="number"
-                min="0"
-                step="0.1"
-                value={formData.quantity_tons}
-                onChange={(e) => setFormData({ ...formData, quantity_tons: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
+            // Load all data first
+            const [clientsData, sitesData, productsData] = await Promise.all([
+                Client.list('-created_at', 1000),
+                Site.list('-created_at', 1000),
+                Product.list('-created_at', 1000)
+            ]);
 
-            <div className="space-y-2">
-              <Label>{t.deliveryDate}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-                    {format(formData.delivery_date, 'PPP')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 pointer-events-auto">
-                  <Calendar
-                    mode="single"
-                    selected={formData.delivery_date}
-                    onSelect={(date) => date && setFormData({ ...formData, delivery_date: date })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            console.log('Loaded clients:', clientsData.length);
+            console.log('Loaded sites:', sitesData.length);
+            console.log('Loaded products:', productsData.length);
 
-            <div className="space-y-2">
-              <Label htmlFor="delivery_window">{t.timeWindow}</Label>
-              <Select
-                value={formData.delivery_window}
-                onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">{t.morning}</SelectItem>
-                  <SelectItem value="afternoon">{t.afternoon}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            setClients(clientsData);
+            setSites(sitesData);
+            setProducts(productsData);
 
-            <div className="space-y-2">
-              <Label htmlFor="delivery_method">{t.deliveryMethod}</Label>
-              <Select
-                value={formData.delivery_method}
-                onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="self">{t.self}</SelectItem>
-                  <SelectItem value="external">{t.external}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            // Now populate form if editing
+            if (order) {
+                console.log('Populating form with order:', order);
+                const site = sitesData.find(s => s.id === order.site_id);
+                console.log('Found site for order:', site);
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier">{t.supplier}</Label>
-              <Select
-                value={formData.supplier}
-                onValueChange={(value) => setFormData({ ...formData, supplier: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="shifuli_har">{t.shifuliHar}</SelectItem>
-                  <SelectItem value="maavar_rabin">{t.maavarRabin}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                const newFormData = {
+                    client_id: site?.client_id || '',
+                    site_id: order.site_id || '',
+                    product_id: order.product_id || '',
+                    quantity_tons: order.quantity_tons || 0,
+                    delivery_date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
+                    delivery_window: order.delivery_window || 'morning',
+                    delivery_method: order.delivery_method || 'self',
+                    supplier: order.supplier || 'shifuli_har',
+                    notes: order.notes || '',
+                    status: order.status || 'pending',
+                    is_delivered: order.is_delivered || false
+                };
 
-            <div className="space-y-2">
-              <Label htmlFor="status">{t.status}</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">{t.pending}</SelectItem>
-                  <SelectItem value="approved">{t.approved}</SelectItem>
-                  <SelectItem value="rejected">{t.rejected}</SelectItem>
-                  <SelectItem value="completed">{t.completed}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                console.log('Setting form data:', newFormData);
+                setFormData(newFormData);
+            } else {
+                // Reset form for new order
+                setFormData({
+                    client_id: '',
+                    site_id: '',
+                    product_id: '',
+                    quantity_tons: 0,
+                    delivery_date: new Date(),
+                    delivery_window: 'morning',
+                    delivery_method: 'self',
+                    supplier: 'shifuli_har',
+                    notes: '',
+                    status: 'pending',
+                    is_delivered: false
+                });
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+            toast({
+                title: t.error,
+                description: 'Failed to load data',
+                variant: 'destructive'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">{t.notes}</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
+    const createStatusChangeNotifications = async (orderNumber: string, newStatus: string, orderCreatedBy: string) => {
+        try {
+            const statusMessages = {
+                approved: `הזמנה #${orderNumber} אושרה`,
+                rejected: `הזמנה #${orderNumber} נדחתה`,
+                completed: `הזמנה #${orderNumber} הושלמה`,
+                pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`
+            };
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit" className="piter-yellow flex-1">
-                {t.save}
-              </Button>
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                {t.cancel}
-              </Button>
-            </div>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
+            const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
+
+            // Get all users
+            const allUsers = await User.list('-created_at', 1000);
+
+            // Get managers
+            const managers = allUsers.filter(u => u.role === 'manager');
+
+            // Get the client who created the order
+            const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
+
+            // Create notifications for managers
+            const notifications = managers.map(manager =>
+                Notification.create({
+                    recipient_email: manager.email,
+                    type: 'order_status_change',
+                    message: message,
+                    is_read: false,
+                    order_id: orderNumber
+                })
+            );
+
+            // Create notification for the client who created the order
+            if (orderCreator && orderCreator.role === 'client') {
+                notifications.push(
+                    Notification.create({
+                        recipient_email: orderCreator.email,
+                        type: 'order_status_change',
+                        message: message,
+                        is_read: false,
+                        order_id: orderNumber
+                    })
+                );
+            }
+
+            await Promise.all(notifications);
+            console.log('Status change notifications created successfully');
+        } catch (error) {
+            console.error('Error creating status change notifications:', error);
+        }
+    };
+
+    const createDeliveryNotifications = async (orderNumber: string, orderCreatedBy: string) => {
+        try {
+            const message = `הזמנה #${orderNumber} סומנה כסופקה - ממתין לאישור לקוח`;
+
+            // Get all users
+            const allUsers = await User.list('-created_at', 1000);
+
+            // Get the client who created the order
+            const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
+
+            // Create notification for the client
+            if (orderCreator && orderCreator.role === 'client') {
+                await Notification.create({
+                    recipient_email: orderCreator.email,
+                    type: 'order_delivered',
+                    message: message,
+                    is_read: false,
+                    order_id: orderNumber
+                });
+            }
+
+            console.log('Delivery notification created successfully');
+        } catch (error) {
+            console.error('Error creating delivery notification:', error);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!formData.site_id || !formData.product_id || formData.quantity_tons <= 0) {
+            toast({
+                title: t.error,
+                description: t.requiredFields,
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        try {
+            const orderData: any = {
+                site_id: formData.site_id,
+                product_id: formData.product_id,
+                quantity_tons: formData.quantity_tons,
+                delivery_date: formData.delivery_date.toISOString(),
+                delivery_window: formData.delivery_window,
+                delivery_method: formData.delivery_method,
+                supplier: formData.supplier,
+                notes: formData.notes,
+                status: formData.status,
+                is_delivered: formData.is_delivered
+            };
+
+            // Add timestamp if marking as delivered for the first time
+            if (order) {
+                const wasDelivered = order.is_delivered;
+                const isNowDelivered = formData.is_delivered;
+
+                if (!wasDelivered && isNowDelivered) {
+                    orderData.delivered_at = new Date().toISOString();
+                }
+            }
+
+            if (order) {
+                // Check if status changed
+                const statusChanged = order.status !== formData.status;
+                const deliveryChanged = !order.is_delivered && formData.is_delivered;
+
+                await Order.update(order.id, orderData);
+
+                // Create notifications if status changed
+                if (statusChanged) {
+                    await createStatusChangeNotifications(order.order_number, formData.status, order.created_by);
+                }
+
+                // Create notification if marked as delivered
+                if (deliveryChanged) {
+                    await createDeliveryNotifications(order.order_number, order.created_by);
+                }
+
+                toast({ title: t.orderUpdated });
+            } else {
+                await Order.create(orderData);
+                toast({ title: t.orderCreated });
+            }
+
+            onSave();
+        } catch (error) {
+            console.error('Error saving order:', error);
+            toast({
+                title: t.error,
+                description: 'Failed to save order',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+                <DialogHeader>
+                    <DialogTitle>{order ? t.editOrder : t.createOrder}</DialogTitle>
+                </DialogHeader>
+
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
+                        <span className="mr-3 text-gray-600">{t.loading}</span>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="client_id">{t.client}</Label>
+                            <Select
+                                value={formData.client_id}
+                                onValueChange={(value) => {
+                                    setFormData({ ...formData, client_id: value, site_id: '' });
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t.selectClient} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clients.map((client) => (
+                                        <SelectItem key={client.id} value={client.id}>
+                                            {client.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="site_id">{t.site}</Label>
+                            <Select
+                                value={formData.site_id}
+                                onValueChange={(value) => setFormData({ ...formData, site_id: value })}
+                                disabled={!formData.client_id}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t.selectSite} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {filteredSites.map((site) => (
+                                        <SelectItem key={site.id} value={site.id}>
+                                            {site.site_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="product_id">{t.product}</Label>
+                            <Select
+                                value={formData.product_id}
+                                onValueChange={(value) => setFormData({ ...formData, product_id: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t.selectProduct} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {products.map((product) => (
+                                        <SelectItem key={product.id} value={product.product_id}>
+                                            {language === 'he' ? product.name_he : product.name_en}
+                                            {product.size && ` (${product.size})`}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="quantity_tons">{t.quantity}</Label>
+                            <Input
+                                id="quantity_tons"
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={formData.quantity_tons}
+                                onChange={(e) => setFormData({ ...formData, quantity_tons: parseFloat(e.target.value) || 0 })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>{t.deliveryDate}</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                        <CalendarIcon className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+                                        {format(formData.delivery_date, 'PPP')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 pointer-events-auto">
+                                    <Calendar
+                                        mode="single"
+                                        selected={formData.delivery_date}
+                                        onSelect={(date) => date && setFormData({ ...formData, delivery_date: date })}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="delivery_window">{t.timeWindow}</Label>
+                            <Select
+                                value={formData.delivery_window}
+                                onValueChange={(value) => setFormData({ ...formData, delivery_window: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="morning">{t.morning}</SelectItem>
+                                    <SelectItem value="afternoon">{t.afternoon}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="delivery_method">{t.deliveryMethod}</Label>
+                            <Select
+                                value={formData.delivery_method}
+                                onValueChange={(value) => setFormData({ ...formData, delivery_method: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="self">{t.self}</SelectItem>
+                                    <SelectItem value="external">{t.external}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="supplier">{t.supplier}</Label>
+                            <Select
+                                value={formData.supplier}
+                                onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="shifuli_har">{t.shifuliHar}</SelectItem>
+                                    <SelectItem value="maavar_rabin">{t.maavarRabin}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="status">{t.status}</Label>
+                            <Select
+                                value={formData.status}
+                                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pending">{t.pending}</SelectItem>
+                                    <SelectItem value="approved">{t.approved}</SelectItem>
+                                    <SelectItem value="rejected">{t.rejected}</SelectItem>
+                                    <SelectItem value="completed">{t.completed}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Delivery Status Section */}
+                        <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <Label className="text-base font-semibold">{t.deliveryStatus}</Label>
+
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                                <Checkbox
+                                    id="is_delivered"
+                                    checked={formData.is_delivered}
+                                    onCheckedChange={(checked) =>
+                                        setFormData({ ...formData, is_delivered: checked as boolean })
+                                    }
+                                />
+                                <label
+                                    htmlFor="is_delivered"
+                                    className="text-sm font-medium leading-none cursor-pointer"
+                                >
+                                    {t.markAsDelivered}
+                                </label>
+                            </div>
+
+                            {/* Show client confirmation status if order exists */}
+                            {order && (
+                                <div className="pt-2 border-t border-gray-200">
+                                    <Label className="text-sm text-gray-600 mb-2 block">{t.clientConfirmation}</Label>
+                                    {order.is_client_confirmed ? (
+                                        <Badge className="bg-green-100 text-green-800">
+                                            <CheckCircle className="w-3 h-3 ml-1" />
+                                            {t.confirmedByClient}
+                                        </Badge>
+                                    ) : order.is_delivered ? (
+                                        <Badge className="bg-orange-100 text-orange-800">
+                                            <Clock className="w-3 h-3 ml-1" />
+                                            {t.waitingConfirmation}
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-gray-100 text-gray-800">
+                                            {t.notConfirmed}
+                                        </Badge>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">{t.notes}</Label>
+                            <Textarea
+                                id="notes"
+                                value={formData.notes}
+                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                rows={3}
+                            />
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+                            <Button type="submit" className="piter-yellow flex-1">
+                                {t.save}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                                {t.cancel}
+                            </Button>
+                        </div>
+                    </form>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 export default OrderEditDialog;

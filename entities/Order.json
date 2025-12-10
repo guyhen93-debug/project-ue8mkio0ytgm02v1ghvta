@@ -60,6 +60,24 @@
       "type": "boolean",
       "description": "Whether there is space at the site for unloading a bath truck / full trailer (truck and trailer)",
       "default": false
+    },
+    "is_delivered": {
+      "type": "boolean",
+      "description": "Whether the order has been physically delivered to the client",
+      "default": false
+    },
+    "delivered_at": {
+      "type": "string",
+      "description": "Timestamp when the order was marked as delivered (ISO string)"
+    },
+    "is_client_confirmed": {
+      "type": "boolean",
+      "description": "Whether the client has confirmed receipt of the delivery",
+      "default": false
+    },
+    "client_confirmed_at": {
+      "type": "string",
+      "description": "Timestamp when the client confirmed receipt (ISO string)"
     }
   }
 }
