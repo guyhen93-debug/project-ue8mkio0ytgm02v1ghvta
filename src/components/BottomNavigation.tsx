@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notification } from '@/entities';
-import { Home, ClipboardList, Mail, User as UserIcon } from 'lucide-react';
+import { Home, ClipboardList, Mail, User as UserIcon, Settings } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
     const navigate = useNavigate();
@@ -17,13 +17,15 @@ export const BottomNavigation: React.FC = () => {
             home: 'בית',
             myOrders: 'ההזמנות שלי',
             inbox: 'דואר',
-            profile: 'פרופיל'
+            profile: 'פרופיל',
+            admin: 'ניהול'
         },
         en: {
             home: 'Home',
             myOrders: 'My Orders',
             inbox: 'Inbox',
-            profile: 'Profile'
+            profile: 'Profile',
+            admin: 'Admin'
         }
     };
 
@@ -75,12 +77,28 @@ export const BottomNavigation: React.FC = () => {
         return location.pathname === path;
     };
 
-    const navItems = [
-        { path: homePath, icon: Home, label: t.home, showBadge: true },
-        { path: '/order-history', icon: ClipboardList, label: t.myOrders, showBadge: false },
-        { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
-        { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }
-    ];
+    // Define navigation items based on user role
+    const getNavItems = () => {
+        const baseItems = [
+            { path: homePath, icon: Home, label: t.home, showBadge: true },
+            { path: '/order-history', icon: ClipboardList, label: t.myOrders, showBadge: false },
+            { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
+            { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }
+        ];
+
+        // Add admin button for managers
+        if (isManager) {
+            return [
+                ...baseItems.slice(0, 3),
+                { path: '/admin', icon: Settings, label: t.admin, showBadge: false },
+                ...baseItems.slice(3)
+            ];
+        }
+
+        return baseItems;
+    };
+
+    const navItems = getNavItems();
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
