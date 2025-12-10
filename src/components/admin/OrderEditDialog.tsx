@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, Product, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Calendar as CalendarIcon, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, CheckCircle, Clock, Star } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface OrderEditDialogProps {
@@ -84,7 +84,10 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             clientConfirmation: 'אישור לקוח',
             waitingConfirmation: 'ממתין לאישור לקוח',
             confirmedByClient: 'אושר ע"י לקוח',
-            notConfirmed: 'טרם אושר'
+            notConfirmed: 'טרם אושר',
+            clientRating: 'דירוג לקוח',
+            notRated: 'טרם דורג',
+            ratedOn: 'דורג ב'
         },
         en: {
             editOrder: 'Edit Order',
@@ -126,7 +129,10 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             clientConfirmation: 'Client Confirmation',
             waitingConfirmation: 'Waiting for client confirmation',
             confirmedByClient: 'Confirmed by client',
-            notConfirmed: 'Not confirmed'
+            notConfirmed: 'Not confirmed',
+            clientRating: 'Client Rating',
+            notRated: 'Not rated yet',
+            ratedOn: 'Rated on'
         }
     };
 
@@ -152,26 +158,18 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         try {
             setLoading(true);
 
-            // Load all data first
             const [clientsData, sitesData, productsData] = await Promise.all([
                 Client.list('-created_at', 1000),
                 Site.list('-created_at', 1000),
                 Product.list('-created_at', 1000)
             ]);
 
-            console.log('Loaded clients:', clientsData.length);
-            console.log('Loaded sites:', sitesData.length);
-            console.log('Loaded products:', productsData.length);
-
             setClients(clientsData);
             setSites(sitesData);
             setProducts(productsData);
 
-            // Now populate form if editing
             if (order) {
-                console.log('Populating form with order:', order);
                 const site = sitesData.find(s => s.id === order.site_id);
-                console.log('Found site for order:', site);
 
                 const newFormData = {
                     client_id: site?.client_id || '',
@@ -187,10 +185,8 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                     is_delivered: order.is_delivered || false
                 };
 
-                console.log('Setting form data:', newFormData);
                 setFormData(newFormData);
             } else {
-                // Reset form for new order
                 setFormData({
                     client_id: '',
                     site_id: '',
@@ -228,16 +224,10 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
 
             const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
 
-            // Get all users
             const allUsers = await User.list('-created_at', 1000);
-
-            // Get managers
             const managers = allUsers.filter(u => u.role === 'manager');
-
-            // Get the client who created the order
             const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
 
-            // Create notifications for managers
             const notifications = managers.map(manager =>
                 Notification.create({
                     recipient_email: manager.email,
@@ -248,7 +238,6 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 })
             );
 
-            // Create notification for the client who created the order
             if (orderCreator && orderCreator.role === 'client') {
                 notifications.push(
                     Notification.create({
@@ -262,7 +251,6 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             }
 
             await Promise.all(notifications);
-            console.log('Status change notifications created successfully');
         } catch (error) {
             console.error('Error creating status change notifications:', error);
         }
@@ -272,13 +260,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         try {
             const message = `הזמנה #${orderNumber} סומנה כסופקה - ממתין לאישור לקוח`;
 
-            // Get all users
             const allUsers = await User.list('-created_at', 1000);
-
-            // Get the client who created the order
             const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
 
-            // Create notification for the client
             if (orderCreator && orderCreator.role === 'client') {
                 await Notification.create({
                     recipient_email: orderCreator.email,
@@ -288,8 +272,6 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                     order_id: orderNumber
                 });
             }
-
-            console.log('Delivery notification created successfully');
         } catch (error) {
             console.error('Error creating delivery notification:', error);
         }
@@ -321,7 +303,6 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 is_delivered: formData.is_delivered
             };
 
-            // Add timestamp if marking as delivered for the first time
             if (order) {
                 const wasDelivered = order.is_delivered;
                 const isNowDelivered = formData.is_delivered;
@@ -332,18 +313,15 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             }
 
             if (order) {
-                // Check if status changed
                 const statusChanged = order.status !== formData.status;
                 const deliveryChanged = !order.is_delivered && formData.is_delivered;
 
                 await Order.update(order.id, orderData);
 
-                // Create notifications if status changed
                 if (statusChanged) {
                     await createStatusChangeNotifications(order.order_number, formData.status, order.created_by);
                 }
 
-                // Create notification if marked as delivered
                 if (deliveryChanged) {
                     await createDeliveryNotifications(order.order_number, order.created_by);
                 }
@@ -363,6 +341,17 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 variant: 'destructive'
             });
         }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     return (
@@ -575,6 +564,44 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                                     ) : (
                                         <Badge className="bg-gray-100 text-gray-800">
                                             {t.notConfirmed}
+                                        </Badge>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Show client rating if order exists and is rated */}
+                            {order && (
+                                <div className="pt-2 border-t border-gray-200">
+                                    <Label className="text-sm text-gray-600 mb-2 block">{t.clientRating}</Label>
+                                    {order.rating ? (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Star
+                                                        key={star}
+                                                        className={`w-5 h-5 ${
+                                                            star <= order.rating
+                                                                ? 'fill-yellow-400 text-yellow-400'
+                                                                : 'text-gray-300'
+                                                        }`}
+                                                    />
+                                                ))}
+                                                <span className="text-sm font-medium text-purple-900">
+                                                    ({order.rating}/5)
+                                                </span>
+                                            </div>
+                                            {order.rating_comment && (
+                                                <p className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-200">
+                                                    "{order.rating_comment}"
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-gray-500">
+                                                {t.ratedOn} {formatDate(order.rated_at)}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <Badge className="bg-gray-100 text-gray-800">
+                                            {t.notRated}
                                         </Badge>
                                     )}
                                 </div>

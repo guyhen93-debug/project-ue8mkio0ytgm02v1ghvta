@@ -4,11 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Client, Site } from '@/entities';
-import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import OrderContactDialog from './order/OrderContactDialog';
 import OrderConfirmation from './order/OrderConfirmation';
+import OrderRating from './order/OrderRating';
 
 interface RecentOrdersListProps {
     limit?: number;
@@ -300,6 +301,13 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                                         אושר ע"י לקוח
                                                     </Badge>
                                                 )}
+                                                {/* Rating badge */}
+                                                {order.rating && (
+                                                    <Badge className="bg-purple-100 text-purple-800 text-xs">
+                                                        <Star className="w-3 h-3 ml-1 fill-purple-600" />
+                                                        {order.rating}/5
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <p className="text-sm text-gray-600">{getClientName(order.client_id)}</p>
                                         </div>
@@ -353,6 +361,13 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                     {(order.status === 'approved' || order.status === 'completed') && (
                                         <div className="mt-4">
                                             <OrderConfirmation order={order} onConfirm={loadOrders} />
+                                        </div>
+                                    )}
+
+                                    {/* Order Rating Component - Show only after confirmation */}
+                                    {(order.status === 'approved' || order.status === 'completed') && order.is_client_confirmed && (
+                                        <div className="mt-3">
+                                            <OrderRating order={order} onRate={loadOrders} />
                                         </div>
                                     )}
 

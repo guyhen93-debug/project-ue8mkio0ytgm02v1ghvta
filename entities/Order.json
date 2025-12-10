@@ -78,6 +78,18 @@
     "client_confirmed_at": {
       "type": "string",
       "description": "Timestamp when the client confirmed receipt (ISO string)"
+    },
+    "rating": {
+      "type": "number",
+      "description": "Service rating from 1 to 5 stars"
+    },
+    "rating_comment": {
+      "type": "string",
+      "description": "Optional comment from the client about the service"
+    },
+    "rated_at": {
+      "type": "string",
+      "description": "Timestamp when the order was rated (ISO string)"
     }
   }
 }

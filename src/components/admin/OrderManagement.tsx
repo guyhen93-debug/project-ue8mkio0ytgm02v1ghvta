@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Order, Site, Client, Product, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2, Building2, Factory } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Clock, Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Plus, Edit, Trash2, Building2, Factory, Star } from 'lucide-react';
 import OrderEditDialog from './OrderEditDialog';
 
 export const OrderManagement: React.FC = () => {
@@ -78,7 +78,8 @@ export const OrderManagement: React.FC = () => {
             delivered: 'סופק',
             notDelivered: 'לא סופק',
             waitingClientConfirm: 'ממתין לאישור',
-            clientConfirmed: 'אושר ע"י לקוח'
+            clientConfirmed: 'אושר ע"י לקוח',
+            rating: 'דירוג'
         },
         en: {
             title: 'Order Management',
@@ -135,7 +136,8 @@ export const OrderManagement: React.FC = () => {
             delivered: 'Delivered',
             notDelivered: 'Not delivered',
             waitingClientConfirm: 'Waiting confirmation',
-            clientConfirmed: 'Confirmed by client'
+            clientConfirmed: 'Confirmed by client',
+            rating: 'Rating'
         }
     };
 
@@ -182,16 +184,10 @@ export const OrderManagement: React.FC = () => {
 
             const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה`;
 
-            // Get all users
             const allUsers = await User.list('-created_at', 1000);
-
-            // Get managers
             const managers = allUsers.filter(u => u.role === 'manager');
-
-            // Get the client who created the order
             const orderCreator = allUsers.find(u => u.email === order.created_by);
 
-            // Create notifications for managers
             const managerNotifications = managers.map(manager =>
                 Notification.create({
                     recipient_email: manager.email,
@@ -202,7 +198,6 @@ export const OrderManagement: React.FC = () => {
                 })
             );
 
-            // Create notification for the client who created the order
             if (orderCreator && orderCreator.role === 'client') {
                 managerNotifications.push(
                     Notification.create({
@@ -216,7 +211,6 @@ export const OrderManagement: React.FC = () => {
             }
 
             await Promise.all(managerNotifications);
-            console.log('Status change notifications created successfully');
         } catch (error) {
             console.error('Error creating status change notifications:', error);
         }
@@ -224,12 +218,10 @@ export const OrderManagement: React.FC = () => {
 
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
         try {
-            // Get the order before updating
             const order = orders.find(o => o.id === orderId);
 
             await Order.update(orderId, { status: newStatus });
 
-            // Create notifications for status change
             if (order) {
                 await createStatusChangeNotifications(order, newStatus);
             }
@@ -414,6 +406,13 @@ export const OrderManagement: React.FC = () => {
                                                     <Badge className="bg-green-100 text-green-800 text-xs">
                                                         <CheckCircle className="w-3 h-3 ml-1" />
                                                         {t.clientConfirmed}
+                                                    </Badge>
+                                                )}
+                                                {/* Rating badge */}
+                                                {order.rating && (
+                                                    <Badge className="bg-purple-100 text-purple-800 text-xs">
+                                                        <Star className="w-3 h-3 ml-1 fill-purple-600" />
+                                                        {order.rating}/5
                                                     </Badge>
                                                 )}
                                             </div>
