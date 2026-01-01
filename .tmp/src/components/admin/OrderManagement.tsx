@@ -154,13 +154,24 @@ export const OrderManagement: React.FC = () => {
             setLoading(true);
             const ordersData = await Order.list('-created_at', 1000);
             setOrders(ordersData);
-        } catch (error) {
-            console.error('Error loading data:', error);
-            toast({
-                title: t.error,
-                description: 'Failed to load data',
-                variant: 'destructive'
-            });
+        } catch (error: any) {
+            const errorMessage = error?.message || '';
+            const isBenign = 
+                errorMessage.includes('Failed to fetch') || 
+                errorMessage.includes('401') || 
+                errorMessage.includes('Unauthorized') || 
+                errorMessage.includes('Not authenticated');
+
+            if (isBenign) {
+                console.info('Orders load skipped due to auth/connection issue');
+            } else {
+                console.error('Error loading data:', error);
+                toast({
+                    title: t.error,
+                    description: 'Failed to load data',
+                    variant: 'destructive'
+                });
+            }
         } finally {
             setLoading(false);
         }
