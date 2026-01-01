@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory } from 'lucide-react';
-import { format } from 'date-fns';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X } from 'lucide-react';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 import { he } from 'date-fns/locale';
 import { getClientName as resolveClientName } from '@/lib/orderUtils';
 
@@ -25,6 +28,7 @@ const OrderHistory: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
     const translations = {
         he: {
@@ -389,7 +393,7 @@ const OrderHistory: React.FC = () => {
                                         )}
 
                                         <div className="flex items-center gap-2 text-gray-700">
-                                            <Calendar className="h-4 w-4 text-gray-400" />
+                                            <CalendarIcon className="h-4 w-4 text-gray-400" />
                                             <span>
                                                 {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
                                             </span>
