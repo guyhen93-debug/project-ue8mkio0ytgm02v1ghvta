@@ -364,7 +364,4 @@ const ManagerDashboard: React.FC = () => {
     </Layout>
   );
 };
-
-export default ManagerDashboard;
-
 export default ManagerDashboard;
