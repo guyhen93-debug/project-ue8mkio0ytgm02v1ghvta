@@ -94,7 +94,7 @@ const OrderHistory: React.FC = () => {
 
     useEffect(() => {
         applyFilters();
-    }, [orders, statusFilter]);
+    }, [orders, statusFilter, dateRange]);
 
     const loadOrders = async () => {
         if (!user) {
@@ -148,6 +148,16 @@ const OrderHistory: React.FC = () => {
 
         if (statusFilter !== 'all') {
             filtered = filtered.filter(order => order.status === statusFilter);
+        }
+
+        if (dateRange?.from) {
+            const from = startOfDay(dateRange.from);
+            const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+            
+            filtered = filtered.filter(order => {
+                const orderDate = new Date(order.delivery_date);
+                return isWithinInterval(orderDate, { start: from, end: to });
+            });
         }
 
         setFilteredOrders(filtered);
@@ -224,7 +234,59 @@ const OrderHistory: React.FC = () => {
         <Layout title={t.title}>
             <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
                 {/* Filters */}
-                <div className="mb-4">
+                <div className="mb-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full sm:w-[260px] justify-start text-left font-normal",
+                                        !dateRange?.from && "text-muted-foreground",
+                                        isRTL && "text-right flex-row-reverse"
+                                    )}
+                                >
+                                    <CalendarIcon className={cn("h-4 w-4", isRTL ? "ml-2" : "mr-2")} />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>
+                                                {format(dateRange.from, "dd/MM/yyyy")} -{" "}
+                                                {format(dateRange.to, "dd/MM/yyyy")}
+                                            </>
+                                        ) : (
+                                            format(dateRange.from, "dd/MM/yyyy")
+                                        )
+                                    ) : (
+                                        <span>{t.dateRangeLabel}</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={1}
+                                    locale={isRTL ? he : undefined}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        
+                        {dateRange?.from && (
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setDateRange({})}
+                                className="h-8 px-2 text-xs"
+                            >
+                                <X className="w-3 h-3 ml-1" />
+                                {t.clearFilter}
+                            </Button>
+                        )}
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                         <Button
                             variant={statusFilter === 'all' ? 'default' : 'outline'}

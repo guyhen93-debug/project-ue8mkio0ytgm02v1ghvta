@@ -9,8 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { getProductName, getSiteName, getClientName, formatOrderDate } from '@/lib/orderUtils';
 import { toast } from '@/hooks/use-toast';
-import { Plus, AlertCircle, RefreshCw, Sparkles, Check, X, MessageSquare, Truck, ArrowRight } from 'lucide-react';
-import RecentOrdersList from '@/components/RecentOrdersList';
+import { Plus, Sparkles, Check, X, MessageSquare, Truck, AlertCircle } from 'lucide-react';
 import NotificationsCard from '@/components/NotificationsCard';
 
 const ManagerDashboard: React.FC = () => {
@@ -336,30 +335,6 @@ const ManagerDashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* Recent Orders */}
-        <Card className="industrial-card">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">{t.recentOrders}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
-              </div>
-            ) : error ? (
-              <div className="text-center py-8">
-                <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-400" />
-                <p className="text-red-600 mb-4">{error}</p>
-                <Button onClick={handleRetry} variant="outline" className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  {t.retry}
-                </Button>
-              </div>
-            ) : (
-              <RecentOrdersList limit={100} />
-            )}
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
