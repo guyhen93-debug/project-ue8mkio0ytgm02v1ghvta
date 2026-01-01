@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Message, User } from '@/entities';
@@ -10,12 +11,15 @@ import MessageList from '@/components/messaging/MessageList';
 
 const Inbox: React.FC = () => {
   const { language } = useLanguage();
+  const location = useLocation();
+  const prefill = (location.state as any)?.newMessage;
+  
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
-  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [showNewMessage, setShowNewMessage] = useState(!!prefill);
   const [retryCount, setRetryCount] = useState(0);
 
   const translations = {
@@ -137,6 +141,8 @@ const Inbox: React.FC = () => {
           <NewMessageForm
             onSuccess={handleNewMessageSuccess}
             onCancel={handleBackToList}
+            initialSubject={prefill?.subject}
+            initialOrderId={prefill?.orderId}
           />
         </div>
       </Layout>
