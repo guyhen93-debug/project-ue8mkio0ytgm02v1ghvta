@@ -215,13 +215,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
                 {/* Actions */}
                 <div className="space-y-2 pt-3 border-t border-gray-100">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {order.status === 'pending' && (
                             <>
                                 <Button
                                     size="sm"
                                     onClick={() => onStatusChange(order.id, 'approved')}
-                                    className="bg-green-600 hover:bg-green-700 text-white flex-1 min-w-[140px]"
+                                    className="bg-green-600 hover:bg-green-700 text-white w-full"
                                 >
                                     <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                     {t.approve}
@@ -230,7 +230,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     size="sm"
                                     variant="destructive"
                                     onClick={() => onStatusChange(order.id, 'rejected')}
-                                    className="flex-1 min-w-[140px]"
+                                    className="w-full"
                                 >
                                     {t.reject}
                                 </Button>
@@ -241,7 +241,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Button
                                     size="sm"
                                     onClick={() => onStatusChange(order.id, 'completed')}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white flex-1 min-w-[140px]"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white w-full"
                                 >
                                     <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                     {t.markCompleted}
@@ -250,7 +250,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     size="sm"
                                     variant="outline"
                                     onClick={() => onStatusChange(order.id, 'pending')}
-                                    className="flex-1 min-w-[140px]"
+                                    className="w-full"
                                 >
                                     <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                     {t.returnToPending}
@@ -262,7 +262,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onStatusChange(order.id, 'pending')}
-                                className="flex-1 min-w-[140px]"
+                                className="w-full"
                             >
                                 <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                 {t.returnToPending}
@@ -273,19 +273,19 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onStatusChange(order.id, 'approved')}
-                                className="flex-1 min-w-[140px]"
+                                className="w-full"
                             >
                                 <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                 {t.returnToApproved}
                             </Button>
                         )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Button
                             size="sm"
                             variant="outline"
                             onClick={() => onUpdateDelivery?.(order)}
-                            className="flex-1 min-w-[140px]"
+                            className="w-full"
                         >
                             <Package className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t.addDelivery}
@@ -294,7 +294,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => onSendMessage?.(order)}
-                            className="flex-1 min-w-[140px]"
+                            className="w-full"
                         >
                             <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t.sendMessage}
@@ -303,7 +303,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => onEdit(order)}
-                            className="flex-1 min-w-[140px]"
+                            className="w-full"
                         >
                             <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t.edit}
@@ -312,7 +312,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             size="sm"
                             variant="destructive"
                             onClick={() => onDelete(order.id)}
-                            className="flex-1 min-w-[140px]"
+                            className="w-full"
                         >
                             <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t.delete}

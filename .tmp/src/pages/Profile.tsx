@@ -255,12 +255,12 @@ const Profile = () => {
             </div>
 
             {/* Field Mode Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-t border-gray-100 mt-4">
-              <div className="flex-1 w-full text-right">
-                <span className="font-medium">{t('field_mode')}</span>
+            <div className="flex items-center justify-between gap-3 py-4 border-t border-gray-100 mt-4 flex-wrap">
+              <div className="flex-1 min-w-[180px] text-right">
+                <span className="font-medium block">{t('field_mode')}</span>
                 <span className="text-xs text-gray-500 block mt-0.5">{t('field_mode_description')}</span>
               </div>
-              <div className="flex items-center justify-end w-full sm:w-auto">
+              <div className="flex items-center justify-end flex-shrink-0 pr-1">
                 <Switch
                   checked={fieldMode}
                   onCheckedChange={(value) => setFieldMode(!!value)}
