@@ -107,7 +107,8 @@ export const OrderManagement: React.FC = () => {
             rating: 'דירוג',
             deliveryNoteNumber: 'תעודת משלוח',
             driverName: 'שם נהג',
-            deliveredQuantity: 'כמות שסופקה'
+            deliveredQuantity: 'כמות שסופקה',
+            duplicateOrder: 'שכפל הזמנה 📋'
         },
         en: {
             title: 'Order Management',
@@ -171,7 +172,8 @@ export const OrderManagement: React.FC = () => {
             rating: 'Rating',
             deliveryNoteNumber: 'Delivery Note',
             driverName: 'Driver Name',
-            deliveredQuantity: 'Delivered Quantity'
+            deliveredQuantity: 'Delivered Quantity',
+            duplicateOrder: 'Duplicate order 📋'
         }
     };
 
@@ -334,6 +336,10 @@ export const OrderManagement: React.FC = () => {
         });
     };
 
+    const handleDuplicateOrder = (order: any) => {
+        navigate('/create-order', { state: { duplicateOrder: order } });
+    };
+
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -393,6 +399,7 @@ export const OrderManagement: React.FC = () => {
                             onStatusChange={updateOrderStatus}
                             onUpdateDelivery={handleUpdateDeliveryClick}
                             onSendMessage={handleSendMessage}
+                            onDuplicate={handleDuplicateOrder}
                         />
                     ))}
                 </div>

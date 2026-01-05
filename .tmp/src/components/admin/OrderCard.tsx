@@ -19,6 +19,7 @@ interface OrderCardProps {
     onStatusChange: (orderId: string, newStatus: string) => void;
     onUpdateDelivery?: (order: any) => void;
     onSendMessage?: (order: any) => void;
+    onDuplicate?: (order: any) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -32,7 +33,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     onDelete,
     onStatusChange,
     onUpdateDelivery,
-    onSendMessage
+    onSendMessage,
+    onDuplicate,
 }) => {
     const isRTL = language === 'he';
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
@@ -289,6 +291,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                         >
                             <Package className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t.addDelivery}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDuplicate?.(order)}
+                            className="w-full"
+                        >
+                            <FileText className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.duplicateOrder}
                         </Button>
                         <Button
                             size="sm"

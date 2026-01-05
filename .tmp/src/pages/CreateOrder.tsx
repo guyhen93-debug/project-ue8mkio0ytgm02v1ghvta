@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,9 @@ import { findUserClient } from '@/lib/orderUtils';
 
 const CreateOrder = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const duplicateOrder = (location.state as any)?.duplicateOrder;
+    const [duplicateApplied, setDuplicateApplied] = useState(false);
     const { user: currentUser } = useAuth();
     const { clients, sites, loading: dataLoading } = useData();
     const [filteredSites, setFilteredSites] = useState<any[]>([]);
@@ -77,6 +80,35 @@ const CreateOrder = () => {
             setTruckAccessSpace(true);
         }
     }, [formData.supplier, formData.delivery_method]);
+
+    // Apply duplication data
+    useEffect(() => {
+        if (dataLoading || !currentUser || !duplicateOrder || duplicateApplied) return;
+
+        const duplicateSite = sites.find(s => s.id === duplicateOrder.site_id);
+        
+        setFormData(prev => ({
+            ...prev,
+            client_id: duplicateOrder.client_id || duplicateSite?.client_id || prev.client_id || '',
+            site_id: duplicateOrder.site_id || '',
+            supplier: duplicateOrder.supplier || '',
+            product_id: duplicateOrder.product_id || '',
+            quantity_tons: duplicateOrder.quantity_tons ? String(duplicateOrder.quantity_tons) : '',
+            delivery_date: '', // Must choose new date
+            delivery_window: duplicateOrder.delivery_window || prev.delivery_window || '',
+            delivery_method: duplicateOrder.delivery_method || prev.delivery_method || '',
+            notes: duplicateOrder.notes || ''
+        }));
+
+        setTruckAccessSpace(!!duplicateOrder.truck_access_space);
+        setUseCubicMeters(false);
+        setDuplicateApplied(true);
+        
+        toast({
+            title: 'שכפול הזמנה',
+            description: `פרטי הזמנה #${duplicateOrder.order_number || duplicateOrder.id.slice(-6)} הועתקו. אנא בחר תאריך אספקה.`,
+        });
+    }, [dataLoading, currentUser, duplicateOrder, sites, duplicateApplied]);
 
     const initializeForm = () => {
         try {
