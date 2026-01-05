@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Order, User, Notification } from '@/entities';
+import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrderValidation } from '@/hooks/useOrderValidation';
@@ -19,15 +20,15 @@ import { findUserClient } from '@/lib/orderUtils';
 const CreateOrder = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const duplicateOrder = (location.state as any)?.duplicateOrder;
+    const duplicateOrder = (location.state as { duplicateOrder?: OrderType })?.duplicateOrder;
     const [duplicateApplied, setDuplicateApplied] = useState(false);
     const { user: currentUser } = useAuth();
     const { clients, sites, loading: dataLoading } = useData();
-    const [filteredSites, setFilteredSites] = useState<any[]>([]);
+    const [filteredSites, setFilteredSites] = useState<SiteType[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [useCubicMeters, setUseCubicMeters] = useState(false);
-    const [userClient, setUserClient] = useState<any>(null);
+    const [userClient, setUserClient] = useState<ClientType | null>(null);
     const [truckAccessSpace, setTruckAccessSpace] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -38,6 +39,7 @@ const CreateOrder = () => {
         quantity_tons: '',
         delivery_date: '',
         delivery_window: '',
+        delivery_window_type: '' as 'morning' | 'afternoon' | '',
         delivery_method: '',
         notes: ''
     });
@@ -52,7 +54,7 @@ const CreateOrder = () => {
 
     useEffect(() => {
         if (formData.client_id) {
-            const clientSites = sites.filter(site => site.client_id === formData.client_id && site.is_active);
+            const clientSites = (sites as unknown as SiteType[]).filter(site => site.client_id === formData.client_id && site.is_active);
             setFilteredSites(clientSites);
 
             if (!clientSites.find(s => s.id === formData.site_id)) {
@@ -85,7 +87,7 @@ const CreateOrder = () => {
     useEffect(() => {
         if (dataLoading || !currentUser || !duplicateOrder || duplicateApplied) return;
 
-        const duplicateSite = sites.find(s => s.id === duplicateOrder.site_id);
+        const duplicateSite = (sites as unknown as SiteType[]).find(s => s.id === duplicateOrder.site_id);
         
         setFormData(prev => ({
             ...prev,
@@ -115,7 +117,7 @@ const CreateOrder = () => {
             setLoading(true);
 
             if (currentUser?.role === 'client') {
-                const activeClients = clients.filter(c => c.is_active);
+                const activeClients = (clients as unknown as ClientType[]).filter(c => c.is_active);
                 const matchingClient = findUserClient(currentUser, activeClients);
 
                 if (matchingClient) {
@@ -142,7 +144,7 @@ const CreateOrder = () => {
     };
 
     const getSelectedSite = () => {
-        return sites.find(s => s.id === formData.site_id);
+        return (sites as unknown as SiteType[]).find(s => s.id === formData.site_id);
     };
 
     const getDisplayQuantity = () => {
@@ -183,23 +185,8 @@ const CreateOrder = () => {
 
     const createNotificationsForManagers = async (orderNumber: string, clientName: string) => {
         try {
-            let managers: any[] = [];
-            const anyUser: any = User;
-
-            if (typeof anyUser.filter === 'function') {
-                try {
-                    managers = await anyUser.filter({ role: 'manager' }, '-created_at', 100);
-                } catch (e) {
-                    console.warn('User.filter failed, falling back to User.list()', e);
-                    const allUsers = await anyUser.list();
-                    const limitedUsers = Array.isArray(allUsers) ? allUsers.slice(0, 100) : [];
-                    managers = limitedUsers.filter((u: any) => u.role === 'manager');
-                }
-            } else {
-                const allUsers = await anyUser.list();
-                const limitedUsers = Array.isArray(allUsers) ? allUsers.slice(0, 100) : [];
-                managers = limitedUsers.filter((u: any) => u.role === 'manager');
-            }
+            const allUsers = await User.list() as unknown as UserType[];
+            const managers = allUsers.filter(u => u.role === 'manager');
 
             const notificationPromises = managers.map(manager =>
                 Notification.create({
@@ -279,7 +266,7 @@ const CreateOrder = () => {
 
             await Order.create(orderData);
 
-            const selectedClient = clients.find(c => c.id === formData.client_id);
+            const selectedClient = (clients as unknown as ClientType[]).find(c => c.id === formData.client_id);
             const clientName = selectedClient?.name || 'לקוח';
 
             await createNotificationsForManagers(nextOrderNumber, clientName);
@@ -331,7 +318,7 @@ const CreateOrder = () => {
                             isManager={isManager}
                             userClient={userClient}
                             formData={formData}
-                            clients={clients.filter(c => c.is_active)}
+                            clients={(clients as unknown as ClientType[]).filter(c => c.is_active)}
                             filteredSites={filteredSites}
                             selectedSite={selectedSite}
                             onClientChange={(clientId) => setFormData({ ...formData, client_id: clientId })}

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Order, Site, Product, User, Client } from '@/entities';
+import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Sparkles } from 'lucide-react';
 import RecentOrdersList from '@/components/RecentOrdersList';
@@ -13,13 +14,13 @@ import NotificationsCard from '@/components/NotificationsCard';
 const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderType[]>([]);
+  const [sites, setSites] = useState<SiteType[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [userClient, setUserClient] = useState<any>(null);
+  const [user, setUser] = useState<UserType | null>(null);
+  const [userClient, setUserClient] = useState<ClientType | null>(null);
 
   const translations = {
     he: {
@@ -95,7 +96,7 @@ const ClientDashboard: React.FC = () => {
     try {
       setError(null);
       setLoading(true);
-      const currentUser = await User.me() as unknown as User;
+      const currentUser = await User.me() as unknown as UserType;
       setUser(currentUser);
 
       const [allClientsRaw, sitesData, productsData] = await Promise.all([
@@ -104,7 +105,7 @@ const ClientDashboard: React.FC = () => {
         Product.list('-created_at', 1000)
       ]);
 
-      const allClients = allClientsRaw as unknown as Client[];
+      const allClients = allClientsRaw as unknown as ClientType[];
 
       // Find user's client
       let matchingClient = allClients.find(c => 
@@ -124,11 +125,11 @@ const ClientDashboard: React.FC = () => {
         
         // Load client's orders
         const clientOrdersRaw = await Order.filter({ client_id: matchingClient.id }, '-created_at', 1000);
-        setOrders(clientOrdersRaw as unknown as Order[]);
+        setOrders(clientOrdersRaw as unknown as OrderType[]);
       }
       
-      setSites(sitesData);
-      setProducts(productsData);
+      setSites(sitesData as unknown as SiteType[]);
+      setProducts(productsData as unknown as ProductType[]);
     } catch (error) {
       console.error('Error loading data:', error);
       setError(t.errorMessage);

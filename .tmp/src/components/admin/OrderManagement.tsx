@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Order, User, Notification } from '@/entities';
+import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -20,16 +21,16 @@ export const OrderManagement: React.FC = () => {
     const { language } = useLanguage();
     const { user: currentUser } = useAuth();
     const { products, sites, clients, productsMap, sitesMap, clientsMap, loading: dataLoading } = useData();
-    const [orders, setOrders] = useState<any[]>([]);
+    const [orders, setOrders] = useState<OrderType[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [statusFilter, setStatusFilter] = useState('all');
-    const [editingOrder, setEditingOrder] = useState<any>(null);
+    const [editingOrder, setEditingOrder] = useState<OrderType | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const [managersCache, setManagersCache] = useState<any[]>([]);
+    const [managersCache, setManagersCache] = useState<UserType[]>([]);
     const [cacheLoaded, setCacheLoaded] = useState(false);
     const PAGE_SIZE = 20;
 
@@ -202,7 +203,7 @@ export const OrderManagement: React.FC = () => {
         }
     }, [cacheLoaded, dataLoading]);
 
-    const checkAndCreateReminders = async (ordersData: any[]) => {
+    const checkAndCreateReminders = async (ordersData: OrderType[]) => {
         try {
             if (!currentUser || currentUser.role !== 'manager' || currentUser.reminders_enabled === false) {
                 return;
@@ -265,7 +266,7 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
-    const shouldShowReminder = (order: any) => {
+    const shouldShowReminder = (order: OrderType) => {
         if (!currentUser || currentUser.role !== 'manager' || currentUser.reminders_enabled === false) {
             return false;
         }
@@ -291,10 +292,10 @@ export const OrderManagement: React.FC = () => {
         try {
             setLoading(true);
             const ordersData = await Order.list('-created_at', PAGE_SIZE, (page - 1) * PAGE_SIZE);
-            setOrders(ordersData);
+            setOrders(ordersData as unknown as OrderType[]);
 
             // Try to use a count API if available; otherwise approximate from what we know
-            const anyOrder: any = Order;
+            const anyOrder = Order as any;
             if (typeof anyOrder.count === 'function') {
                 try {
                     const count = await anyOrder.count();
@@ -308,7 +309,7 @@ export const OrderManagement: React.FC = () => {
             }
             
             // Check for reminders in background
-            checkAndCreateReminders(ordersData).catch(error => {
+            checkAndCreateReminders(ordersData as unknown as OrderType[]).catch(error => {
                 console.error('Error checking reminders:', error);
             });
         } catch (error: any) {
@@ -336,8 +337,8 @@ export const OrderManagement: React.FC = () => {
 
     const loadManagersCache = async () => {
         try {
-            const allUsers = await User.list('-created_at', 1000);
-            const managers = allUsers.filter((u: any) => u.role === 'manager');
+            const allUsers = await User.list('-created_at', 1000) as unknown as UserType[];
+            const managers = allUsers.filter((u: UserType) => u.role === 'manager');
             setManagersCache(managers);
             setCacheLoaded(true);
             return managers;
@@ -347,7 +348,7 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
-    const getOrderClientName = (order: any) => {
+    const getOrderClientName = (order: OrderType) => {
         if (order.client_id && clientsMap[order.client_id]?.name) {
             return clientsMap[order.client_id].name;
         }
@@ -358,7 +359,7 @@ export const OrderManagement: React.FC = () => {
         return '';
     };
 
-    const createStatusChangeNotifications = async (order: any, newStatus: string) => {
+    const createStatusChangeNotifications = async (order: OrderType, newStatus: string) => {
         try {
             const clientName = getOrderClientName(order);
             const suffix = clientName ? ` - ${clientName}` : '';
@@ -372,13 +373,13 @@ export const OrderManagement: React.FC = () => {
 
             const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה${suffix}`;
 
-            let managers: any[] = managersCache;
+            let managers: UserType[] = managersCache;
             if (!managers || managers.length === 0) {
                 managers = await loadManagersCache();
             }
 
-            const allUsers = await User.list('-created_at', 1000);
-            const orderCreator = allUsers.find((u: any) => u.email === order.created_by);
+            const allUsers = await User.list('-created_at', 1000) as unknown as UserType[];
+            const orderCreator = allUsers.find((u: UserType) => u.email === order.created_by);
 
             const managerNotifications = managers.map(manager =>
                 Notification.create({
@@ -453,12 +454,12 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
-    const handleUpdateDeliveryClick = (order: any) => {
+    const handleUpdateDeliveryClick = (order: OrderType) => {
         setEditingOrder(order);
         setIsEditDialogOpen(true);
     };
 
-    const handleSendMessage = (order: any) => {
+    const handleSendMessage = (order: OrderType) => {
         const subject = language === 'he' 
             ? `הודעה לגבי הזמנה #${order.order_number}`
             : `Message regarding order #${order.order_number}`;
@@ -473,7 +474,7 @@ export const OrderManagement: React.FC = () => {
         });
     };
 
-    const handleDuplicateOrder = (order: any) => {
+    const handleDuplicateOrder = (order: OrderType) => {
         navigate('/create-order', { state: { duplicateOrder: order } });
     };
 

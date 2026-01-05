@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Order } from '@/entities';
+import type { Order as OrderType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { cn } from '@/lib/utils';
@@ -17,7 +18,7 @@ const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { productsMap, sitesMap, clientsMap } = useData();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -111,7 +112,7 @@ const ManagerDashboard: React.FC = () => {
     const allOrders = await Order.list('-created_at', 50);
     console.log('Orders loaded successfully:', allOrders?.length || 0);
       
-      setOrders(allOrders || []);
+      setOrders(allOrders as unknown as OrderType[] || []);
     } catch (error: any) {
       console.error('Error loading orders:', error);
       
@@ -140,7 +141,7 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const handleUpdateDelivery = async (order: any) => {
+  const handleUpdateDelivery = async (order: OrderType) => {
     const added = parseFloat(deliveryUpdates[order.id]);
     if (isNaN(added) || added <= 0) {
       toast({
@@ -180,7 +181,7 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const handleSendMessage = (order: any) => {
+  const handleSendMessage = (order: OrderType) => {
     const subject = language === 'he' 
       ? `הודעה לגבי הזמנה #${order.order_number}`
       : `Message regarding order #${order.order_number}`;
