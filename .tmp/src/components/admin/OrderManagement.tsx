@@ -15,6 +15,7 @@ import { OrderCard } from './OrderCard';
 import OrderEditDialog from './OrderEditDialog';
 import { getProductName, getSiteName } from '@/lib/orderUtils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { OrderCardSkeleton } from '@/components/OrderCardSkeleton';
 
 export const OrderManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -494,7 +495,15 @@ export const OrderManagement: React.FC = () => {
     }, [orders, debouncedSearch, statusFilter, sitesMap, productsMap, language]);
 
     if (loading || dataLoading) {
-        return <LoadingSpinner />;
+        return (
+            <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+            </div>
+        );
     }
 
     return (

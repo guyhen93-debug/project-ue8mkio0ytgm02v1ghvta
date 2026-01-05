@@ -13,6 +13,7 @@ import { getProductName, getSiteName, getClientName, formatOrderDate, getStatusC
 import { toast } from '@/hooks/use-toast';
 import { Plus, Sparkles, Check, X, MessageSquare, Truck, AlertCircle, TrendingUp, BarChart3, Star, Clock, Package } from 'lucide-react';
 import NotificationsCard from '@/components/NotificationsCard';
+import { OrderCardSkeleton } from '@/components/OrderCardSkeleton';
 
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -521,53 +522,63 @@ const ManagerDashboard: React.FC = () => {
           </div>
           
           <div className="space-y-3">
-            {recentOrdersList.length > 0 ? (
-              recentOrdersList.map(order => {
-                const status = getStatusConfig(order.status, language);
-                return (
-                  <Card 
-                    key={order.id} 
-                    className="industrial-card hover:border-yellow-300 transition-colors cursor-pointer"
-                    onClick={() => navigate('/orders')}
-                  >
-                    <CardContent className="p-3 sm:p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold truncate text-gray-900">
-                            #{order.order_number} - {getClientName(order, sitesMap, clientsMap)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5 truncate">
-                            {getProductName(order.product_id, productsMap, language)} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date, language)}
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "px-2 py-1 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap",
-                          status.className
-                        )}>
-                          {status.label}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+            {loading ? (
+              <div className="space-y-3">
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+                <OrderCardSkeleton />
+              </div>
             ) : (
-              <Card className="industrial-card p-12 text-center border-dashed border-2">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  עדיין אין הזמנות במערכת
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  התחל על ידי יצירת ההזמנה הראשונה
-                </p>
-                <Button 
-                  onClick={() => navigate('/create-order')}
-                  className="bg-yellow-500 hover:bg-yellow-600"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  צור הזמנה ראשונה
-                </Button>
-              </Card>
+              <>
+                {recentOrdersList.length > 0 ? (
+                  recentOrdersList.map(order => {
+                    const status = getStatusConfig(order.status, language);
+                    return (
+                      <Card 
+                        key={order.id} 
+                        className="industrial-card hover:border-yellow-300 transition-colors cursor-pointer"
+                        onClick={() => navigate('/orders')}
+                      >
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold truncate text-gray-900">
+                                #{order.order_number} - {getClientName(order, sitesMap, clientsMap)}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5 truncate">
+                                {getProductName(order.product_id, productsMap, language)} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date, language)}
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "px-2 py-1 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap",
+                              status.className
+                            )}>
+                              {status.label}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                ) : (
+                  <Card className="industrial-card p-12 text-center border-dashed border-2">
+                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      עדיין אין הזמנות במערכת
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      התחל על ידי יצירת ההזמנה הראשונה
+                    </p>
+                    <Button 
+                      onClick={() => navigate('/create-order')}
+                      className="bg-yellow-500 hover:bg-yellow-600"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      צור הזמנה ראשונה
+                    </Button>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         </div>
