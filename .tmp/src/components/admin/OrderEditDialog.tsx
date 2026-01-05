@@ -248,17 +248,26 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         }
     };
 
+    const getOrderClientName = () => {
+        if (!formData.client_id) return '';
+        const client = clients.find(c => c.id === formData.client_id);
+        return client?.name || '';
+    };
+
     const createStatusChangeNotifications = async (orderNumber: string, newStatus: string, orderCreatedBy: string) => {
         try {
+            const clientName = getOrderClientName();
+            const suffix = clientName ? ` - ${clientName}` : '';
+
             const statusMessages = {
-                approved: `הזמנה #${orderNumber} אושרה`,
-                rejected: `הזמנה #${orderNumber} נדחתה`,
-                completed: `הזמנה #${orderNumber} הושלמה`,
-                pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`,
-                in_transit: `הזמנה #${orderNumber} בדרך אליך`
+                approved: `הזמנה #${orderNumber} אושרה${suffix}`,
+                rejected: `הזמנה #${orderNumber} נדחתה${suffix}`,
+                completed: `הזמנה #${orderNumber} הושלמה${suffix}`,
+                pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין${suffix}`,
+                in_transit: `הזמנה #${orderNumber} בדרך אליך${suffix}`
             };
 
-            const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
+            const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה${suffix}`;
 
             const allUsers = await User.list('-created_at', 1000);
             const managers = allUsers.filter(u => u.role === 'manager');
@@ -294,7 +303,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
 
     const createDeliveryNotifications = async (orderNumber: string, orderCreatedBy: string) => {
         try {
-            const message = `הזמנה #${orderNumber} סומנה כסופקה - ממתין לאישור לקוח`;
+            const clientName = getOrderClientName();
+            const suffix = clientName ? ` - ${clientName}` : '';
+            const message = `הזמנה #${orderNumber} סומנה כסופקה - ממתין לאישור לקוח${suffix}`;
 
             const allUsers = await User.list('-created_at', 1000);
             const orderCreator = allUsers.find(u => u.email === orderCreatedBy);

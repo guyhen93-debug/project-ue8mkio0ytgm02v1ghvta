@@ -197,46 +197,17 @@ const ManagerDashboard: React.FC = () => {
     setRetryCount(prev => prev + 1);
   };
 
-  const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 5);
-  const totalPendingCount = orders.filter(o => o.status === 'pending').length;
-  
-  const partialOrders = orders.filter(o => 
-    (o.status === 'approved' || o.status === 'completed') && 
-    !o.is_delivered && 
-    o.quantity_tons > (o.delivered_quantity_tons || 0)
-  ).slice(0, 10);
-
-  // Stats calculations
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
-
-  const isWithinLast7Days = (dateString?: string) => {
-    if (!dateString) return false;
-    const date = new Date(dateString);
-    return date >= sevenDaysAgo;
+  const getUrgentPendingText = () => {
+    if (totalPendingCount === 0) return t.urgentNoPending;
+    
+    if (language === 'he') {
+      if (totalPendingCount === 1) return "הזמנה אחת ממתינה לאישור";
+      return `${totalPendingCount.toLocaleString('he-IL')} הזמנות ממתינות לאישור`;
+    }
+    
+    if (totalPendingCount === 1) return "1 order waiting for approval";
+    return `${totalPendingCount.toLocaleString('en-US')} orders waiting for approval`;
   };
-
-  const weeklyNewOrders = orders.filter(o => isWithinLast7Days(o.created_at));
-  const weeklyNewCount = weeklyNewOrders.length;
-
-  const weeklyDeliveredOrders = orders.filter(o => 
-    (o.is_delivered || o.status === 'completed') && 
-    (isWithinLast7Days(o.actual_delivery_date) || isWithinLast7Days(o.delivered_at) || isWithinLast7Days(o.updated_at))
-  );
-  
-  const weeklyTonsDelivered = weeklyDeliveredOrders.reduce((sum, o) => 
-    sum + (o.delivered_quantity_tons || o.quantity_tons || 0), 0
-  );
-
-  const weeklyRatedOrders = orders.filter(o => o.rating && isWithinLast7Days(o.updated_at));
-  const avgRating = weeklyRatedOrders.length 
-    ? weeklyRatedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / weeklyRatedOrders.length 
-    : 0;
-
-  const recentOrdersList = [...orders]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
 
   return (
     <Layout title={t.title}>
@@ -258,10 +229,7 @@ const ManagerDashboard: React.FC = () => {
             <div>
               <h3 className="font-bold text-gray-900">{t.urgentTitle}</h3>
               <p className="text-sm text-gray-600">
-                {totalPendingCount > 0 
-                  ? t.urgentPendingText.replace('{count}', totalPendingCount.toLocaleString())
-                  : t.urgentNoPending
-                }
+                {getUrgentPendingText()}
               </p>
             </div>
           </div>
@@ -305,7 +273,7 @@ const ManagerDashboard: React.FC = () => {
             <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                 <BarChart3 className="w-3.5 h-3.5" />
-                {t.statNewOrders}
+                📦 {t.statNewOrders}
               </span>
               <span className="text-2xl font-bold text-gray-900">
                 {weeklyNewCount.toLocaleString()}
@@ -315,7 +283,7 @@ const ManagerDashboard: React.FC = () => {
             <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5" />
-                {t.statTonsDelivered}
+                ⚖️ {t.statTonsDelivered}
               </span>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-gray-900">
@@ -328,7 +296,7 @@ const ManagerDashboard: React.FC = () => {
             <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Star className="w-3.5 h-3.5" />
-                {t.statAvgRating}
+                ⭐ {t.statAvgRating}
               </span>
               {avgRating > 0 ? (
                 <div>

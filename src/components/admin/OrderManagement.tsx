@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Order, User, Notification } from '@/entities';
@@ -12,6 +13,7 @@ import OrderEditDialog from './OrderEditDialog';
 import { getProductName, getSiteName } from '@/lib/orderUtils';
 
 export const OrderManagement: React.FC = () => {
+    const navigate = useNavigate();
     const { language } = useLanguage();
     const { products, sites, clients, productsMap, sitesMap, clientsMap, loading: dataLoading } = useData();
     const [orders, setOrders] = useState<any[]>([]);
@@ -46,6 +48,8 @@ export const OrderManagement: React.FC = () => {
         he: {
             title: 'ניהול הזמנות',
             addOrder: 'הוסף הזמנה',
+            addDelivery: 'עדכן אספקה',
+            sendMessage: 'שלח הודעה',
             search: 'חיפוש הזמנה...',
             refresh: 'רענן',
             filterAll: 'הכל',
@@ -107,6 +111,8 @@ export const OrderManagement: React.FC = () => {
         en: {
             title: 'Order Management',
             addOrder: 'Add Order',
+            addDelivery: 'Update Delivery',
+            sendMessage: 'Send Message',
             search: 'Search order...',
             refresh: 'Refresh',
             filterAll: 'All',
@@ -204,16 +210,30 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
+    const getOrderClientName = (order: any) => {
+        if (order.client_id && clientsMap[order.client_id]?.name) {
+            return clientsMap[order.client_id].name;
+        }
+        const site = sitesMap[order.site_id];
+        if (site && clientsMap[site.client_id]?.name) {
+            return clientsMap[site.client_id].name;
+        }
+        return '';
+    };
+
     const createStatusChangeNotifications = async (order: any, newStatus: string) => {
         try {
+            const clientName = getOrderClientName(order);
+            const suffix = clientName ? ` - ${clientName}` : '';
+
             const statusMessages = {
-                approved: `הזמנה #${order.order_number} אושרה`,
-                rejected: `הזמנה #${order.order_number} נדחתה`,
-                completed: `הזמנה #${order.order_number} הושלמה`,
-                pending: `הזמנה #${order.order_number} הוחזרה לסטטוס ממתין`
+                approved: `הזמנה #${order.order_number} אושרה${suffix}`,
+                rejected: `הזמנה #${order.order_number} נדחתה${suffix}`,
+                completed: `הזמנה #${order.order_number} הושלמה${suffix}`,
+                pending: `הזמנה #${order.order_number} הוחזרה לסטטוס ממתין${suffix}`
             };
 
-            const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה`;
+            const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה${suffix}`;
 
             const allUsers = await User.list('-created_at', 1000);
             const managers = allUsers.filter(u => u.role === 'manager');
@@ -292,6 +312,26 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
+    const handleUpdateDeliveryClick = (order: any) => {
+        setEditingOrder(order);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleSendMessage = (order: any) => {
+        const subject = language === 'he' 
+            ? `הודעה לגבי הזמנה #${order.order_number}`
+            : `Message regarding order #${order.order_number}`;
+        
+        navigate('/inbox', { 
+            state: { 
+                newMessage: { 
+                    subject, 
+                    orderId: order.id 
+                } 
+            } 
+        });
+    };
+
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -349,6 +389,8 @@ export const OrderManagement: React.FC = () => {
                             }}
                             onDelete={handleDelete}
                             onStatusChange={updateOrderStatus}
+                            onUpdateDelivery={handleUpdateDeliveryClick}
+                            onSendMessage={handleSendMessage}
                         />
                     ))}
                 </div>

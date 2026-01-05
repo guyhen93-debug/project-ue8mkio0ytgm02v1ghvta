@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock } from 'lucide-react';
+import { Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getProductName, getSiteName, getClientName as resolveClientName, getSupplierName, getStatusConfig } from '@/lib/orderUtils';
@@ -17,6 +17,8 @@ interface OrderCardProps {
     onEdit: (order: any) => void;
     onDelete: (orderId: string) => void;
     onStatusChange: (orderId: string, newStatus: string) => void;
+    onUpdateDelivery?: (order: any) => void;
+    onSendMessage?: (order: any) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -28,7 +30,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     translations: t,
     onEdit,
     onDelete,
-    onStatusChange
+    onStatusChange,
+    onUpdateDelivery,
+    onSendMessage
 }) => {
     const isRTL = language === 'he';
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
@@ -276,7 +280,25 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             </Button>
                         )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onUpdateDelivery?.(order)}
+                            className="flex-1"
+                        >
+                            <Package className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.addDelivery}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onSendMessage?.(order)}
+                            className="flex-1"
+                        >
+                            <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.sendMessage}
+                        </Button>
                         <Button
                             size="sm"
                             variant="outline"
