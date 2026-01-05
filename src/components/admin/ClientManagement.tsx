@@ -280,7 +280,7 @@ export const ClientManagement: React.FC = () => {
             {t.filterInactive}
           </Button>
         </div>
-        <p className="text-xs sm:text-sm text-gray-500 font-medium whitespace-nowrap">
+        <p className="text-xs sm:text-sm text-gray-500 font-medium text-right">
           {filteredClients.length} {t.clientsCount}
         </p>
       </div>

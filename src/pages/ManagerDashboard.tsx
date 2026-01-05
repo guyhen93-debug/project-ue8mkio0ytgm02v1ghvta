@@ -466,17 +466,17 @@ const ManagerDashboard: React.FC = () => {
                         />
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 w-full">
                         <Input
                           type="number"
                           placeholder={t.deliveryAmountPlaceholder}
-                          className="h-10 text-sm flex-1"
+                          className="h-10 text-sm w-full sm:flex-1"
                           value={deliveryUpdates[order.id] || ''}
                           onChange={(e) => setDeliveryUpdates(prev => ({ ...prev, [order.id]: e.target.value }))}
                         />
                         <Button 
                           size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none whitespace-nowrap h-10"
+                          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto sm:flex-none whitespace-nowrap h-10"
                           onClick={() => handleUpdateDelivery(order)}
                           disabled={isUpdating === order.id}
                         >
