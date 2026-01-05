@@ -259,11 +259,13 @@ const Profile = () => {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-right flex-1">{t('field_mode')}</span>
                 <div className="flex items-center justify-end flex-shrink-0 pr-1">
-                  <Switch
-                    checked={fieldMode}
-                    onCheckedChange={(value) => setFieldMode(!!value)}
-                    className="!w-9 !h-5 border border-gray-300 data-[state=unchecked]:bg-gray-200 data-[state=checked]:bg-black"
-                  />
+                  <div className="inline-flex scale-75 sm:scale-90 origin-right">
+                    <Switch
+                      checked={fieldMode}
+                      onCheckedChange={(value) => setFieldMode(!!value)}
+                      className="!w-9 !h-5 border border-gray-300 data-[state=unchecked]:bg-gray-200 data-[state=checked]:bg-black"
+                    />
+                  </div>
                 </div>
               </div>
               <p className="text-xs text-gray-500 text-right leading-snug">
