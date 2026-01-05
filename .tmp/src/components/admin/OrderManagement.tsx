@@ -21,6 +21,19 @@ export const OrderManagement: React.FC = () => {
     const [editingOrder, setEditingOrder] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const statusFromUrl = params.get('status');
+            const allowed = ['all', 'pending', 'approved', 'rejected', 'completed', 'in_transit'];
+            if (statusFromUrl && allowed.includes(statusFromUrl)) {
+                setStatusFilter(statusFromUrl);
+            }
+        } catch (e) {
+            console.warn('Could not read status from URL', e);
+        }
+    }, []);
+
     const translations = {
         he: {
             title: 'ניהול הזמנות',
