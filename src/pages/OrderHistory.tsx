@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X } from 'lucide-react';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,7 +18,7 @@ import { getClientName as resolveClientName } from '@/lib/orderUtils';
 
 const OrderHistory: React.FC = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isManager } = useAuth();
     const { language } = useLanguage();
     const [orders, setOrders] = useState<any[]>([]);
     const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
@@ -57,7 +57,10 @@ const OrderHistory: React.FC = () => {
             rated: 'דורג',
             supplier: 'ספק',
             shifuliHar: 'שיפולי הר',
-            maavarRabin: 'מעבר רבין'
+            maavarRabin: 'מעבר רבין',
+            dateRangeLabel: 'טווח תאריכים',
+            clearFilter: 'נקה',
+            createOrderButton: 'צור הזמנה חדשה'
         },
         en: {
             title: 'My Orders',
@@ -85,7 +88,10 @@ const OrderHistory: React.FC = () => {
             rated: 'Rated',
             supplier: 'Supplier',
             shifuliHar: 'Shifuli Har',
-            maavarRabin: 'Maavar Rabin'
+            maavarRabin: 'Maavar Rabin',
+            dateRangeLabel: 'Date range',
+            clearFilter: 'Clear',
+            createOrderButton: 'Create New Order'
         }
     };
 
@@ -93,15 +99,19 @@ const OrderHistory: React.FC = () => {
     const isRTL = language === 'he';
 
     useEffect(() => {
+        if (isManager) {
+            navigate('/admin?tab=history', { replace: true });
+            return;
+        }
         loadOrders();
-    }, [user]);
+    }, [user, isManager, navigate]);
 
     useEffect(() => {
         applyFilters();
     }, [orders, statusFilter, dateRange]);
 
     const loadOrders = async () => {
-        if (!user) {
+        if (!user || isManager) {
             setLoading(false);
             return;
         }
@@ -209,7 +219,7 @@ const OrderHistory: React.FC = () => {
     const rejectedCount = orders.filter(o => o.status === 'rejected').length;
     const completedCount = orders.filter(o => o.status === 'completed').length;
 
-    if (loading) {
+    if (loading || isManager) {
         return (
             <Layout title={t.title}>
                 <div className="flex items-center justify-center py-12">
@@ -237,6 +247,21 @@ const OrderHistory: React.FC = () => {
     return (
         <Layout title={t.title}>
             <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+                {/* Create New Order Button */}
+                <div className="mb-6">
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg blur opacity-30 animate-pulse"></div>
+                        <Button 
+                            className="relative w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.01]"
+                            onClick={() => navigate('/create-order')}
+                        >
+                            <Sparkles className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'} animate-pulse`} />
+                            {t.createOrderButton}
+                            <Plus className={`w-5 h-5 ${isRTL ? 'mr-2' : 'ml-2'}`} />
+                        </Button>
+                    </div>
+                </div>
+
                 {/* Filters */}
                 <div className="mb-6 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -296,7 +321,7 @@ const OrderHistory: React.FC = () => {
                             variant={statusFilter === 'all' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setStatusFilter('all')}
-                            className={statusFilter === 'all' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
+                            className={statusFilter === 'all' ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' : ''}
                         >
                             {t.filterAll} ({allCount})
                         </Button>
@@ -304,7 +329,7 @@ const OrderHistory: React.FC = () => {
                             variant={statusFilter === 'pending' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setStatusFilter('pending')}
-                            className={statusFilter === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
+                            className={statusFilter === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' : ''}
                         >
                             {t.filterPending} ({pendingCount})
                         </Button>
@@ -312,7 +337,7 @@ const OrderHistory: React.FC = () => {
                             variant={statusFilter === 'approved' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setStatusFilter('approved')}
-                            className={statusFilter === 'approved' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
+                            className={statusFilter === 'approved' ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' : ''}
                         >
                             {t.filterApproved} ({approvedCount})
                         </Button>
@@ -320,7 +345,7 @@ const OrderHistory: React.FC = () => {
                             variant={statusFilter === 'rejected' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setStatusFilter('rejected')}
-                            className={statusFilter === 'rejected' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
+                            className={statusFilter === 'rejected' ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' : ''}
                         >
                             {t.filterRejected} ({rejectedCount})
                         </Button>
@@ -328,7 +353,7 @@ const OrderHistory: React.FC = () => {
                             variant={statusFilter === 'completed' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setStatusFilter('completed')}
-                            className={statusFilter === 'completed' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : ''}
+                            className={statusFilter === 'completed' ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' : ''}
                         >
                             {t.filterCompleted} ({completedCount})
                         </Button>
