@@ -68,6 +68,7 @@ const AdminPanel: React.FC = () => {
             approved: 'מאושר',
             rejected: 'נדחה',
             completed: 'הושלם',
+            historyFilterInTransit: 'בדרך',
             noOrders: 'אין הזמנות להצגה',
             orderNumber: 'הזמנה',
             client: 'לקוח',
@@ -117,6 +118,7 @@ const AdminPanel: React.FC = () => {
             approved: 'Approved',
             rejected: 'Rejected',
             completed: 'Completed',
+            historyFilterInTransit: 'In Transit',
             noOrders: 'No orders to display',
             orderNumber: 'Order',
             client: 'Client',
@@ -267,10 +269,11 @@ const AdminPanel: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const statusConfig = {
-            pending: { label: t.pending, className: 'bg-yellow-100 text-yellow-800' },
-            approved: { label: t.approved, className: 'bg-green-100 text-green-800' },
-            rejected: { label: t.rejected, className: 'bg-red-100 text-red-800' },
-            completed: { label: t.completed, className: 'bg-blue-100 text-blue-800' }
+            pending: { label: t.pending, className: 'bg-[#FEF3C7] text-[#F59E0B] border border-[#FBBF24] px-2 py-0.5 text-[10px] font-semibold rounded-full' },
+            approved: { label: t.approved, className: 'bg-[#D1FAE5] text-[#10B981] border border-[#34D399] px-2 py-0.5 text-[10px] font-semibold rounded-full' },
+            in_transit: { label: t.historyFilterInTransit, className: 'bg-[#CFFAFE] text-[#06B6D4] border border-[#22D3EE] px-2 py-0.5 text-[10px] font-semibold rounded-full' },
+            rejected: { label: t.rejected, className: 'bg-[#FEE2E2] text-[#DC2626] border border-[#FCA5A5] px-2 py-0.5 text-[10px] font-semibold rounded-full' },
+            completed: { label: t.completed, className: 'bg-[#DCFCE7] text-[#059669] border border-[#16A34A] px-2 py-0.5 text-[10px] font-semibold rounded-full' }
         };
         const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
         return <Badge className={config.className}>{config.label}</Badge>;
@@ -499,6 +502,7 @@ const AdminPanel: React.FC = () => {
                                                     <SelectItem value="all">{t.allStatuses}</SelectItem>
                                                     <SelectItem value="pending">{t.pending}</SelectItem>
                                                     <SelectItem value="approved">{t.approved}</SelectItem>
+                                                    <SelectItem value="in_transit">{t.historyFilterInTransit}</SelectItem>
                                                     <SelectItem value="rejected">{t.rejected}</SelectItem>
                                                     <SelectItem value="completed">{t.completed}</SelectItem>
                                                 </SelectContent>

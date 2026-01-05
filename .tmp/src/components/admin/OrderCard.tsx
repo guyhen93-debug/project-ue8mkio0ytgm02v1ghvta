@@ -34,6 +34,20 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
     const statusConfig = getStatusConfig(order.status, language);
 
+    const getStatusEmoji = (status: string) => {
+        switch (status) {
+            case 'pending': return "⏳";
+            case 'approved': return "✅";
+            case 'in_transit': return "🚚";
+            case 'completed': return "✔️";
+            case 'rejected': return "❌";
+            default: return "⏳";
+        }
+    };
+
+    const statusEmoji = getStatusEmoji(order.status);
+    const isNew = order.status === 'pending' && order.created_at && (Date.now() - new Date(order.created_at).getTime() < 1000 * 60 * 60 * 24);
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US', {
@@ -59,9 +73,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             <h3 className="font-bold text-sm sm:text-base">
                                 {t.orderNumber} #{order.order_number || order.id.slice(-6)}
                             </h3>
-                            <Badge className={`${statusConfig.className} text-xs`}>
+                            <Badge className={statusConfig.className}>
+                                <span className={isRTL ? 'ml-1' : 'mr-1'}>{statusEmoji}</span>
                                 {statusConfig.label}
                             </Badge>
+                            {isNew && (
+                                <Badge className="bg-[#DBEAFE] text-[#3B82F6] border border-[#3B82F6] px-2 py-0.5 text-[10px] font-semibold rounded-full">
+                                    🆕 {language === 'he' ? 'חדש' : 'New'}
+                                </Badge>
+                            )}
                             {order.is_delivered && !order.is_client_confirmed && (
                                 <Badge className="bg-orange-100 text-orange-800 text-xs">
                                     <Clock className="w-3 h-3 ml-1" />

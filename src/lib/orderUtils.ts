@@ -90,25 +90,29 @@ export const getStatusConfig = (status: string, language: string = 'he') => {
     const configs = {
         pending: {
             label: { he: 'ממתין', en: 'Pending' },
-            className: 'bg-yellow-100 text-yellow-800'
+            className: 'bg-[#FEF3C7] text-[#F59E0B] border border-[#FBBF24] px-2.5 py-1 text-[11px] font-semibold rounded-full'
         },
         approved: {
             label: { he: 'מאושר', en: 'Approved' },
-            className: 'bg-green-100 text-green-800'
+            className: 'bg-[#D1FAE5] text-[#10B981] border border-[#34D399] px-2.5 py-1 text-[11px] font-semibold rounded-full'
         },
-        rejected: {
-            label: { he: 'נדחה', en: 'Rejected' },
-            className: 'bg-red-100 text-red-800'
+        in_transit: {
+            label: { he: 'בדרך', en: 'In Transit' },
+            className: 'bg-[#CFFAFE] text-[#06B6D4] border border-[#22D3EE] px-2.5 py-1 text-[11px] font-semibold rounded-full'
         },
         completed: {
             label: { he: 'הושלם', en: 'Completed' },
-            className: 'bg-blue-100 text-blue-800'
+            className: 'bg-[#DCFCE7] text-[#059669] border border-[#16A34A] px-2.5 py-1 text-[11px] font-semibold rounded-full'
+        },
+        rejected: {
+            label: { he: 'נדחה', en: 'Rejected' },
+            className: 'bg-[#FEE2E2] text-[#DC2626] border border-[#FCA5A5] px-2.5 py-1 text-[11px] font-semibold rounded-full'
         }
     };
     
-    const config = configs[status] || configs.pending;
+    const config = configs[status as keyof typeof configs] || configs.pending;
     return {
-        label: config.label[language],
+        label: config.label[language as keyof typeof config.label],
         className: config.className
     };
 };

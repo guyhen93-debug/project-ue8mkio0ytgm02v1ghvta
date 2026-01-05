@@ -72,6 +72,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             approved: 'מאושר',
             rejected: 'נדחה',
             completed: 'הושלם',
+            inTransit: 'בדרך',
             save: 'שמור',
             cancel: 'ביטול',
             selectClient: 'בחר לקוח',
@@ -126,6 +127,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             approved: 'Approved',
             rejected: 'Rejected',
             completed: 'Completed',
+            inTransit: 'In Transit',
             save: 'Save',
             cancel: 'Cancel',
             selectClient: 'Select client',
@@ -252,7 +254,8 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 approved: `הזמנה #${orderNumber} אושרה`,
                 rejected: `הזמנה #${orderNumber} נדחתה`,
                 completed: `הזמנה #${orderNumber} הושלמה`,
-                pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`
+                pending: `הזמנה #${orderNumber} הוחזרה לסטטוס ממתין`,
+                in_transit: `הזמנה #${orderNumber} בדרך אליך`
             };
 
             const message = statusMessages[newStatus] || `הזמנה #${orderNumber} עודכנה`;
@@ -581,6 +584,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                                 <SelectContent>
                                     <SelectItem value="pending">{t.pending}</SelectItem>
                                     <SelectItem value="approved">{t.approved}</SelectItem>
+                                    <SelectItem value="in_transit">{t.inTransit}</SelectItem>
                                     <SelectItem value="rejected">{t.rejected}</SelectItem>
                                     <SelectItem value="completed">{t.completed}</SelectItem>
                                 </SelectContent>
