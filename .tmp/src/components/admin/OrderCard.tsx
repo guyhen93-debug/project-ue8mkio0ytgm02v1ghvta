@@ -145,6 +145,35 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             </span>
                         </div>
                     )}
+
+                    {/* Delivery Info */}
+                    {(order.delivery_note_number || order.driver_name || order.is_delivered || order.delivered_quantity_tons > 0) && (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-100 space-y-1">
+                            {order.delivery_note_number && (
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                    <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                    <span className="text-gray-500">{t.deliveryNoteNumber}:</span>
+                                    <span className="font-bold text-blue-700">{order.delivery_note_number}</span>
+                                </div>
+                            )}
+                            {order.driver_name && (
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                    <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                    <span className="text-gray-500">{t.driverName}:</span>
+                                    <span className="font-medium text-gray-900">{order.driver_name}</span>
+                                </div>
+                            )}
+                            {(order.is_delivered || order.delivered_quantity_tons > 0) && (
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                    <Package className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                    <span className="text-gray-500">{t.deliveredQuantity}:</span>
+                                    <span className="font-bold text-gray-900">
+                                        {order.delivered_quantity_tons || 0} / {order.quantity_tons} {t.tons}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Notes */}

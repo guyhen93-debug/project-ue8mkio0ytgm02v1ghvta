@@ -78,7 +78,10 @@ export const OrderManagement: React.FC = () => {
             notDelivered: 'לא סופק',
             waitingClientConfirm: 'ממתין לאישור',
             clientConfirmed: 'אושר ע"י לקוח',
-            rating: 'דירוג'
+            rating: 'דירוג',
+            deliveryNoteNumber: 'תעודת משלוח',
+            driverName: 'שם נהג',
+            deliveredQuantity: 'כמות שסופקה'
         },
         en: {
             title: 'Order Management',
@@ -136,7 +139,10 @@ export const OrderManagement: React.FC = () => {
             notDelivered: 'Not delivered',
             waitingClientConfirm: 'Waiting confirmation',
             clientConfirmed: 'Confirmed by client',
-            rating: 'Rating'
+            rating: 'Rating',
+            deliveryNoteNumber: 'Delivery Note',
+            driverName: 'Driver Name',
+            deliveredQuantity: 'Delivered Quantity'
         }
     };
 
