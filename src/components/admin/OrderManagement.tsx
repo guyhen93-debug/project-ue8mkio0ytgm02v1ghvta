@@ -24,13 +24,21 @@ export const OrderManagement: React.FC = () => {
     useEffect(() => {
         try {
             const params = new URLSearchParams(window.location.search);
+            
+            // Status filter from URL
             const statusFromUrl = params.get('status');
             const allowed = ['all', 'pending', 'approved', 'rejected', 'completed', 'in_transit'];
             if (statusFromUrl && allowed.includes(statusFromUrl)) {
                 setStatusFilter(statusFromUrl);
             }
+
+            // Order search from URL
+            const orderSearch = params.get('order');
+            if (orderSearch) {
+                setSearchTerm(orderSearch);
+            }
         } catch (e) {
-            console.warn('Could not read status from URL', e);
+            console.warn('Could not read parameters from URL', e);
         }
     }, []);
 

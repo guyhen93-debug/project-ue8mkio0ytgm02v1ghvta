@@ -269,7 +269,7 @@ const ManagerDashboard: React.FC = () => {
             <Button 
               size="sm"
               className="bg-red-600 hover:bg-red-700 text-white border-none"
-              onClick={() => navigate('/admin?tab=operations&status=pending')}
+              onClick={() => navigate('/orders?status=pending')}
             >
               {t.urgentButton}
             </Button>

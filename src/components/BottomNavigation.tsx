@@ -16,7 +16,7 @@ export const BottomNavigation: React.FC = () => {
         he: {
             home: 'בית',
             myOrders: 'ההזמנות שלי',
-            allOrders: 'כל ההזמנות',
+            orders: 'הזמנות',
             inbox: 'דואר',
             profile: 'פרופיל',
             admin: 'ניהול'
@@ -24,7 +24,7 @@ export const BottomNavigation: React.FC = () => {
         en: {
             home: 'Home',
             myOrders: 'My Orders',
-            allOrders: 'All Orders',
+            orders: 'Orders',
             inbox: 'Inbox',
             profile: 'Profile',
             admin: 'Admin'
@@ -102,7 +102,7 @@ export const BottomNavigation: React.FC = () => {
         if (isManager) {
             return [
                 { path: homePath, icon: Home, label: t.home, showBadge: true },
-                { path: '/admin?tab=history', icon: ClipboardList, label: t.allOrders, showBadge: false },
+                { path: '/orders', icon: ClipboardList, label: t.orders, showBadge: false },
                 { path: '/admin', icon: Settings, label: t.admin, showBadge: false },
                 { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
                 { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }

@@ -100,7 +100,7 @@ const OrderHistory: React.FC = () => {
 
     useEffect(() => {
         if (isManager) {
-            navigate('/admin?tab=history', { replace: true });
+            navigate('/orders', { replace: true });
             return;
         }
         loadOrders();
