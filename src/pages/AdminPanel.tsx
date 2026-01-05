@@ -14,7 +14,7 @@ import { OrderManagement } from '@/components/admin/OrderManagement';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { Order, Product, Site, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Users, Building2, Package2, ClipboardList, UserCog, History, Search, RefreshCw, Package, MapPin, Calendar as CalendarIcon, CheckCircle, Clock, Star, Factory, LayoutDashboard, X } from 'lucide-react';
+import { Users, Building2, Package2, ClipboardList, UserCog, History, Search, RefreshCw, Package, MapPin, Calendar as CalendarIcon, CheckCircle, Clock, Star, Factory, LayoutDashboard, X, Download } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,6 +29,8 @@ const AdminPanel: React.FC = () => {
         const tab = searchParams.get('tab');
         return tab === 'history' ? 'history' : 'operations';
     });
+
+    const [managementTab, setManagementTab] = useState<'orders' | 'clients' | 'sites' | 'products' | 'users'>('orders');
 
     // History tab state
     const [historyOrders, setHistoryOrders] = useState<any[]>([]);
@@ -90,7 +92,8 @@ const AdminPanel: React.FC = () => {
             manageProducts: 'ניהול מוצרים',
             manageProductsDesc: 'הגדרת סוגי החומרים והמוצרים הזמינים להזמנה.',
             manageUsers: 'ניהול משתמשים',
-            manageUsersDesc: 'ניהול הרשאות וגישה למשתמשי המערכת.'
+            manageUsersDesc: 'ניהול הרשאות וגישה למשתמשי המערכת.',
+            exportExcel: 'ייצוא לאקסל'
         },
         en: {
             title: 'Admin Panel',
@@ -138,7 +141,8 @@ const AdminPanel: React.FC = () => {
             manageProducts: 'Product Management',
             manageProductsDesc: 'Define materials and products available.',
             manageUsers: 'User Management',
-            manageUsersDesc: 'Manage permissions and system access.'
+            manageUsersDesc: 'Manage permissions and system access.',
+            exportExcel: 'Export to Excel'
         }
     };
 
@@ -307,92 +311,88 @@ const AdminPanel: React.FC = () => {
                                     <p className="text-muted-foreground text-sm italic">{t.operationsDescription}</p>
                                 </div>
 
-                                {/* Management Sections */}
-                                <div className="space-y-10">
-                                    {/* Orders Management */}
-                                    <section>
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <div className="bg-yellow-100 p-2 rounded-md">
-                                                <ClipboardList className="w-5 h-5 text-yellow-700" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold">{t.manageOrders}</h3>
-                                                <p className="text-xs text-muted-foreground">{t.manageOrdersDesc}</p>
-                                            </div>
+                                {/* Management Tabs */}
+                                <Tabs value={managementTab} onValueChange={(v) => setManagementTab(v as any)} className="w-full">
+                                    <TabsList className="flex w-full overflow-x-auto rounded-none border-b bg-transparent p-0 mb-6 h-auto no-scrollbar">
+                                        <TabsTrigger
+                                            value="orders"
+                                            className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                        >
+                                            <ClipboardList className="w-4 h-4" />
+                                            <span className="truncate">{t.manageOrders}</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="clients"
+                                            className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                        >
+                                            <Users className="w-4 h-4" />
+                                            <span className="truncate">{t.manageClients}</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="sites"
+                                            className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                        >
+                                            <Building2 className="w-4 h-4" />
+                                            <span className="truncate">{t.manageSites}</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="products"
+                                            className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                        >
+                                            <Package2 className="w-4 h-4" />
+                                            <span className="truncate">{t.manageProducts}</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="users"
+                                            className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                        >
+                                            <UserCog className="w-4 h-4" />
+                                            <span className="truncate">{t.manageUsers}</span>
+                                        </TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="orders" className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between gap-4 mb-2 px-1">
+                                            <h3 className="text-lg font-bold">{t.manageOrders}</h3>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="border-yellow-500 text-yellow-700 hover:bg-yellow-50 h-8 sm:h-9"
+                                                onClick={() => console.log('Export to Excel clicked')}
+                                            >
+                                                <Download className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                                {t.exportExcel}
+                                            </Button>
                                         </div>
                                         <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
                                             <OrderManagement />
                                         </div>
-                                    </section>
+                                    </TabsContent>
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        {/* Clients Management */}
-                                        <section>
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="bg-blue-100 p-2 rounded-md">
-                                                    <Users className="w-5 h-5 text-blue-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold">{t.manageClients}</h3>
-                                                    <p className="text-xs text-muted-foreground">{t.manageClientsDesc}</p>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
-                                                <ClientManagement />
-                                            </div>
-                                        </section>
+                                    <TabsContent value="clients" className="animate-in fade-in duration-300">
+                                        <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
+                                            <ClientManagement />
+                                        </div>
+                                    </TabsContent>
 
-                                        {/* Sites Management */}
-                                        <section>
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="bg-green-100 p-2 rounded-md">
-                                                    <Building2 className="w-5 h-5 text-green-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold">{t.manageSites}</h3>
-                                                    <p className="text-xs text-muted-foreground">{t.manageSitesDesc}</p>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
-                                                <SiteManagement />
-                                            </div>
-                                        </section>
-                                    </div>
+                                    <TabsContent value="sites" className="animate-in fade-in duration-300">
+                                        <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
+                                            <SiteManagement />
+                                        </div>
+                                    </TabsContent>
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        {/* Products Management */}
-                                        <section>
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="bg-purple-100 p-2 rounded-md">
-                                                    <Package2 className="w-5 h-5 text-purple-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold">{t.manageProducts}</h3>
-                                                    <p className="text-xs text-muted-foreground">{t.manageProductsDesc}</p>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
-                                                <ProductManagement />
-                                            </div>
-                                        </section>
+                                    <TabsContent value="products" className="animate-in fade-in duration-300">
+                                        <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
+                                            <ProductManagement />
+                                        </div>
+                                    </TabsContent>
 
-                                        {/* Users Management */}
-                                        <section>
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="bg-orange-100 p-2 rounded-md">
-                                                    <UserCog className="w-5 h-5 text-orange-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold">{t.manageUsers}</h3>
-                                                    <p className="text-xs text-muted-foreground">{t.manageUsersDesc}</p>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
-                                                <UserManagement />
-                                            </div>
-                                        </section>
-                                    </div>
-                                </div>
+                                    <TabsContent value="users" className="animate-in fade-in duration-300">
+                                        <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-1">
+                                            <UserManagement />
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
                             </TabsContent>
 
                             <TabsContent value="history" className="mt-0 animate-in fade-in duration-300">
