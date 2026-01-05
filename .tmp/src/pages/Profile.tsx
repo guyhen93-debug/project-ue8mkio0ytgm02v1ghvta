@@ -261,13 +261,13 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={() => setFieldMode((prev) => !prev)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors duration-200 !min-w-0 !min-h-0 ${
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors duration-200 !min-w-0 !min-h-0 ${
                       fieldMode ? 'bg-black border-black' : 'bg-gray-200 border-gray-300'
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 transform ${
-                        fieldMode ? 'translate-x-6' : 'translate-x-1'
+                        fieldMode ? 'translate-x-4' : 'translate-x-1'
                       }`}
                     />
                   </button>
