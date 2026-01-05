@@ -253,27 +253,20 @@ const Profile = () => {
               </Select>
             </div>
 
-            {/* Field Mode Toggle */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-medium text-right flex-1">{t('field_mode')}</span>
-                <button
-                  type="button"
-                  onClick={() => setFieldMode((prev) => !prev)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors duration-200 !min-w-0 !min-h-0 ${
-                    fieldMode ? 'bg-black border-black' : 'bg-gray-200 border-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 transform ${
-                      fieldMode ? 'translate-x-4' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 text-right leading-snug">
-                {t('field_mode_description')}
-              </p>
+            {/* Field Mode Checkbox */}
+            <div className="py-4 border-b border-gray-200">
+              <label className="flex items-center gap-2 text-right">
+                <input
+                  id="fieldMode"
+                  type="checkbox"
+                  checked={fieldMode}
+                  onChange={(e) => setFieldMode(e.target.checked)}
+                  className="w-5 h-5 cursor-pointer"
+                />
+                <span className="text-sm text-gray-800">
+                  מצב שטח (פונטים גדולים לשימוש בשטח)
+                </span>
+              </label>
             </div>
 
             {/* Role (Read-only) */}
