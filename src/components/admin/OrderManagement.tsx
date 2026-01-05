@@ -29,6 +29,8 @@ export const OrderManagement: React.FC = () => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [managersCache, setManagersCache] = useState<any[]>([]);
+    const [cacheLoaded, setCacheLoaded] = useState(false);
     const PAGE_SIZE = 20;
 
     useEffect(() => {
@@ -194,6 +196,12 @@ export const OrderManagement: React.FC = () => {
         }
     }, [dataLoading, page]);
 
+    useEffect(() => {
+        if (!cacheLoaded && !dataLoading) {
+            loadManagersCache();
+        }
+    }, [cacheLoaded, dataLoading]);
+
     const checkAndCreateReminders = async (ordersData: any[]) => {
         try {
             if (!currentUser || currentUser.role !== 'manager' || currentUser.reminders_enabled === false) {
@@ -326,6 +334,19 @@ export const OrderManagement: React.FC = () => {
         }
     };
 
+    const loadManagersCache = async () => {
+        try {
+            const allUsers = await User.list('-created_at', 1000);
+            const managers = allUsers.filter((u: any) => u.role === 'manager');
+            setManagersCache(managers);
+            setCacheLoaded(true);
+            return managers;
+        } catch (error) {
+            console.error('Error loading managers cache:', error);
+            return [];
+        }
+    };
+
     const getOrderClientName = (order: any) => {
         if (order.client_id && clientsMap[order.client_id]?.name) {
             return clientsMap[order.client_id].name;
@@ -351,9 +372,13 @@ export const OrderManagement: React.FC = () => {
 
             const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה${suffix}`;
 
+            let managers: any[] = managersCache;
+            if (!managers || managers.length === 0) {
+                managers = await loadManagersCache();
+            }
+
             const allUsers = await User.list('-created_at', 1000);
-            const managers = allUsers.filter(u => u.role === 'manager');
-            const orderCreator = allUsers.find(u => u.email === order.created_by);
+            const orderCreator = allUsers.find((u: any) => u.email === order.created_by);
 
             const managerNotifications = managers.map(manager =>
                 Notification.create({
