@@ -274,7 +274,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    return translations[language]?.[key] || key;
+    return (translations[language as keyof typeof translations] || translations.he)?.[key as keyof (typeof translations)['he']] || key;
   };
 
   const isRTL = language === 'he';
@@ -289,7 +289,17 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    // Graceful fallback: default to Hebrew without crashing the app
+    const fallbackLang = 'he';
+    return {
+      language: fallbackLang,
+      setLanguage: () => {
+        // no-op in fallback; real updates require provider
+        console.warn('useLanguage called outside LanguageProvider. Using fallback language only.');
+      },
+      t: (key: string) => (translations[fallbackLang] as any)?.[key] || key,
+      isRTL: true,
+    };
   }
   return context;
 };

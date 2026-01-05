@@ -37,16 +37,16 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                         className={isRTL ? 'pr-10' : 'pl-10'}
                     />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-stretch sm:justify-end">
                     <Button
-                        className="piter-yellow flex-1 sm:flex-none"
+                        className="piter-yellow flex-1 min-w-[140px] sm:flex-none"
                         onClick={onAddNew}
                     >
                         <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t.addOrder}
                     </Button>
                     <Select value={statusFilter} onValueChange={onStatusChange}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectTrigger className="flex-1 sm:w-[180px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -63,7 +63,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
                 {[
                     { value: 'all', label: t.filterAll },
                     { value: 'pending', label: `${t.filterPending} ⏳` },

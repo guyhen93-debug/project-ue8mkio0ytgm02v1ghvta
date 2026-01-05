@@ -38,7 +38,7 @@ const AdminPanel: React.FC = () => {
         }
     };
 
-    const t = translations[language];
+    const t = translations[language as keyof typeof translations] || translations.he;
     const isRTL = language === 'he';
 
     return (
@@ -50,7 +50,7 @@ const AdminPanel: React.FC = () => {
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6 pt-0">
                         <Tabs value={managementTab} onValueChange={(v) => setManagementTab(v as any)} className="w-full">
-                            <TabsList className="flex w-full overflow-x-auto rounded-none border-b bg-transparent p-0 mb-6 h-auto no-scrollbar">
+                            <TabsList className="flex w-full overflow-x-auto rounded-none border-b bg-transparent p-0 pb-2 mb-4 sm:mb-6 h-auto no-scrollbar">
                                 <TabsTrigger
                                     value="clients"
                                     className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"

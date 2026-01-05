@@ -257,12 +257,12 @@ const ManagerDashboard: React.FC = () => {
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Urgent Card */}
         <div className={cn(
-          "mb-6 p-4 rounded-xl border flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2 duration-300",
+          "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300",
           totalPendingCount > 0 
             ? "border-red-200 bg-red-50" 
             : "border-green-100 bg-green-50/50"
         )}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className={cn(
               "p-2 rounded-full",
               totalPendingCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
@@ -277,13 +277,15 @@ const ManagerDashboard: React.FC = () => {
             </div>
           </div>
           {totalPendingCount > 0 && (
-            <Button 
-              size="sm"
-              className="bg-red-600 hover:bg-red-700 text-white border-none"
-              onClick={() => navigate('/orders?status=pending')}
-            >
-              {t.urgentButton}
-            </Button>
+            <div className="w-full sm:w-auto flex sm:justify-end">
+              <Button 
+                size="sm"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white border-none"
+                onClick={() => navigate('/orders?status=pending')}
+              >
+                {t.urgentButton}
+              </Button>
+            </div>
           )}
         </div>
 
