@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Order, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -24,6 +25,9 @@ export const OrderManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [editingOrder, setEditingOrder] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const PAGE_SIZE = 20;
 
     useEffect(() => {
         try {
@@ -186,7 +190,7 @@ export const OrderManagement: React.FC = () => {
         if (!dataLoading) {
             loadData();
         }
-    }, [dataLoading]);
+    }, [dataLoading, page]);
 
     const checkAndCreateReminders = async (ordersData: any[]) => {
         try {
@@ -276,8 +280,22 @@ export const OrderManagement: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const ordersData = await Order.list('-created_at', 1000);
+            const ordersData = await Order.list('-created_at', PAGE_SIZE, (page - 1) * PAGE_SIZE);
             setOrders(ordersData);
+
+            // Try to use a count API if available; otherwise approximate from what we know
+            const anyOrder: any = Order;
+            if (typeof anyOrder.count === 'function') {
+                try {
+                    const count = await anyOrder.count();
+                    setTotalCount(count);
+                } catch (e) {
+                    console.warn('Order.count failed, falling back to length approximation', e);
+                    setTotalCount((page - 1) * PAGE_SIZE + ordersData.length);
+                }
+            } else {
+                setTotalCount((page - 1) * PAGE_SIZE + ordersData.length);
+            }
             
             // Check for reminders
             await checkAndCreateReminders(ordersData);
@@ -493,6 +511,35 @@ export const OrderManagement: React.FC = () => {
                             showReminder={shouldShowReminder(order)}
                         />
                     ))}
+                </div>
+            )}
+
+            {totalCount > 0 && (
+                <div className="flex items-center justify-between mt-6 p-4 border-t">
+                    <div className="text-sm text-gray-600">
+                        מציג {((page - 1) * PAGE_SIZE) + 1}-{Math.min(page * PAGE_SIZE, totalCount)} מתוך {totalCount} הזמנות
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                        >
+                            הקודם
+                        </Button>
+                        <span className="px-3 py-1 bg-gray-100 rounded text-sm">
+                            עמוד {page} מתוך {Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1)}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+                        >
+                            הבא
+                        </Button>
+                    </div>
                 </div>
             )}
 

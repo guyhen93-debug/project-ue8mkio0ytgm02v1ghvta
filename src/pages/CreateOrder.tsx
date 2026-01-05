@@ -183,8 +183,23 @@ const CreateOrder = () => {
 
     const createNotificationsForManagers = async (orderNumber: string, clientName: string) => {
         try {
-            const allUsers = await User.list('-created_at', 1000);
-            const managers = allUsers.filter(u => u.role === 'manager');
+            let managers: any[] = [];
+            const anyUser: any = User;
+
+            if (typeof anyUser.filter === 'function') {
+                try {
+                    managers = await anyUser.filter({ role: 'manager' }, '-created_at', 100);
+                } catch (e) {
+                    console.warn('User.filter failed, falling back to User.list()', e);
+                    const allUsers = await anyUser.list();
+                    const limitedUsers = Array.isArray(allUsers) ? allUsers.slice(0, 100) : [];
+                    managers = limitedUsers.filter((u: any) => u.role === 'manager');
+                }
+            } else {
+                const allUsers = await anyUser.list();
+                const limitedUsers = Array.isArray(allUsers) ? allUsers.slice(0, 100) : [];
+                managers = limitedUsers.filter((u: any) => u.role === 'manager');
+            }
 
             const notificationPromises = managers.map(manager =>
                 Notification.create({

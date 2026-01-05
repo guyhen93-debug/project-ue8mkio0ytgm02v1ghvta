@@ -56,7 +56,8 @@ const ManagerDashboard: React.FC = () => {
       noData: 'אין נתונים',
       recentSectionTitle: '📋 הזמנות אחרונות',
       viewAllOrders: 'צפה בכל ההזמנות',
-      tons: 'טון'
+      tons: 'טון',
+      last50Note: '* מבוסס על 50 ההזמנות האחרונות',
     },
     en: {
       title: 'Manager Dashboard',
@@ -89,7 +90,8 @@ const ManagerDashboard: React.FC = () => {
       noData: 'No data',
       recentSectionTitle: '📋 Recent Orders',
       viewAllOrders: 'View all orders',
-      tons: 'tons'
+      tons: 'tons',
+      last50Note: '* Based on the last 50 orders',
     }
   };
 
@@ -105,9 +107,9 @@ const ManagerDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Loading orders...');
-      const allOrders = await Order.list('-created_at', 1000);
-      console.log('Orders loaded successfully:', allOrders?.length || 0);
+    console.log('Loading orders...');
+    const allOrders = await Order.list('-created_at', 50);
+    console.log('Orders loaded successfully:', allOrders?.length || 0);
       
       setOrders(allOrders || []);
     } catch (error: any) {
@@ -311,9 +313,12 @@ const ManagerDashboard: React.FC = () => {
 
         {/* Weekly Stats Section */}
         <div className="mb-8">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             {t.thisWeekTitle}
           </h2>
+          <p className="text-xs text-gray-500 mb-3">
+            {t.last50Note}
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
