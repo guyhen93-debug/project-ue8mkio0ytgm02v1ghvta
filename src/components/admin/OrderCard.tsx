@@ -20,6 +20,7 @@ interface OrderCardProps {
     onUpdateDelivery?: (order: any) => void;
     onSendMessage?: (order: any) => void;
     onDuplicate?: (order: any) => void;
+    showReminder?: boolean;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -35,6 +36,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     onUpdateDelivery,
     onSendMessage,
     onDuplicate,
+    showReminder = false,
 }) => {
     const isRTL = language === 'he';
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
@@ -104,6 +106,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Badge className="bg-purple-100 text-purple-800 text-xs">
                                     <Star className="w-3 h-3 ml-1 fill-purple-600" />
                                     {order.rating}/5
+                                </Badge>
+                            )}
+                            {showReminder && (
+                                <Badge className="bg-red-100 text-red-700 text-xs flex items-center gap-1">
+                                    <span>⚠️</span>
+                                    <span className="hidden sm:inline">
+                                        {language === 'he' ? 'דורש תשומת לב' : 'Needs attention'}
+                                    </span>
                                 </Badge>
                             )}
                         </div>

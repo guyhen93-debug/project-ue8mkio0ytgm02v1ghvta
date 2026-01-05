@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Order, User, Notification } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Package } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -15,6 +16,7 @@ import { getProductName, getSiteName } from '@/lib/orderUtils';
 export const OrderManagement: React.FC = () => {
     const navigate = useNavigate();
     const { language } = useLanguage();
+    const { user: currentUser } = useAuth();
     const { products, sites, clients, productsMap, sitesMap, clientsMap, loading: dataLoading } = useData();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -186,11 +188,99 @@ export const OrderManagement: React.FC = () => {
         }
     }, [dataLoading]);
 
+    const checkAndCreateReminders = async (ordersData: any[]) => {
+        try {
+            if (!currentUser || currentUser.role !== 'manager' || currentUser.reminders_enabled === false) {
+                return;
+            }
+
+            const delayHours = currentUser.reminders_delay_hours ?? 24;
+            const now = new Date();
+
+            for (const order of ordersData) {
+                // 1. Pending too long
+                if (order.status === 'pending' && order.created_at) {
+                    const createdAt = new Date(order.created_at);
+                    const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+
+                    if (hoursSinceCreated >= delayHours) {
+                        const existing = await Notification.filter({
+                            recipient_email: currentUser.email,
+                            order_id: order.order_number,
+                            type: 'order_pending_reminder'
+                        }, '-created_at', 1);
+
+                        if (existing.length === 0) {
+                            await Notification.create({
+                                recipient_email: currentUser.email,
+                                type: 'order_pending_reminder',
+                                message: `הזמנה #${order.order_number} ממתינה לאישור כבר ${delayHours} שעות ⏰`,
+                                is_read: false,
+                                order_id: order.order_number
+                            });
+                        }
+                    }
+                }
+
+                // 2. Approved but delivery overdue
+                if (order.status === 'approved' && order.delivery_date && !order.is_delivered) {
+                    const deliveryDate = new Date(order.delivery_date);
+                    const isOverdue = deliveryDate.getTime() < now.getTime();
+
+                    if (isOverdue) {
+                        const existing = await Notification.filter({
+                            recipient_email: currentUser.email,
+                            order_id: order.order_number,
+                            type: 'order_delivery_overdue'
+                        }, '-created_at', 1);
+
+                        if (existing.length === 0) {
+                            await Notification.create({
+                                recipient_email: currentUser.email,
+                                type: 'order_delivery_overdue',
+                                message: `הזמנה #${order.order_number} לא סומנה כסופקה למרות שתאריך האספקה כבר עבר 📅`,
+                                is_read: false,
+                                order_id: order.order_number
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error in checkAndCreateReminders:', error);
+        }
+    };
+
+    const shouldShowReminder = (order: any) => {
+        if (!currentUser || currentUser.role !== 'manager' || currentUser.reminders_enabled === false) {
+            return false;
+        }
+
+        const delayHours = currentUser.reminders_delay_hours ?? 24;
+        const now = new Date();
+
+        if (order.status === 'pending' && order.created_at) {
+            const createdAt = new Date(order.created_at);
+            const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+            if (hoursSinceCreated >= delayHours) return true;
+        }
+
+        if (order.status === 'approved' && order.delivery_date && !order.is_delivered) {
+            const deliveryDate = new Date(order.delivery_date);
+            if (deliveryDate.getTime() < now.getTime()) return true;
+        }
+
+        return false;
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
             const ordersData = await Order.list('-created_at', 1000);
             setOrders(ordersData);
+            
+            // Check for reminders
+            await checkAndCreateReminders(ordersData);
         } catch (error: any) {
             const errorMessage = error?.message || '';
             const isBenign = 
@@ -400,6 +490,7 @@ export const OrderManagement: React.FC = () => {
                             onUpdateDelivery={handleUpdateDeliveryClick}
                             onSendMessage={handleSendMessage}
                             onDuplicate={handleDuplicateOrder}
+                            showReminder={shouldShowReminder(order)}
                         />
                     ))}
                 </div>

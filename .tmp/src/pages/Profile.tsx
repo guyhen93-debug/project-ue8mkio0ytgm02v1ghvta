@@ -22,7 +22,9 @@ const Profile = () => {
     full_name: '',
     phone: '',
     company: '',
-    language: 'he'
+    language: 'he',
+    reminders_enabled: true,
+    reminders_delay_hours: 24
   });
 
   useEffect(() => {
@@ -66,7 +68,9 @@ const Profile = () => {
         full_name: currentUser.full_name || currentUser.name || '',
         phone: currentUser.phone || '',
         company: currentUser.company || '',
-        language: currentUser.language || 'he'
+        language: currentUser.language || 'he',
+        reminders_enabled: currentUser.reminders_enabled ?? true,
+        reminders_delay_hours: currentUser.reminders_delay_hours ?? 24
       });
     } catch (error) {
       console.error('Error loading user:', error);
@@ -267,6 +271,55 @@ const Profile = () => {
                   מצב שטח (פונטים גדולים לשימוש בשטח)
                 </span>
               </label>
+            </div>
+
+            {/* Reminders Settings */}
+            <div className="space-y-3 pt-4 border-b border-gray-200 pb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-right flex-1">
+                  <p className="font-medium text-gray-900">תזכורות</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    קבל תזכורות אוטומטיות על הזמנות שדורשות טיפול
+                  </p>
+                </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 cursor-pointer"
+                    checked={formData.reminders_enabled}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      reminders_enabled: e.target.checked,
+                    })}
+                  />
+                  <span className="text-sm text-gray-800">מופעל</span>
+                </label>
+              </div>
+
+              {formData.reminders_enabled && (
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="reminders_delay_hours" className="text-right flex-1">
+                    מרווח תזכורת
+                  </Label>
+                  <Select
+                    value={String(formData.reminders_delay_hours)}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        reminders_delay_hours: Number(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-32 text-right">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="24">כל 24 שעות</SelectItem>
+                      <SelectItem value="48">כל 48 שעות</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Role (Read-only) */}
