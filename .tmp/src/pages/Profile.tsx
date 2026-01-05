@@ -262,6 +262,7 @@ const Profile = () => {
                   <Switch
                     checked={fieldMode}
                     onCheckedChange={(value) => setFieldMode(!!value)}
+                    className="!w-9 !h-5 border border-gray-300 data-[state=unchecked]:bg-gray-200 data-[state=checked]:bg-black"
                   />
                 </div>
               </div>

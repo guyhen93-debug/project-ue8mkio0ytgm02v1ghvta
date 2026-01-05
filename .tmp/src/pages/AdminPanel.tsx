@@ -50,31 +50,31 @@ const AdminPanel: React.FC = () => {
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6 pt-0">
                         <Tabs value={managementTab} onValueChange={(v) => setManagementTab(v as any)} className="w-full">
-                            <TabsList className="flex w-full overflow-x-auto rounded-none border-b bg-transparent p-0 pb-2 mb-4 sm:mb-6 h-auto no-scrollbar">
+                            <TabsList className="flex flex-wrap w-full rounded-none border-b bg-transparent p-0 pb-2 mb-4 sm:mb-6 h-auto gap-1">
                                 <TabsTrigger
                                     value="clients"
-                                    className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                    className="flex-1 basis-[calc(50%-4px)] sm:basis-auto min-w-[130px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 text-center"
                                 >
                                     <Users className="w-4 h-4" />
                                     <span className="truncate">{t.manageClients}</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="sites"
-                                    className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                    className="flex-1 basis-[calc(50%-4px)] sm:basis-auto min-w-[130px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 text-center"
                                 >
                                     <Building2 className="w-4 h-4" />
                                     <span className="truncate">{t.manageSites}</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="products"
-                                    className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                    className="flex-1 basis-[calc(50%-4px)] sm:basis-auto min-w-[130px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 text-center"
                                 >
                                     <Package2 className="w-4 h-4" />
                                     <span className="truncate">{t.manageProducts}</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="users"
-                                    className="flex-1 min-w-[100px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center gap-1.5"
+                                    className="flex-1 basis-[calc(50%-4px)] sm:basis-auto min-w-[130px] px-3 py-3 text-xs sm:text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-black data-[state=active]:border-yellow-500 data-[state=active]:font-bold data-[state=active]:shadow-none transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 text-center"
                                 >
                                     <UserCog className="w-4 h-4" />
                                     <span className="truncate">{t.manageUsers}</span>
