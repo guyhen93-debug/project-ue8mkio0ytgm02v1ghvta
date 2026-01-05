@@ -255,17 +255,19 @@ const Profile = () => {
             </div>
 
             {/* Field Mode Toggle */}
-            <div className="flex items-center justify-between gap-3 py-4 border-t border-gray-100 mt-4 flex-wrap">
-              <div className="flex-1 min-w-[180px] text-right">
-                <span className="font-medium block">{t('field_mode')}</span>
-                <span className="text-xs text-gray-500 block mt-0.5">{t('field_mode_description')}</span>
+            <div className="py-4 border-t border-gray-100 mt-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium text-right flex-1">{t('field_mode')}</span>
+                <div className="flex items-center justify-end flex-shrink-0 pr-1">
+                  <Switch
+                    checked={fieldMode}
+                    onCheckedChange={(value) => setFieldMode(!!value)}
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-end flex-shrink-0 pr-1">
-                <Switch
-                  checked={fieldMode}
-                  onCheckedChange={(value) => setFieldMode(!!value)}
-                />
-              </div>
+              <p className="text-xs text-gray-500 text-right leading-snug">
+                {t('field_mode_description')}
+              </p>
             </div>
 
             {/* Role (Read-only) */}
