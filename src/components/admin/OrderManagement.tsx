@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { OrderFilters } from './OrderFilters';
 import { OrderCard } from './OrderCard';
 import OrderEditDialog from './OrderEditDialog';
 import { getProductName, getSiteName } from '@/lib/orderUtils';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export const OrderManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -22,6 +23,7 @@ export const OrderManagement: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 300);
     const [statusFilter, setStatusFilter] = useState('all');
     const [editingOrder, setEditingOrder] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -448,16 +450,20 @@ export const OrderManagement: React.FC = () => {
         navigate('/create-order', { state: { duplicateOrder: order } });
     };
 
-    const filteredOrders = orders.filter(order => {
-        const matchesSearch =
-            order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getSiteName(order.site_id, sitesMap).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getProductName(order.product_id, productsMap, language).toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredOrders = useMemo(() => {
+        const search = debouncedSearch.toLowerCase();
 
-        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        return orders.filter(order => {
+            const matchesSearch =
+                order.order_number?.toLowerCase().includes(search) ||
+                getSiteName(order.site_id, sitesMap).toLowerCase().includes(search) ||
+                getProductName(order.product_id, productsMap, language).toLowerCase().includes(search);
 
-        return matchesSearch && matchesStatus;
-    });
+            const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [orders, debouncedSearch, statusFilter, sitesMap, productsMap, language]);
 
     if (loading || dataLoading) {
         return <LoadingSpinner />;
