@@ -466,17 +466,17 @@ const ManagerDashboard: React.FC = () => {
                         />
                       </div>
 
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
                         <Input
                           type="number"
                           placeholder={t.deliveryAmountPlaceholder}
-                          className="h-9 text-sm"
+                          className="h-10 text-sm flex-1"
                           value={deliveryUpdates[order.id] || ''}
                           onChange={(e) => setDeliveryUpdates(prev => ({ ...prev, [order.id]: e.target.value }))}
                         />
                         <Button 
                           size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                          className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none whitespace-nowrap h-10"
                           onClick={() => handleUpdateDelivery(order)}
                           disabled={isUpdating === order.id}
                         >
@@ -485,7 +485,7 @@ const ManagerDashboard: React.FC = () => {
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="text-gray-400 p-2 h-9 w-9"
+                          className="text-gray-400 p-2 h-10 w-10 flex-shrink-0 self-center sm:self-auto"
                           onClick={() => handleSendMessage(order)}
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -499,66 +499,62 @@ const ManagerDashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* Recent Orders List */}
+        {/* Recent Orders Section */}
         <div className="mb-6">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
-            {t.recentSectionTitle}
-          </h2>
-          <Card className="industrial-card overflow-hidden">
-            <CardContent className="p-0">
-              {recentOrdersList.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 italic">
-                  {t.noData}
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {recentOrdersList.map((order) => {
-                    const statusCfg = getStatusConfig(order.status, language);
-                    return (
-                      <div key={order.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                        <div>
-                          <div className="font-bold text-gray-900">
-                            #{order.order_number || order.id.slice(-6)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {getClientName(order, sitesMap, clientsMap)}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider inline-block px-2 py-0.5 rounded-full mb-1",
-                            order.status === 'pending' ? "bg-yellow-100 text-yellow-700" :
-                            order.status === 'approved' ? "bg-green-100 text-green-700" :
-                            order.status === 'completed' ? "bg-blue-100 text-blue-700" :
-                            "bg-gray-100 text-gray-700"
-                          )}>
-                            {statusCfg.label}
-                          </div>
-                          <div className="text-[11px] text-gray-400 flex items-center justify-end gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatOrderDate(order.delivery_date || order.created_at, language)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          <div className="mt-4 flex justify-end">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              {t.recentSectionTitle}
+            </h2>
             <Button 
               variant="link" 
-              className="text-yellow-600 font-bold gap-1"
+              className="text-blue-600 text-sm p-0 h-auto font-semibold"
               onClick={() => navigate('/orders')}
             >
               {t.viewAllOrders}
             </Button>
           </div>
+          
+          <div className="space-y-3">
+            {recentOrdersList.length > 0 ? (
+              recentOrdersList.map(order => {
+                const status = getStatusConfig(order.status, language);
+                return (
+                  <Card 
+                    key={order.id} 
+                    className="industrial-card hover:border-yellow-300 transition-colors cursor-pointer"
+                    onClick={() => navigate('/orders')}
+                  >
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold truncate text-gray-900">
+                            #{order.order_number} - {getClientName(order, sitesMap, clientsMap)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5 truncate">
+                            {getProductName(order.product_id, productsMap, language)} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date, language)}
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "px-2 py-1 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap",
+                          status.className
+                        )}>
+                          {status.label}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card className="industrial-card p-8 text-center border-dashed">
+                <p className="text-gray-400 text-sm">{t.noData}</p>
+              </Card>
+            )}
+          </div>
         </div>
-
       </div>
     </Layout>
   );
 };
+
 export default ManagerDashboard;

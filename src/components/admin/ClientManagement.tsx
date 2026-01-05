@@ -253,8 +253,8 @@ export const ClientManagement: React.FC = () => {
       </div>
 
       {/* Filters and Count */}
-      <div className="flex items-center justify-between gap-4 py-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 py-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -280,7 +280,7 @@ export const ClientManagement: React.FC = () => {
             {t.filterInactive}
           </Button>
         </div>
-        <p className="text-sm text-gray-500 font-medium">
+        <p className="text-xs sm:text-sm text-gray-500 font-medium whitespace-nowrap">
           {filteredClients.length} {t.clientsCount}
         </p>
       </div>
