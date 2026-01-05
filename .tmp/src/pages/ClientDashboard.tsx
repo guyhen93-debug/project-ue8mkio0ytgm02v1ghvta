@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Order, Site, Product, User, Client } from '@/entities';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Sparkles } from 'lucide-react';
@@ -16,6 +17,7 @@ const ClientDashboard: React.FC = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [userClient, setUserClient] = useState<any>(null);
 
@@ -33,6 +35,9 @@ const ClientDashboard: React.FC = () => {
       statusInTransit: 'בדרך',
       statusCompleted: 'הושלמו',
       viewAllMyOrders: 'צפה בכל ההזמנות שלי',
+      errorTitle: 'שגיאה בטעינת הנתונים',
+      errorMessage: 'ניסיון לטעון מחדש את הדף או לבדוק את החיבור לרשת.',
+      retry: 'נסה שוב',
     },
     en: {
       title: 'Client Dashboard',
@@ -47,6 +52,9 @@ const ClientDashboard: React.FC = () => {
       statusInTransit: 'In Transit',
       statusCompleted: 'Completed',
       viewAllMyOrders: 'View all my orders',
+      errorTitle: 'Error loading data',
+      errorMessage: 'Please try again or check your network connection.',
+      retry: 'Retry',
     }
   };
 
@@ -77,12 +85,13 @@ const ClientDashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
+      setError(null);
       setLoading(true);
-      const currentUser = await UserEntity.me() as unknown as User;
+      const currentUser = await User.me() as unknown as User;
       setUser(currentUser);
 
       const [allClientsRaw, sitesData, productsData] = await Promise.all([
-        ClientEntity.list('-created_at', 1000),
+        Client.list('-created_at', 1000),
         Site.list('-created_at', 1000),
         Product.list('-created_at', 1000)
       ]);
@@ -106,7 +115,7 @@ const ClientDashboard: React.FC = () => {
         setUserClient(matchingClient);
         
         // Load client's orders
-        const clientOrdersRaw = await OrderEntity.filter({ client_id: matchingClient.id }, '-created_at', 1000);
+        const clientOrdersRaw = await Order.filter({ client_id: matchingClient.id }, '-created_at', 1000);
         setOrders(clientOrdersRaw as unknown as Order[]);
       }
       
@@ -114,6 +123,7 @@ const ClientDashboard: React.FC = () => {
       setProducts(productsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      setError(t.errorMessage);
     } finally {
       setLoading(false);
     }
@@ -122,6 +132,26 @@ const ClientDashboard: React.FC = () => {
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4">
+            <Alert variant="destructive">
+              <AlertTitle>{t.errorTitle}</AlertTitle>
+              <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-1">
+                <span>{error}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                  onClick={loadData}
+                >
+                  {t.retry}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
         {/* Personalized Greeting */}
         <div className="mb-6">
           <p className="text-sm text-gray-500 mb-1">{t.welcome}</p>
