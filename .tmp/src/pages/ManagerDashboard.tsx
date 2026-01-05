@@ -548,7 +548,7 @@ const ManagerDashboard: React.FC = () => {
             <Button 
               variant="link" 
               className="text-yellow-600 font-bold gap-1"
-              onClick={() => navigate('/admin?tab=operations')}
+              onClick={() => navigate('/orders')}
             >
               {t.viewAllOrders}
             </Button>
