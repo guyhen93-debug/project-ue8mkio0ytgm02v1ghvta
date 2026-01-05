@@ -197,6 +197,49 @@ const ManagerDashboard: React.FC = () => {
     setRetryCount(prev => prev + 1);
   };
 
+  // Calculate derived values
+  const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 5);
+  const totalPendingCount = orders.filter(o => o.status === 'pending').length;
+
+  const partialOrders = orders.filter(o => 
+    (o.status === 'approved' || o.status === 'completed') && 
+    !o.is_delivered && 
+    o.quantity_tons > (o.delivered_quantity_tons || 0)
+  ).slice(0, 10);
+
+  // Stats calculations for the last 7 days
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const isWithinLast7Days = (dateString?: string) => {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    return date >= sevenDaysAgo;
+  };
+
+  const weeklyNewOrders = orders.filter(o => isWithinLast7Days(o.created_at));
+  const weeklyNewCount = weeklyNewOrders.length;
+
+  const weeklyDeliveredOrders = orders.filter(o => 
+    (o.is_delivered || o.status === 'completed') && 
+    (isWithinLast7Days(o.actual_delivery_date) || isWithinLast7Days(o.delivered_at) || isWithinLast7Days(o.updated_at))
+  );
+
+  const weeklyTonsDelivered = weeklyDeliveredOrders.reduce((sum, o) =>
+    sum + (o.delivered_quantity_tons || o.quantity_tons || 0),
+    0
+  );
+
+  const weeklyRatedOrders = orders.filter(o => o.rating && isWithinLast7Days(o.updated_at));
+  const avgRating = weeklyRatedOrders.length
+    ? weeklyRatedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / weeklyRatedOrders.length
+    : 0;
+
+  const recentOrdersList = [...orders]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
   const getUrgentPendingText = () => {
     if (totalPendingCount === 0) return t.urgentNoPending;
     
