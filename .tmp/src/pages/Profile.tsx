@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { superdevClient } from '@/lib/superdev/client';
@@ -259,13 +258,19 @@ const Profile = () => {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-right flex-1">{t('field_mode')}</span>
                 <div className="flex items-center justify-end flex-shrink-0 pr-1">
-                  <div className="inline-flex scale-75 sm:scale-90 origin-right">
-                    <Switch
-                      checked={fieldMode}
-                      onCheckedChange={(value) => setFieldMode(!!value)}
-                      className="!w-9 !h-5 border border-gray-300 data-[state=unchecked]:bg-gray-200 data-[state=checked]:bg-black"
+                  <button
+                    type="button"
+                    onClick={() => setFieldMode((prev) => !prev)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors duration-200 !min-w-0 !min-h-0 ${
+                      fieldMode ? 'bg-black border-black' : 'bg-gray-200 border-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 transform ${
+                        fieldMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                     />
-                  </div>
+                  </button>
                 </div>
               </div>
               <p className="text-xs text-gray-500 text-right leading-snug">
