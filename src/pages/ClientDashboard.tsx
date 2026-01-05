@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,9 +62,6 @@ const ClientDashboard: React.FC = () => {
   const isRTL = language === 'he';
 
   // Compute client-specific stats
-  const openOrdersCount = orders.filter(o => o.status === 'pending' || o.status === 'approved').length;
-  const inTransitCount = orders.filter(o => o.status === 'in_transit' || o.status === 'in-transit').length;
-  
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const isInCurrentMonth = (dateString?: string) => {
@@ -72,10 +69,21 @@ const ClientDashboard: React.FC = () => {
     const d = new Date(dateString);
     return d >= startOfMonth && d <= now;
   };
-  const completedThisMonthCount = orders.filter(o => 
-    o.status === 'completed' && 
-    (isInCurrentMonth(o.delivery_date) || isInCurrentMonth(o.actual_delivery_date) || isInCurrentMonth(o.created_at))
-  ).length;
+
+  const { openOrdersCount, inTransitCount, completedThisMonthCount } = useMemo(() => {
+    const open = orders.filter(o => o.status === 'pending' || o.status === 'approved').length;
+    const inTransit = orders.filter(o => o.status === 'in_transit' || o.status === 'in-transit').length;
+    const completed = orders.filter(o => 
+      o.status === 'completed' && 
+      (isInCurrentMonth(o.delivery_date) || isInCurrentMonth(o.actual_delivery_date) || isInCurrentMonth(o.created_at))
+    ).length;
+
+    return {
+      openOrdersCount: open,
+      inTransitCount: inTransit,
+      completedThisMonthCount: completed,
+    };
+  }, [orders]);
 
   const displayName = (user && (user.full_name || user.email)) || (userClient && userClient.name) || '';
 
