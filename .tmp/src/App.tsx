@@ -14,6 +14,7 @@ import CreateOrder from './pages/CreateOrder';
 import OrderHistory from './pages/OrderHistory';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import Reports from './pages/Reports';
 
 const queryClient = new QueryClient();
 
@@ -137,6 +138,14 @@ const App = () => {
                                             element={
                                                 <ProtectedRoute requireAuth={true} requireManager={true}>
                                                     <ManagerOrders />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/reports"
+                                            element={
+                                                <ProtectedRoute requireAuth={true} requireManager={true}>
+                                                    <Reports />
                                                 </ProtectedRoute>
                                             }
                                         />

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notification } from '@/entities';
-import { Home, ClipboardList, Mail, User as UserIcon, Settings } from 'lucide-react';
+import { Home, ClipboardList, Mail, User as UserIcon, Settings, BarChart3 } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
     const navigate = useNavigate();
@@ -17,6 +17,7 @@ export const BottomNavigation: React.FC = () => {
             home: 'בית',
             myOrders: 'ההזמנות שלי',
             orders: 'הזמנות',
+            reports: 'דוחות',
             inbox: 'דואר',
             profile: 'פרופיל',
             admin: 'ניהול'
@@ -25,6 +26,7 @@ export const BottomNavigation: React.FC = () => {
             home: 'Home',
             myOrders: 'My Orders',
             orders: 'Orders',
+            reports: 'Reports',
             inbox: 'Inbox',
             profile: 'Profile',
             admin: 'Admin'
@@ -103,6 +105,7 @@ export const BottomNavigation: React.FC = () => {
             return [
                 { path: homePath, icon: Home, label: t.home, showBadge: true },
                 { path: '/orders', icon: ClipboardList, label: t.orders, showBadge: false },
+                { path: '/reports', icon: BarChart3, label: t.reports, showBadge: false },
                 { path: '/admin', icon: Settings, label: t.admin, showBadge: false },
                 { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
                 { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }
