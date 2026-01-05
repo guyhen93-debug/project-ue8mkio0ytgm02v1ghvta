@@ -78,14 +78,16 @@ const ClientDashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const currentUser = await User.me();
+      const currentUser = await UserEntity.me() as unknown as User;
       setUser(currentUser);
 
-      const [allClients, sitesData, productsData] = await Promise.all([
-        Client.list('-created_at', 1000),
+      const [allClientsRaw, sitesData, productsData] = await Promise.all([
+        ClientEntity.list('-created_at', 1000),
         Site.list('-created_at', 1000),
         Product.list('-created_at', 1000)
       ]);
+
+      const allClients = allClientsRaw as unknown as Client[];
 
       // Find user's client
       let matchingClient = allClients.find(c => 
@@ -104,8 +106,8 @@ const ClientDashboard: React.FC = () => {
         setUserClient(matchingClient);
         
         // Load client's orders
-        const clientOrders = await Order.filter({ client_id: matchingClient.id }, '-created_at', 1000);
-        setOrders(clientOrders);
+        const clientOrdersRaw = await OrderEntity.filter({ client_id: matchingClient.id }, '-created_at', 1000);
+        setOrders(clientOrdersRaw as unknown as Order[]);
       }
       
       setSites(sitesData);
