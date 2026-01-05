@@ -11,7 +11,7 @@ import { useData } from '@/contexts/DataContext';
 import { cn } from '@/lib/utils';
 import { getProductName, getSiteName, getClientName, formatOrderDate, getStatusConfig } from '@/lib/orderUtils';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Sparkles, Check, X, MessageSquare, Truck, AlertCircle, TrendingUp, BarChart3, Star, Clock } from 'lucide-react';
+import { Plus, Sparkles, Check, X, MessageSquare, Truck, AlertCircle, TrendingUp, BarChart3, Star, Clock, Package } from 'lucide-react';
 import NotificationsCard from '@/components/NotificationsCard';
 
 const ManagerDashboard: React.FC = () => {
@@ -552,8 +552,21 @@ const ManagerDashboard: React.FC = () => {
                 );
               })
             ) : (
-              <Card className="industrial-card p-8 text-center border-dashed">
-                <p className="text-gray-400 text-sm">{t.noData}</p>
+              <Card className="industrial-card p-12 text-center border-dashed border-2">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  עדיין אין הזמנות במערכת
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  התחל על ידי יצירת ההזמנה הראשונה
+                </p>
+                <Button 
+                  onClick={() => navigate('/create-order')}
+                  className="bg-yellow-500 hover:bg-yellow-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  צור הזמנה ראשונה
+                </Button>
               </Card>
             )}
           </div>

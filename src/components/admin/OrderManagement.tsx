@@ -8,7 +8,7 @@ import type { Order as OrderType, User as UserType, Client as ClientType, Site a
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Package } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { OrderFilters } from './OrderFilters';
 import { OrderCard } from './OrderCard';
@@ -519,7 +519,36 @@ export const OrderManagement: React.FC = () => {
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-600">{t.noOrders}</p>
+                        {searchTerm || statusFilter !== 'all' ? (
+                            <>
+                                <p className="text-gray-600 mb-3">
+                                    לא נמצאו הזמנות התואמות את החיפוש
+                                </p>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setStatusFilter('all');
+                                    }}
+                                >
+                                    נקה סינונים
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-gray-600 mb-3">
+                                    עדיין אין הזמנות במערכת
+                                </p>
+                                <Button 
+                                    size="sm"
+                                    onClick={() => navigate('/create-order')}
+                                >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    צור הזמנה ראשונה
+                                </Button>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             ) : (
