@@ -299,8 +299,10 @@ export const OrderManagement: React.FC = () => {
                 setTotalCount((page - 1) * PAGE_SIZE + ordersData.length);
             }
             
-            // Check for reminders
-            await checkAndCreateReminders(ordersData);
+            // Check for reminders in background
+            checkAndCreateReminders(ordersData).catch(error => {
+                console.error('Error checking reminders:', error);
+            });
         } catch (error: any) {
             const errorMessage = error?.message || '';
             const isBenign = 
