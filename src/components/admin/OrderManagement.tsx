@@ -8,14 +8,14 @@ import type { Order as OrderType, User as UserType, Client as ClientType, Site a
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Package, Plus } from 'lucide-react';
+import { Package, Plus, Search, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { OrderFilters } from './OrderFilters';
 import { OrderCard } from './OrderCard';
 import OrderEditDialog from './OrderEditDialog';
 import { getProductName, getSiteName } from '@/lib/orderUtils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { OrderCardSkeleton } from '@/components/OrderCardSkeleton';
+import { cn } from '@/lib/utils';
 
 export const OrderManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -58,11 +58,11 @@ export const OrderManagement: React.FC = () => {
 
     const translations = {
         he: {
-            title: 'ניהול הזמנות',
-            addOrder: 'הוסף הזמנה',
+            title: 'הזמנות',
+            addOrder: 'צור הזמנה חדשה',
             addDelivery: 'עדכן אספקה',
             sendMessage: 'שלח הודעה',
-            search: 'חיפוש הזמנה...',
+            search: 'חיפוש לפי הזמנה, אתר או מוצר...',
             refresh: 'רענן',
             filterAll: 'הכל',
             filterPending: 'ממתין',
@@ -97,12 +97,13 @@ export const OrderManagement: React.FC = () => {
             actions: 'פעולות',
             approve: 'אשר',
             reject: 'דחה',
-            markCompleted: 'סמן כהושלם',
+            markCompleted: 'סמן כהושלמה',
             returnToPending: 'החזר לממתין',
             returnToApproved: 'החזר לאושר',
             edit: 'ערוך',
             delete: 'מחק',
-            noOrders: 'אין הזמנות במערכת',
+            noOrders: 'אין הזמנות להצגה',
+            clearFilters: 'נקה סינונים',
             orderApproved: 'הזמנה אושרה בהצלחה',
             orderRejected: 'הזמנה נדחתה',
             orderCompleted: 'הזמנה סומנה כהושלמה',
@@ -123,11 +124,11 @@ export const OrderManagement: React.FC = () => {
             duplicateOrder: 'שכפל הזמנה 📋'
         },
         en: {
-            title: 'Order Management',
-            addOrder: 'Add Order',
+            title: 'Orders',
+            addOrder: 'Create new order',
             addDelivery: 'Update Delivery',
             sendMessage: 'Send Message',
-            search: 'Search order...',
+            search: 'Search by order, site or product...',
             refresh: 'Refresh',
             filterAll: 'All',
             filterPending: 'Pending',
@@ -167,7 +168,8 @@ export const OrderManagement: React.FC = () => {
             returnToApproved: 'Return to Approved',
             edit: 'Edit',
             delete: 'Delete',
-            noOrders: 'No orders in the system',
+            noOrders: 'No orders to show',
+            clearFilters: 'Clear filters',
             orderApproved: 'Order approved successfully',
             orderRejected: 'Order rejected',
             orderCompleted: 'Order marked as completed',
@@ -516,56 +518,87 @@ export const OrderManagement: React.FC = () => {
     }
 
     return (
-        <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Filters */}
-            <OrderFilters
-                searchTerm={searchTerm}
-                statusFilter={statusFilter}
-                onSearchChange={setSearchTerm}
-                onStatusChange={setStatusFilter}
-                onRefresh={loadData}
-                onAddNew={() => {
-                    setEditingOrder(null);
-                    setIsEditDialogOpen(true);
-                }}
-                translations={t}
-                isRTL={isRTL}
-            />
+        <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+            {/* Header: Title + Create Button */}
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                    <Package className="w-6 h-6 text-yellow-600" />
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t.title}</h1>
+                </div>
+                
+                <Button
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 shadow-sm"
+                    onClick={() => navigate('/create-order')}
+                >
+                    <Plus className="w-5 h-5 mr-2" />
+                    {t.addOrder}
+                </Button>
+            </div>
+
+            {/* Filters & Search */}
+            <div className="space-y-4">
+                {/* Search Bar */}
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder={t.search}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                    />
+                    <div className={cn("absolute top-2.5 text-gray-400", isRTL ? "right-3" : "left-3")}>
+                        <Search className="w-5 h-5" />
+                    </div>
+                </div>
+
+                {/* Status Filter Row */}
+                <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto no-scrollbar">
+                    {['all', 'pending', 'approved', 'in_transit', 'completed', 'rejected'].map((status) => (
+                        <Button
+                            key={status}
+                            variant={statusFilter === status ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setStatusFilter(status)}
+                            className={cn(
+                                "rounded-full px-4 h-9 whitespace-nowrap transition-all",
+                                statusFilter === status 
+                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' 
+                                    : 'text-gray-600 hover:bg-gray-50'
+                            )}
+                        >
+                            {status === 'all' 
+                                ? `${t.filterAll} (${orders.length})` 
+                                : `${t[`filter${status.charAt(0).toUpperCase() + status.slice(1).replace('_', '')}`]} (${orders.filter(o => {
+                                    if (status === 'completed') {
+                                        return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
+                                    }
+                                    return o.status === status;
+                                }).length})`
+                            }
+                        </Button>
+                    ))}
+                </div>
+            </div>
 
             {/* Orders List */}
             {filteredOrders.length === 0 ? (
-                <Card>
+                <Card className="border-dashed">
                     <CardContent className="py-12 text-center">
-                        <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        {searchTerm || statusFilter !== 'all' ? (
-                            <>
-                                <p className="text-gray-600 mb-3">
-                                    לא נמצאו הזמנות התואמות את החיפוש
-                                </p>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => {
-                                        setSearchTerm('');
-                                        setStatusFilter('all');
-                                    }}
-                                >
-                                    נקה סינונים
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <p className="text-gray-600 mb-3">
-                                    עדיין אין הזמנות במערכת
-                                </p>
-                                <Button 
-                                    size="sm"
-                                    onClick={() => navigate('/create-order')}
-                                >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    צור הזמנה ראשונה
-                                </Button>
-                            </>
+                        <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                        <p className="text-gray-500 font-medium mb-4">{t.noOrders}</p>
+                        {(searchTerm || statusFilter !== 'all') && (
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setStatusFilter('all');
+                                }}
+                                className="rounded-full"
+                            >
+                                <X className="w-4 h-4 mr-2" />
+                                {t.clearFilters}
+                            </Button>
                         )}
                     </CardContent>
                 </Card>
@@ -596,29 +629,31 @@ export const OrderManagement: React.FC = () => {
             )}
 
             {totalCount > 0 && (
-                <div className="flex items-center justify-between mt-6 p-4 border-t">
-                    <div className="text-sm text-gray-600">
-                        מציג {((page - 1) * PAGE_SIZE) + 1}-{Math.min(page * PAGE_SIZE, totalCount)} מתוך {totalCount} הזמנות
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                    <div className="text-sm text-gray-500 order-2 sm:order-1">
+                        {isRTL ? 'מציג' : 'Showing'} {((page - 1) * PAGE_SIZE) + 1}-{Math.min(page * PAGE_SIZE, totalCount)} {isRTL ? 'מתוך' : 'of'} {totalCount} {isRTL ? 'הזמנות' : 'orders'}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 order-1 sm:order-2">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
+                            className="rounded-lg h-10 px-4"
                         >
-                            הקודם
+                            {isRTL ? 'הקודם' : 'Previous'}
                         </Button>
-                        <span className="px-3 py-1 bg-gray-100 rounded text-sm">
-                            עמוד {page} מתוך {Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1)}
-                        </span>
+                        <div className="px-4 py-2 bg-gray-50 rounded-lg text-sm font-medium text-gray-700 min-w-[100px] text-center">
+                            {isRTL ? 'עמוד' : 'Page'} {page} {isRTL ? 'מתוך' : 'of'} {Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1)}
+                        </div>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setPage(p => p + 1)}
                             disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+                            className="rounded-lg h-10 px-4"
                         >
-                            הבא
+                            {isRTL ? 'הבא' : 'Next'}
                         </Button>
                     </div>
                 </div>
