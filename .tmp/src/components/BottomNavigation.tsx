@@ -124,7 +124,7 @@ export const BottomNavigation: React.FC = () => {
 
         return [
             { path: homePath, icon: Home, label: t.home, showBadge: true },
-            { path: '/order-history', icon: ClipboardList, label: t.myOrders, showBadge: false },
+            { path: '/order-history', icon: ClipboardList, label: t.orders, showBadge: false },
             { path: '/inbox', icon: Mail, label: t.inbox, showBadge: false },
             { path: '/profile', icon: UserIcon, label: t.profile, showBadge: false }
         ];

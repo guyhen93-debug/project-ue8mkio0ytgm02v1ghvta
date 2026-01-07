@@ -32,7 +32,7 @@ const OrderHistory: React.FC = () => {
 
     const translations = {
         he: {
-            title: 'ההזמנות שלי',
+            title: 'הזמנות',
             filterAll: 'הכל',
             filterPending: 'ממתין',
             filterApproved: 'מאושר',
@@ -52,6 +52,7 @@ const OrderHistory: React.FC = () => {
             approved: 'מאושר',
             rejected: 'נדחה',
             completed: 'הושלם',
+            inTransit: 'בדרך',
             delivered: 'סופק',
             confirmed: 'אושר',
             rated: 'דורג',
@@ -63,7 +64,7 @@ const OrderHistory: React.FC = () => {
             createOrderButton: 'צור הזמנה חדשה'
         },
         en: {
-            title: 'My Orders',
+            title: 'Orders',
             filterAll: 'All',
             filterPending: 'Pending',
             filterApproved: 'Approved',
@@ -83,6 +84,7 @@ const OrderHistory: React.FC = () => {
             approved: 'Approved',
             rejected: 'Rejected',
             completed: 'Completed',
+            inTransit: 'In Transit',
             delivered: 'Delivered',
             confirmed: 'Confirmed',
             rated: 'Rated',
@@ -201,7 +203,8 @@ const OrderHistory: React.FC = () => {
             pending: { label: t.pending, className: 'bg-orange-100 text-orange-700 border border-orange-200' },
             approved: { label: t.approved, className: 'bg-green-100 text-green-700 border border-green-200' },
             rejected: { label: t.rejected, className: 'bg-red-100 text-red-700 border border-red-200' },
-            completed: { label: t.completed, className: 'bg-emerald-100 text-emerald-700 border border-emerald-200' }
+            completed: { label: t.completed, className: 'bg-emerald-100 text-emerald-700 border border-emerald-200' },
+            in_transit: { label: t.inTransit, className: 'bg-blue-100 text-blue-700 border border-blue-200' },
         };
 
         const config = statusConfig[effectiveStatus as keyof typeof statusConfig] || statusConfig.pending;
@@ -377,12 +380,10 @@ const OrderHistory: React.FC = () => {
 
                 {/* Orders List */}
                 {filteredOrders.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-600">{t.noOrders}</p>
-                        </CardContent>
-                    </Card>
+                    <div className="text-center py-8 text-gray-500">
+                      <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>אין הזמנות להצגה</p>
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {filteredOrders.map((order) => (
