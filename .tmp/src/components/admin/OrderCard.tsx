@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock, MessageSquare, Box, Scale } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getProductName, getSiteName, getClientName as resolveClientName, getSupplierName, getStatusConfig } from '@/lib/orderUtils';
@@ -144,12 +144,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                         </div>
                     )}
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <Box className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-500">{t.product}:</span>
                         <span className="font-medium text-gray-900">{getProductName(order.product_id, products, language)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Package className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <Scale className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-500">{t.quantity}:</span>
                         <span className="font-medium text-gray-900">{order.quantity_tons} {t.tons}</span>
                     </div>
@@ -198,7 +198,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             )}
                             {(order.is_delivered || order.delivered_quantity_tons > 0) && (
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                    <Package className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                    <Scale className="w-4 h-4 text-orange-500 flex-shrink-0" />
                                     <span className="text-gray-500">{t.deliveredQuantity}:</span>
                                     <span className="font-bold text-gray-900">
                                         {order.delivered_quantity_tons || 0} / {order.quantity_tons} {t.tons}

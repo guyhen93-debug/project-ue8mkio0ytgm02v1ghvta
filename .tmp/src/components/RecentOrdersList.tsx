@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Client, Site } from '@/entities';
-import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star } from 'lucide-react';
+import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star, Box, Scale } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -350,9 +350,12 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
 
                                     <div className="space-y-2 text-sm">
                                         <div className="flex items-center gap-2 text-gray-700">
-                                            <Package className="h-4 w-4 text-gray-400" />
+                                            <Box className="h-4 w-4 text-gray-400" />
                                             <span className="font-medium">{getProductName(order.product_id)}</span>
-                                            <span className="text-gray-500">•</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Scale className="h-4 w-4 text-gray-400" />
                                             <span className="font-bold">{order.quantity_tons} טון</span>
                                         </div>
 

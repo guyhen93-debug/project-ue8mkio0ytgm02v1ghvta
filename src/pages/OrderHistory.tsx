@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles } from 'lucide-react';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -423,9 +423,12 @@ const OrderHistory: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center gap-2 text-gray-700">
-                                            <Package className="h-4 w-4 text-gray-400" />
+                                            <Box className="h-4 w-4 text-gray-400" />
                                             <span className="font-medium">{getProductName(order.product_id)}</span>
-                                            <span className="text-gray-500">•</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Scale className="h-4 w-4 text-gray-400" />
                                             <span className="font-bold">{order.quantity_tons} {t.tons}</span>
                                         </div>
 
