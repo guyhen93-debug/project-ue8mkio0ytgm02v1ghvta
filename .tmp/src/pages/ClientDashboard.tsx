@@ -8,7 +8,8 @@ import { Order, Site, Product, User, Client, Notification } from '@/entities';
 import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Sparkles } from 'lucide-react';
-import RecentOrdersList from '@/components/RecentOrdersList';
+import { format } from 'date-fns';
+import { he as heLocale } from 'date-fns/locale';
 import NotificationsCard from '@/components/NotificationsCard';
 
 const ClientDashboard: React.FC = () => {
@@ -106,6 +107,85 @@ const ClientDashboard: React.FC = () => {
   }, [orders]);
 
   const displayName = (user && (user.full_name || user.email)) || (userClient && userClient.name) || '';
+
+  // Get top 5 recent orders
+  const recentOrders = useMemo(
+    () => (orders || []).slice(0, 5),
+    [orders]
+  );
+
+  // Quick lookup for product names
+  const productsById = useMemo(() => {
+    const map: Record<string, ProductType> = {};
+    products.forEach((p) => {
+      (map as any)[p.id] = p;
+    });
+    return map;
+  }, [products]);
+
+  const getProductName = (productId?: string) => {
+    if (!productId) return '';
+    const product = productsById[productId];
+    if (!product) return language === 'he' ? 'מוצר לא ידוע' : 'Unknown product';
+    return language === 'he'
+      ? (product as any).name_he || (product as any).name_en || (product as any).product_id
+      : (product as any).name_en || (product as any).name_he || (product as any).product_id;
+  };
+
+  const formatOrderDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return language === 'he'
+      ? format(d, 'dd/MM/yyyy', { locale: heLocale })
+      : format(d, 'dd/MM/yyyy');
+  };
+
+  const checkIsCompleted = (o: OrderType) => {
+    return (
+      o.status === 'completed' ||
+      (o as any).is_delivered === true ||
+      ((o as any).delivered_quantity_tons &&
+        o.quantity_tons &&
+        (o as any).delivered_quantity_tons >= o.quantity_tons)
+    );
+  };
+
+  const getStatusDisplay = (order: OrderType) => {
+    const baseStatus = checkIsCompleted(order) ? 'completed' : order.status;
+    const isHeb = language === 'he';
+
+    const labelsHe: Record<string, string> = {
+      pending: 'ממתין',
+      approved: 'אושר',
+      in_transit: 'בדרך',
+      'in-transit': 'בדרך',
+      completed: 'הושלם',
+      rejected: 'נדחה',
+    };
+    const labelsEn: Record<string, string> = {
+      pending: 'Pending',
+      approved: 'Approved',
+      in_transit: 'In transit',
+      'in-transit': 'In transit',
+      completed: 'Completed',
+      rejected: 'Rejected',
+    };
+
+    const label = (isHeb ? labelsHe : labelsEn)[baseStatus] || (isHeb ? 'ממתין' : 'Pending');
+
+    const classNameMap: Record<string, string> = {
+      pending: 'bg-orange-100 text-orange-700 border border-orange-200',
+      approved: 'bg-green-100 text-green-700 border border-green-200',
+      completed: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+      in_transit: 'bg-blue-100 text-blue-700 border border-blue-200',
+      'in-transit': 'bg-blue-100 text-blue-700 border border-blue-200',
+      rejected: 'bg-red-100 text-red-700 border border-red-200',
+    };
+
+    const className = classNameMap[baseStatus] || classNameMap.pending;
+
+    return { label, className };
+  };
 
   useEffect(() => {
     loadData();
@@ -262,30 +342,55 @@ const ClientDashboard: React.FC = () => {
 
         {/* Recent Orders */}
         <Card className="industrial-card">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">{t.myOrders}</CardTitle>
+          <CardHeader className="p-3 sm:p-4 md:p-5 border-b">
+            <CardTitle className="text-base sm:text-lg flex items-center justify-between gap-2">
+              <span>{t.myOrders}</span>
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-xs sm:text-sm text-yellow-600 hover:text-yellow-700"
+                onClick={() => navigate('/order-history')}
+              >
+                {t.viewAllMyOrders}
+              </Button>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
+          <CardContent className="p-0">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+              <div className="py-12 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500" />
               </div>
-            ) : userClient ? (
-              <>
-                <RecentOrdersList limit={5} clientId={userClient.id} />
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => navigate('/order-history')}
-                    className="hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200"
-                  >
-                    {t.viewAllMyOrders}
-                  </Button>
-                </div>
-              </>
+            ) : userClient && recentOrders.length > 0 ? (
+              <div className="divide-y">
+                {recentOrders.map((order) => {
+                  const { label, className } = getStatusDisplay(order);
+                  const productName = getProductName((order as any).product_id);
+
+                  return (
+                    <div
+                      key={order.id}
+                      className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-4 transition-colors"
+                      onClick={() => navigate('/order-history')}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-900 text-sm sm:text-base truncate">
+                          #{order.order_number}
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">
+                          {productName} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date)}
+                        </div>
+                      </div>
+                      <div
+                        className={`px-2 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap border shadow-sm ${className}`}
+                      >
+                        {label}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 text-sm">
                 {t.noOrders}
               </div>
             )}
