@@ -45,6 +45,16 @@ export const BottomNavigation: React.FC = () => {
         }
     }, [user]);
 
+    useEffect(() => {
+        const handler = () => {
+            if (user) {
+                loadUnreadCount();
+            }
+        };
+        window.addEventListener('notifications-updated', handler);
+        return () => window.removeEventListener('notifications-updated', handler);
+    }, [user]);
+
     const loadUnreadCount = async () => {
         if (!user) return;
 

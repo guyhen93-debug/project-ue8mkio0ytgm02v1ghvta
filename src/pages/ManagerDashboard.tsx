@@ -4,10 +4,11 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Order } from '@/entities';
-import type { Order as OrderType } from '@/types';
+import { Order, User, Notification } from '@/entities';
+import type { Order as OrderType, User as UserType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { getProductName, getSiteName, getClientName, formatOrderDate, getStatusConfig } from '@/lib/orderUtils';
 import { toast } from '@/hooks/use-toast';
@@ -21,6 +22,7 @@ import { OrderCardSkeleton } from '@/components/OrderCardSkeleton';
 const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user: currentUser } = useAuth();
   const { productsMap, sitesMap, clientsMap } = useData();
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +128,67 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     loadOrders();
+    markNotificationsAsRead();
   }, [retryCount]);
+
+  const markNotificationsAsRead = async () => {
+    try {
+      const user = currentUser || await User.me();
+      if (!user) return;
+
+      const unread = await Notification.filter({ recipient_email: user.email, is_read: false }, '-created_at', 100);
+      if (unread.length > 0) {
+        await Promise.all(unread.map(n => Notification.update(n.id, { is_read: true })));
+        window.dispatchEvent(new Event('notifications-updated'));
+      }
+    } catch (err) {
+      console.error('Error marking notifications as read:', err);
+    }
+  };
+
+  const createManagerDashboardDeliveryNotification = async (order: OrderType, newDelivered: number, isCompleted: boolean) => {
+    try {
+      const clientName = getClientName(order, sitesMap, clientsMap);
+      const suffix = clientName ? ` - ${clientName}` : '';
+      const total = order.quantity_tons || 0;
+
+      const message = isCompleted
+        ? `הזמנה #${order.order_number} הושלמה - סופקו ${total} טון${suffix}`
+        : `אספקה חלקית להזמנה #${order.order_number} - סופקו ${newDelivered} מתוך ${total} טון${suffix}`;
+
+      const allUsers = await User.list('-created_at', 1000) as unknown as UserType[];
+      const managers = allUsers.filter(u => u.role === 'manager');
+      const orderCreator = allUsers.find(u => u.email === order.created_by);
+
+      const notifications = [
+        ...managers.map(manager =>
+          Notification.create({
+            recipient_email: manager.email,
+            type: isCompleted ? 'order_completed' : 'order_partial_delivery',
+            message: message,
+            is_read: false,
+            order_id: order.order_number
+          })
+        )
+      ];
+
+      if (orderCreator && orderCreator.role === 'client') {
+        notifications.push(
+          Notification.create({
+            recipient_email: orderCreator.email,
+            type: isCompleted ? 'order_completed' : 'order_partial_delivery',
+            message: message,
+            is_read: false,
+            order_id: order.order_number
+          })
+        );
+      }
+
+      await Promise.all(notifications);
+    } catch (error) {
+      console.error('Error creating delivery notification:', error);
+    }
+  };
 
   const loadOrders = async () => {
     try {
@@ -218,6 +280,8 @@ const ManagerDashboard: React.FC = () => {
         delivery_notes: deliveryForm.notes.trim() || undefined,
         status: isCompleted ? 'completed' : order.status,
       });
+
+      await createManagerDashboardDeliveryNotification(order, newDelivered, isCompleted);
 
       toast({
         title: t.successDelivery,

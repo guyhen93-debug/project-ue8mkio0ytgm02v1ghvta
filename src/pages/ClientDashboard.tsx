@@ -4,7 +4,7 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Order, Site, Product, User, Client } from '@/entities';
+import { Order, Site, Product, User, Client, Notification } from '@/entities';
 import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Sparkles } from 'lucide-react';
@@ -90,7 +90,23 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    markNotificationsAsRead();
   }, []);
+
+  const markNotificationsAsRead = async () => {
+    try {
+      const currentUser = await User.me();
+      if (!currentUser) return;
+
+      const unread = await Notification.filter({ recipient_email: currentUser.email, is_read: false }, '-created_at', 100);
+      if (unread.length > 0) {
+        await Promise.all(unread.map(n => Notification.update(n.id, { is_read: true })));
+        window.dispatchEvent(new Event('notifications-updated'));
+      }
+    } catch (err) {
+      console.error('Error marking notifications as read:', err);
+    }
+  };
 
   const loadData = async () => {
     try {

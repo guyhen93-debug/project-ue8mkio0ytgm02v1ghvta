@@ -301,24 +301,44 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         }
     };
 
-    const createDeliveryNotifications = async (orderNumber: string, orderCreatedBy: string) => {
+    const createDeliveryNotifications = async (orderNumber: string, orderCreatedBy: string, deliveredQuantity: number, totalQuantity: number, isCompleted: boolean) => {
         try {
             const clientName = getOrderClientName();
             const suffix = clientName ? ` - ${clientName}` : '';
-            const message = `הזמנה #${orderNumber} סומנה כסופקה - ממתין לאישור לקוח${suffix}`;
+
+            const baseMessage = isCompleted
+                ? `הזמנה #${orderNumber} הושלמה - סופקו ${totalQuantity} טון${suffix}`
+                : `אספקה חלקית להזמנה #${orderNumber} - סופקו ${deliveredQuantity} מתוך ${totalQuantity} טון${suffix}`;
 
             const allUsers = await User.list('-created_at', 1000);
+            const managers = allUsers.filter(u => u.role === 'manager');
             const orderCreator = allUsers.find(u => u.email === orderCreatedBy);
 
+            const notifications = [
+                ...managers.map(manager =>
+                    Notification.create({
+                        recipient_email: manager.email,
+                        type: isCompleted ? 'order_completed' : 'order_partial_delivery',
+                        message: baseMessage,
+                        is_read: false,
+                        order_id: orderNumber
+                    })
+                )
+            ];
+
             if (orderCreator && orderCreator.role === 'client') {
-                await Notification.create({
-                    recipient_email: orderCreator.email,
-                    type: 'order_delivered',
-                    message: message,
-                    is_read: false,
-                    order_id: orderNumber
-                });
+                notifications.push(
+                    Notification.create({
+                        recipient_email: orderCreator.email,
+                        type: isCompleted ? 'order_completed' : 'order_partial_delivery',
+                        message: baseMessage,
+                        is_read: false,
+                        order_id: orderNumber
+                    })
+                );
             }
+
+            await Promise.all(notifications);
         } catch (error) {
             console.error('Error creating delivery notification:', error);
         }
@@ -388,7 +408,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
 
             if (order) {
                 const statusChanged = order.status !== formData.status;
-                const deliveryChanged = !order.is_delivered && formData.is_delivered;
+                const isCompletedAfterSave = !!orderData.is_delivered && orderData.status === 'completed';
+                const deliveredQtyForNotification = orderData.delivered_quantity_tons ?? formData.delivered_quantity_tons ?? 0;
+                const deliveryChanged = !order.is_delivered && isDeliveredFlag;
 
                 await Order.update(order.id, orderData);
 
@@ -397,7 +419,13 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 }
 
                 if (deliveryChanged) {
-                    await createDeliveryNotifications(order.order_number, order.created_by);
+                    await createDeliveryNotifications(
+                        order.order_number,
+                        order.created_by,
+                        deliveredQtyForNotification,
+                        orderData.quantity_tons,
+                        isCompletedAfterSave
+                    );
                 }
 
                 toast({ title: t.orderUpdated });

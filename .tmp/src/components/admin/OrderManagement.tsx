@@ -363,16 +363,17 @@ export const OrderManagement: React.FC = () => {
     const createStatusChangeNotifications = async (order: OrderType, newStatus: string) => {
         try {
             const clientName = getOrderClientName(order);
-            const suffix = clientName ? ` - ${clientName}` : '';
+            const clientSuffix = clientName ? ` - ${clientName}` : '';
 
-            const statusMessages = {
-                approved: `הזמנה #${order.order_number} אושרה${suffix}`,
-                rejected: `הזמנה #${order.order_number} נדחתה${suffix}`,
-                completed: `הזמנה #${order.order_number} הושלמה${suffix}`,
-                pending: `הזמנה #${order.order_number} הוחזרה לסטטוס ממתין${suffix}`
+            const statusMessages: Record<string, string> = {
+                approved: `הזמנה #${order.order_number} אושרה${clientSuffix}`,
+                rejected: `הזמנה #${order.order_number} נדחתה${clientSuffix}`,
+                completed: `הזמנה #${order.order_number} הושלמה${clientSuffix}`,
+                pending: `הזמנה #${order.order_number} הוחזרה לסטטוס ממתין${clientSuffix}`,
+                in_transit: `הזמנה #${order.order_number} בדרך${clientSuffix}`
             };
 
-            const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה${suffix}`;
+            const message = statusMessages[newStatus] || `הזמנה #${order.order_number} עודכנה${clientSuffix}`;
 
             let managers: UserType[] = managersCache;
             if (!managers || managers.length === 0) {
