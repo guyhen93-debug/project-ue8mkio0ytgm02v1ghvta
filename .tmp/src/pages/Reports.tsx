@@ -68,7 +68,13 @@ const translations = {
         email_sent_success: 'הדוח נשלח בהצלחה למייל שלך',
         email_sent_error: 'שגיאה בשליחת הדוח',
         export_success: 'הקובץ מוכן להורדה',
-        no_email: 'לא נמצאה כתובת מייל למשתמש'
+        no_email: 'לא נמצאה כתובת מייל למשתמש',
+        thisWeekTitle: '📊 השבוע',
+        statNewOrders: 'הזמנות חדשות',
+        statTonsDelivered: 'טונות סופקו',
+        statAvgRating: 'דירוג ממוצע',
+        last50Note: '* מבוסס על 50 ההזמנות האחרונות',
+        noData: 'אין נתונים'
     },
     en: {
         title: 'Reports & Analytics',
@@ -100,7 +106,13 @@ const translations = {
         email_sent_success: 'Report sent successfully to your email',
         email_sent_error: 'Error sending report',
         export_success: 'File is ready for download',
-        no_email: 'User email not found'
+        no_email: 'User email not found',
+        thisWeekTitle: '📊 This Week',
+        statNewOrders: 'New Orders',
+        statTonsDelivered: 'Tons Delivered',
+        statAvgRating: 'Average Rating',
+        last50Note: '* Based on the last 50 orders',
+        noData: 'No data'
     }
 };
 
@@ -288,6 +300,50 @@ const Reports: React.FC = () => {
         };
     }, [orders, language, productsMap, sitesMap, clientsMap]);
 
+    const weeklyStats = useMemo(() => {
+        if (orders.length === 0) return {
+            weeklyNewCount: 0,
+            weeklyTonsDelivered: 0,
+            avgRating: 0,
+            weeklyRatedOrdersCount: 0
+        };
+
+        const now = new Date();
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        const isWithinLast7Days = (dateString?: string) => {
+            if (!dateString) return false;
+            const date = new Date(dateString);
+            return date >= sevenDaysAgo;
+        };
+
+        const weeklyNewOrders = orders.filter(o => isWithinLast7Days(o.created_at));
+        const weeklyNewCount = weeklyNewOrders.length;
+
+        const weeklyDeliveredOrders = orders.filter(o =>
+            (o.is_delivered || o.status === 'completed' || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons)) &&
+            (isWithinLast7Days(o.actual_delivery_date) || isWithinLast7Days(o.delivered_at) || isWithinLast7Days(o.updated_at))
+        );
+
+        const weeklyTonsDelivered = weeklyDeliveredOrders.reduce((sum, o) =>
+            sum + (o.delivered_quantity_tons || o.quantity_tons || 0),
+            0
+        );
+
+        const weeklyRatedOrders = orders.filter(o => typeof o.rating === 'number' && isWithinLast7Days(o.updated_at || o.created_at));
+        const avgRating = weeklyRatedOrders.length
+            ? (weeklyRatedOrders.reduce((sum, o) => sum + o.rating, 0) / weeklyRatedOrders.length)
+            : 0;
+
+        return {
+            weeklyNewCount,
+            weeklyTonsDelivered,
+            avgRating,
+            weeklyRatedOrdersCount: weeklyRatedOrders.length
+        };
+    }, [orders]);
+
     const handleExportCSV = () => {
         try {
             const headers = [
@@ -413,6 +469,66 @@ const Reports: React.FC = () => {
         <Layout title={t.title}>
             <div className="p-3 sm:p-4 md:p-6 pb-24 space-y-4 sm:space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
                 
+                {/* Weekly Stats Widget */}
+                <div className="mb-2">
+                    <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
+                        {t.thisWeekTitle}
+                    </h2>
+                    <p className="text-xs text-gray-500 mb-3">
+                        {t.last50Note}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                📦 {t.statNewOrders}
+                            </span>
+                            <span className="text-2xl font-bold text-gray-900">
+                                {weeklyStats.weeklyNewCount.toLocaleString()}
+                            </span>
+                        </Card>
+
+                        <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                ⚖️ {t.statTonsDelivered}
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold text-gray-900">
+                                    {weeklyStats.weeklyTonsDelivered > 0 ? weeklyStats.weeklyTonsDelivered.toFixed(1) : '0.0'}
+                                </span>
+                                <span className="text-sm text-gray-500 font-medium">{t.tons}</span>
+                            </div>
+                        </Card>
+
+                        <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <Star className="w-3.5 h-3.5" />
+                                ⭐ {t.statAvgRating}
+                            </span>
+                            {weeklyStats.avgRating > 0 ? (
+                                <div>
+                                    <div className="text-2xl font-bold text-gray-900">
+                                        {weeklyStats.avgRating.toFixed(1)}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-yellow-500 mt-1">
+                                        {"★".repeat(Math.round(weeklyStats.avgRating))}
+                                        {"☆".repeat(5 - Math.round(weeklyStats.avgRating))}
+                                        <span className="text-gray-400 ml-1">({weeklyStats.weeklyRatedOrdersCount})</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col">
+                                    <span className="text-gray-400 text-sm font-medium">{t.noData}</span>
+                                    <div className="flex text-gray-200 text-xs mt-1">
+                                        {"☆☆☆☆☆"}
+                                    </div>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+                </div>
+
                 {/* Monthly Consumption Section */}
                 <Card className="overflow-hidden border-none shadow-sm">
                     <CardHeader className="bg-yellow-50/50 pb-4">

@@ -64,11 +64,10 @@ const ManagerDashboard: React.FC = () => {
       urgentPendingText: '{count} הזמנות ממתינות לאישור',
       urgentNoPending: 'אין הזמנות הממתינות לטיפול ✅',
       urgentButton: 'טפל עכשיו',
-      thisWeekTitle: '📊 השבוע',
-      statNewOrders: 'הזמנות חדשות',
-      statTonsDelivered: 'טונות סופקו',
-      statAvgRating: 'דירוג ממוצע',
-      noData: 'אין נתונים',
+      statusTitle: '⚡ סטטוס הזמנות',
+      statusOpen: 'פתוחות',
+      statusInTransit: 'בדרך',
+      statusCompleted: 'הושלמו',
       recentSectionTitle: '📋 הזמנות אחרונות',
       viewAllOrders: 'צפה בכל ההזמנות',
       tons: 'טון',
@@ -105,11 +104,10 @@ const ManagerDashboard: React.FC = () => {
       urgentPendingText: '{count} orders waiting for approval',
       urgentNoPending: 'No orders waiting for attention ✅',
       urgentButton: 'Handle now',
-      thisWeekTitle: '📊 This Week',
-      statNewOrders: 'New Orders',
-      statTonsDelivered: 'Tons Delivered',
-      statAvgRating: 'Average Rating',
-      noData: 'No data',
+      statusTitle: '⚡ Order Status',
+      statusOpen: 'Open',
+      statusInTransit: 'In Transit',
+      statusCompleted: 'Completed',
       recentSectionTitle: '📋 Recent Orders',
       viewAllOrders: 'View all orders',
       tons: 'tons',
@@ -328,34 +326,30 @@ const ManagerDashboard: React.FC = () => {
     o.quantity_tons > (o.delivered_quantity_tons || 0)
   ).slice(0, 10);
 
-  // Stats calculations for the last 7 days
+  // Status counts calculations
   const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const isWithinLast7Days = (dateString?: string) => {
+  const isInCurrentMonth = (dateString?: string) => {
     if (!dateString) return false;
-    const date = new Date(dateString);
-    return date >= sevenDaysAgo;
+    const d = new Date(dateString);
+    return d >= startOfMonth && d <= now;
   };
 
-  const weeklyNewOrders = orders.filter(o => isWithinLast7Days(o.created_at));
-  const weeklyNewCount = weeklyNewOrders.length;
+  const checkIsCompleted = (o: OrderType) => {
+    return (
+      o.status === 'completed' ||
+      o.is_delivered === true ||
+      (o.delivered_quantity_tons !== undefined && o.quantity_tons !== undefined && o.delivered_quantity_tons >= o.quantity_tons)
+    );
+  };
 
-  const weeklyDeliveredOrders = orders.filter(o => 
-    (o.is_delivered || o.status === 'completed') && 
-    (isWithinLast7Days(o.actual_delivery_date) || isWithinLast7Days(o.delivered_at) || isWithinLast7Days(o.updated_at))
-  );
-
-  const weeklyTonsDelivered = weeklyDeliveredOrders.reduce((sum, o) =>
-    sum + (o.delivered_quantity_tons || o.quantity_tons || 0),
-    0
-  );
-
-  const weeklyRatedOrders = orders.filter(o => o.rating && isWithinLast7Days(o.updated_at));
-  const avgRating = weeklyRatedOrders.length
-    ? weeklyRatedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / weeklyRatedOrders.length
-    : 0;
+  const openOrdersCount = orders.filter(o => !checkIsCompleted(o) && (o.status === 'pending' || o.status === 'approved')).length;
+  const inTransitCount = orders.filter(o => !checkIsCompleted(o) && (o.status === 'in_transit' || o.status === 'in-transit')).length;
+  const completedThisMonthCount = orders.filter(o =>
+    checkIsCompleted(o) &&
+    (isInCurrentMonth(o.delivery_date) || isInCurrentMonth(o.actual_delivery_date) || isInCurrentMonth(o.created_at))
+  ).length;
 
   const recentOrdersList = [...orders]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -426,62 +420,40 @@ const ManagerDashboard: React.FC = () => {
           <NotificationsCard />
         </div>
 
-        {/* Weekly Stats Section */}
-        <div className="mb-8">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-            {t.thisWeekTitle}
+        {/* Order Status Widget */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            {t.statusTitle}
           </h2>
-          <p className="text-xs text-gray-500 mb-3">
-            {t.last50Note}
-          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5" />
-                📦 {t.statNewOrders}
+            {/* פתוחות / Open */}
+            <Card className="p-4 flex flex-col gap-1 border-orange-100 bg-orange-50 shadow-none">
+              <span className="text-xs font-medium text-orange-800 uppercase tracking-wider">
+                {t.statusOpen}
               </span>
-              <span className="text-2xl font-bold text-gray-900">
-                {weeklyNewCount.toLocaleString()}
+              <span className="text-2xl font-bold text-orange-700">
+                {openOrdersCount}
               </span>
             </Card>
 
-            <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5" />
-                ⚖️ {t.statTonsDelivered}
+            {/* בדרך / In Transit */}
+            <Card className="p-4 flex flex-col gap-1 border-sky-100 bg-sky-50 shadow-none">
+              <span className="text-xs font-medium text-sky-800 uppercase tracking-wider">
+                {t.statusInTransit}
               </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-gray-900">
-                  {weeklyTonsDelivered > 0 ? weeklyTonsDelivered.toFixed(1) : '0.0'}
-                </span>
-                <span className="text-sm text-gray-500 font-medium">{t.tons}</span>
-              </div>
+              <span className="text-2xl font-bold text-sky-700">
+                {inTransitCount}
+              </span>
             </Card>
 
-            <Card className="industrial-card p-4 flex flex-col gap-1 border-gray-100 hover:border-yellow-200 transition-colors">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Star className="w-3.5 h-3.5" />
-                ⭐ {t.statAvgRating}
+            {/* הושלמו / Completed this month */}
+            <Card className="p-4 flex flex-col gap-1 border-emerald-100 bg-emerald-50 shadow-none">
+              <span className="text-xs font-medium text-emerald-800 uppercase tracking-wider">
+                {t.statusCompleted}
               </span>
-              {avgRating > 0 ? (
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {avgRating.toFixed(1)}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-yellow-500 mt-1">
-                    {"★".repeat(Math.round(avgRating))}
-                    {"☆".repeat(5 - Math.round(avgRating))}
-                    <span className="text-gray-400 ml-1">({weeklyRatedOrders.length})</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col">
-                  <span className="text-gray-400 text-sm font-medium">{t.noData}</span>
-                  <div className="flex text-gray-200 text-xs mt-1">
-                    {"☆☆☆☆☆"}
-                  </div>
-                </div>
-              )}
+              <span className="text-2xl font-bold text-emerald-700">
+                {completedThisMonthCount}
+              </span>
             </Card>
           </div>
         </div>
