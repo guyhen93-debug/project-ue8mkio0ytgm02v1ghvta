@@ -39,7 +39,8 @@ export const OrderClientSection: React.FC<OrderClientSectionProps> = ({
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {isManager && (
+                {/* Client Selection/Display */}
+                {isManager ? (
                     <div className="space-y-2">
                         <Label htmlFor="client_id" className="text-right block">
                             לקוח <span className="text-red-500">*</span>
@@ -57,12 +58,31 @@ export const OrderClientSection: React.FC<OrderClientSectionProps> = ({
                             </SelectContent>
                         </Select>
                     </div>
-                )}
-
-                {!isManager && userClient && (
-                    <div className="p-3 bg-gray-50 rounded border">
-                        <div className="text-sm text-gray-500">לקוח</div>
-                        <div className="font-semibold text-gray-900">{userClient.name}</div>
+                ) : userClient ? (
+                    <div className="space-y-1">
+                        <Label className="text-xs text-gray-500 block">לקוח</Label>
+                        <div className="p-3 bg-gray-50 rounded border font-bold text-gray-900">
+                            {userClient.name}
+                        </div>
+                    </div>
+                ) : (
+                    /* Fallback if no userClient but is a client role */
+                    <div className="space-y-2">
+                        <Label htmlFor="client_id" className="text-right block">
+                            לקוח <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={formData.client_id} onValueChange={onClientChange}>
+                            <SelectTrigger className="text-right">
+                                <SelectValue placeholder="בחר לקוח" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {clients.map((client) => (
+                                    <SelectItem key={client.id} value={client.id}>
+                                        {client.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
 

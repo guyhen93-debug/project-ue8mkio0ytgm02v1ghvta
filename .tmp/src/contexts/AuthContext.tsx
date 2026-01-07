@@ -40,7 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             let enhancedUser = currentUser;
 
             try {
-                if (currentUser?.email === 'demo-client@piternofi.com' && currentUser.role === 'client') {
+                const isDemoClient =
+                    enhancedUser?.role === 'client' &&
+                    ['demo-client@piternofi.com', 'demo-client@example.com'].includes(enhancedUser.email);
+
+                if (isDemoClient) {
                     const allClients = await Client.list('-created_at', 1000).catch(() => [] as any[]);
 
                     // Prefer a specific known client name, fallback to the first one
@@ -49,14 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     if (chosenClient) {
                         const desiredCompany = chosenClient.name;
-                        if (currentUser.company !== desiredCompany) {
+                        if (enhancedUser.company !== desiredCompany) {
                             // Persist the company on the user profile so other pages (like CreateOrder) can match it
                             try {
                                 await User.updateProfile({ company: desiredCompany });
                             } catch (e) {
                                 console.error('Error updating demo client profile company:', e);
                             }
-                            enhancedUser = { ...currentUser, company: desiredCompany };
+                            enhancedUser = { ...enhancedUser, company: desiredCompany };
                         }
                     }
                 }
