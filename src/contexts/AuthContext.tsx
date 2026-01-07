@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@/entities';
+import { User, Client } from '@/entities';
 
 interface AuthContextType {
     user: any;
@@ -37,7 +37,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const currentUser = await User.me();
             console.log('User loaded successfully:', currentUser);
             
-            setUser(currentUser);
+            let enhancedUser = currentUser;
+
+            try {
+                if (currentUser?.email === 'demo-client@piternofi.com' && currentUser.role === 'client') {
+                    const allClients = await Client.list('-created_at', 1000).catch(() => [] as any[]);
+
+                    // Prefer a specific known client name, fallback to the first one
+                    const preferredName = "זמיר בן משה נכסים בע\"מ";
+                    let chosenClient = allClients.find((c: any) => c.name === preferredName) || allClients[0];
+
+                    if (chosenClient) {
+                        const desiredCompany = chosenClient.name;
+                        if (currentUser.company !== desiredCompany) {
+                            // Persist the company on the user profile so other pages (like CreateOrder) can match it
+                            try {
+                                await User.updateProfile({ company: desiredCompany });
+                            } catch (e) {
+                                console.error('Error updating demo client profile company:', e);
+                            }
+                            enhancedUser = { ...currentUser, company: desiredCompany };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error linking demo client to existing Client:', e);
+            }
+
+            setUser(enhancedUser);
             setError(null);
             setHasAttemptedLoad(true);
         } catch (error: any) {

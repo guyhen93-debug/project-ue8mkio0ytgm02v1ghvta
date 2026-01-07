@@ -378,7 +378,7 @@ const CreateOrder = () => {
                                 <Button
                                     type="submit"
                                     disabled={submitting || !validation.valid}
-                                    className="w-full piter-yellow text-lg py-6 font-bold"
+                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6"
                                 >
                                     {submitting ? (
                                         <>
