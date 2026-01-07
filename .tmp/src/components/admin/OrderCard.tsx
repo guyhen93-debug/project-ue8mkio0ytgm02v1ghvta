@@ -90,18 +90,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     🆕 {language === 'he' ? 'חדש' : 'New'}
                                 </Badge>
                             )}
-                            {order.is_delivered && !order.is_client_confirmed && (
-                                <Badge className="bg-orange-100 text-orange-800 text-xs">
-                                    <Clock className="w-3 h-3 ml-1" />
-                                    {t.waitingClientConfirm}
-                                </Badge>
-                            )}
-                            {order.is_client_confirmed && (
-                                <Badge className="bg-green-100 text-green-800 text-xs">
-                                    <CheckCircle className="w-3 h-3 ml-1" />
-                                    {t.clientConfirmed}
-                                </Badge>
-                            )}
                             {order.rating && (
                                 <Badge className="bg-purple-100 text-purple-800 text-xs">
                                     <Star className="w-3 h-3 ml-1 fill-purple-600" />

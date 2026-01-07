@@ -89,7 +89,7 @@ export const formatOrderDateTime = (dateString: string, language: string = 'he')
 export const getStatusConfig = (status: string, language: string = 'he') => {
     const configs = {
         pending: {
-            label: { he: 'ממתין', en: 'Pending' },
+            label: { he: 'ממתין לאישור', en: 'Pending approval' },
             className: 'bg-[#FEF3C7] text-[#F59E0B] border border-[#FBBF24] px-2.5 py-1 text-[11px] font-semibold rounded-full'
         },
         approved: {
