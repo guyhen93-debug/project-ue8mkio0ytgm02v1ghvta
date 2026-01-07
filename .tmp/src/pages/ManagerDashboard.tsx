@@ -41,7 +41,7 @@ const ManagerDashboard: React.FC = () => {
 
   const translations = {
     he: {
-      title: 'דשבורד מתל',
+      title: 'דשבורד מנהל',
       recentOrders: 'הזמנות אחרונות',
       createOrder: 'צור הזמנה חדשה',
       error: 'שגיאה בטעינת הזמנות',
@@ -81,7 +81,7 @@ const ManagerDashboard: React.FC = () => {
       quantity: 'כמות',
     },
     en: {
-      title: 'Matal Dashboard',
+      title: 'Manager Dashboard',
       recentOrders: 'Recent Orders',
       createOrder: 'Create New Order',
       error: 'Error loading orders',
