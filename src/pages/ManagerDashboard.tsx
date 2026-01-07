@@ -216,6 +216,7 @@ const ManagerDashboard: React.FC = () => {
         delivery_note_number: deliveryForm.deliveryNoteNumber.trim(),
         driver_name: deliveryForm.driverName.trim() || undefined,
         delivery_notes: deliveryForm.notes.trim() || undefined,
+        status: isCompleted ? 'completed' : order.status,
       });
 
       toast({

@@ -336,7 +336,10 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             return;
         }
 
-        if (formData.is_delivered) {
+        const autoDelivered = formData.quantity_tons > 0 && formData.delivered_quantity_tons >= formData.quantity_tons;
+        const isDeliveredFlag = formData.is_delivered || autoDelivered;
+
+        if (isDeliveredFlag) {
             if (!formData.delivery_note_number || !formData.delivery_note_number.trim()) {
                 toast({
                     title: t.error,
@@ -356,6 +359,8 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         }
 
         try {
+            const effectiveStatus = autoDelivered ? 'completed' : formData.status;
+
             const orderData: any = {
                 site_id: formData.site_id,
                 product_id: formData.product_id,
@@ -365,18 +370,20 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 delivery_method: formData.delivery_method,
                 supplier: formData.supplier,
                 notes: formData.notes,
-                status: formData.status,
-                is_delivered: formData.is_delivered,
+                status: effectiveStatus,
+                is_delivered: isDeliveredFlag,
                 delivery_note_number: formData.delivery_note_number || '',
                 driver_name: formData.driver_name || '',
                 delivery_notes: formData.delivery_notes || ''
             };
 
-            if (formData.is_delivered && formData.actual_delivery_date) {
+            if (isDeliveredFlag && formData.actual_delivery_date) {
                 const isoDate = new Date(formData.actual_delivery_date).toISOString();
                 orderData.actual_delivery_date = isoDate;
                 orderData.delivered_at = isoDate;
-                orderData.delivered_quantity_tons = formData.delivered_quantity_tons;
+                orderData.delivered_quantity_tons = autoDelivered
+                    ? formData.quantity_tons
+                    : formData.delivered_quantity_tons;
             }
 
             if (order) {

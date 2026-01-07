@@ -45,6 +45,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         : order.status;
     const statusConfig = getStatusConfig(effectiveStatus, language);
 
+    const deliveredQty = order.delivered_quantity_tons || 0;
+    const totalQty = order.quantity_tons || 0;
+    const isFullyDelivered = totalQty > 0 && deliveredQty >= totalQty;
+
+    const shouldShowCompleteButton = order.status !== 'completed' && !isFullyDelivered;
+
     const getStatusEmoji = (status: string) => {
         switch (status) {
             case 'pending': return "⏳";
@@ -241,14 +247,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                         )}
                         {order.status === 'approved' && (
                             <>
-                                <Button
-                                    size="sm"
-                                    onClick={() => onStatusChange(order.id, 'completed')}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                                >
-                                    <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                    {t.markCompleted}
-                                </Button>
+                                {shouldShowCompleteButton && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => onStatusChange(order.id, 'completed')}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                                    >
+                                        <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                        {t.markCompleted}
+                                    </Button>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="outline"
