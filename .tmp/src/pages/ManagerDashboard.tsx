@@ -81,7 +81,7 @@ const ManagerDashboard: React.FC = () => {
       quantity: 'כמות',
     },
     en: {
-      title: 'Manager Dashboard',
+      title: 'Matal Dashboard',
       recentOrders: 'Recent Orders',
       createOrder: 'Create New Order',
       error: 'Error loading orders',
@@ -124,6 +124,7 @@ const ManagerDashboard: React.FC = () => {
 
   const t = translations[language];
   const isRTL = language === 'he';
+  const managerDisplayName = currentUser?.full_name || currentUser?.email || (language === 'he' ? 'מנהל' : 'Manager');
 
   useEffect(() => {
     loadOrders();
@@ -370,6 +371,18 @@ const ManagerDashboard: React.FC = () => {
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Personal Greeting */}
+        <div className="mb-6">
+          <p className="text-sm text-gray-500 mb-1">
+            {language === 'he' ? 'ברוך הבא' : 'Welcome'}
+          </p>
+          <h1 className="text-xl sm:text-2xl font-bold flex items-baseline gap-2">
+            <span>👋</span>
+            {language === 'he' ? 'שלום,' : 'Hello,'}
+            <span className="text-yellow-600">{managerDisplayName}</span>
+          </h1>
+        </div>
+
         {/* Urgent Card */}
         <div className={cn(
           "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300",
