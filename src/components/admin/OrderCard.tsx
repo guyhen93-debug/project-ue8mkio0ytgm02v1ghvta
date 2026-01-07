@@ -7,6 +7,35 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getProductName, getSiteName, getClientName as resolveClientName, getSupplierName, getStatusConfig } from '@/lib/orderUtils';
 
+const getAvailableActions = (status: string) => {
+    const base = {
+        approve: false,
+        reject: false,
+        updateDelivery: false,
+        returnToPending: false,
+        sendMessage: false,
+        edit: false,
+        delete: false,
+        duplicate: false,
+        viewDetails: true,
+    };
+
+    switch (status) {
+        case 'pending':
+            return { ...base, approve: true, reject: true, sendMessage: true, edit: true, delete: true };
+        case 'approved':
+            return { ...base, updateDelivery: true, returnToPending: true, sendMessage: true, edit: true };
+        case 'in_transit':
+            return { ...base, updateDelivery: true, sendMessage: true };
+        case 'completed':
+            return { ...base, duplicate: true };
+        case 'rejected':
+            return { ...base, returnToPending: true };
+        default:
+            return base;
+    }
+};
+
 interface OrderCardProps {
     order: any;
     products: Record<string, any>;
@@ -45,12 +74,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         : order.status;
     const statusConfig = getStatusConfig(effectiveStatus, language);
 
-    const deliveredQty = order.delivered_quantity_tons || 0;
-    const totalQty = order.quantity_tons || 0;
-    const isFullyDelivered = totalQty > 0 && deliveredQty >= totalQty;
-
-    const shouldShowCompleteButton = order.status !== 'completed' && !isFullyDelivered;
-
     const getStatusEmoji = (status: string) => {
         switch (status) {
             case 'pending': return "⏳";
@@ -64,6 +87,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
     const statusEmoji = getStatusEmoji(order.status);
     const isNew = order.status === 'pending' && order.created_at && (Date.now() - new Date(order.created_at).getTime() < 1000 * 60 * 60 * 24);
+    const actions = getAvailableActions(order.status);
+    const hasPrimaryActions = actions.approve || actions.reject || actions.returnToPending;
+    const hasSecondaryActions =
+        actions.updateDelivery ||
+        actions.duplicate ||
+        actions.sendMessage ||
+        actions.edit ||
+        actions.delete;
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -224,9 +255,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
                 {/* Actions */}
                 <div className="space-y-2 pt-3 border-t border-gray-100">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {order.status === 'pending' && (
-                            <>
+                    {hasPrimaryActions && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {actions.approve && (
                                 <Button
                                     size="sm"
                                     onClick={() => onStatusChange(order.id, 'approved')}
@@ -235,6 +266,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                     {t.approve}
                                 </Button>
+                            )}
+                            {actions.reject && (
                                 <Button
                                     size="sm"
                                     variant="destructive"
@@ -243,20 +276,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 >
                                     {t.reject}
                                 </Button>
-                            </>
-                        )}
-                        {order.status === 'approved' && (
-                            <>
-                                {shouldShowCompleteButton && (
-                                    <Button
-                                        size="sm"
-                                        onClick={() => onStatusChange(order.id, 'completed')}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                                    >
-                                        <CheckCircle className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                        {t.markCompleted}
-                                    </Button>
-                                )}
+                            )}
+                            {actions.returnToPending && (
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -266,78 +287,69 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                     {t.returnToPending}
                                 </Button>
-                            </>
-                        )}
-                        {order.status === 'rejected' && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => onStatusChange(order.id, 'pending')}
-                                className="w-full"
-                            >
-                                <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                {t.returnToPending}
-                            </Button>
-                        )}
-                        {order.status === 'completed' && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => onStatusChange(order.id, 'approved')}
-                                className="w-full"
-                            >
-                                <Clock className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                {t.returnToApproved}
-                            </Button>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onUpdateDelivery?.(order)}
-                            className="w-full"
-                        >
-                            <Package className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                            {t.addDelivery}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onDuplicate?.(order)}
-                            className="w-full"
-                        >
-                            <FileText className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                            {t.duplicateOrder}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onSendMessage?.(order)}
-                            className="w-full"
-                        >
-                            <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                            {t.sendMessage}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onEdit(order)}
-                            className="w-full"
-                        >
-                            <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                            {t.edit}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => onDelete(order.id)}
-                            className="w-full"
-                        >
-                            <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                            {t.delete}
-                        </Button>
-                    </div>
+                            )}
+                        </div>
+                    )}
+
+                    {hasSecondaryActions && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {actions.updateDelivery && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onUpdateDelivery?.(order)}
+                                    className="w-full"
+                                >
+                                    <Package className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                    {t.addDelivery}
+                                </Button>
+                            )}
+                            {actions.duplicate && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onDuplicate?.(order)}
+                                    className="w-full"
+                                >
+                                    <FileText className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                    {t.duplicateOrder}
+                                </Button>
+                            )}
+                            {actions.sendMessage && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onSendMessage?.(order)}
+                                    className="w-full"
+                                >
+                                    <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                    {t.sendMessage}
+                                </Button>
+                            )}
+                            {actions.edit && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onEdit(order)}
+                                    className="w-full"
+                                >
+                                    <Edit className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                    {t.edit}
+                                </Button>
+                            )}
+                            {actions.delete && (
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => onDelete(order.id)}
+                                    className="w-full"
+                                >
+                                    <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                    {t.delete}
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Created Date */}
