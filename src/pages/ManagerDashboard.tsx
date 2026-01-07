@@ -11,6 +11,9 @@ import { useData } from '@/contexts/DataContext';
 import { cn } from '@/lib/utils';
 import { getProductName, getSiteName, getClientName, formatOrderDate, getStatusConfig } from '@/lib/orderUtils';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Plus, Sparkles, Check, X, MessageSquare, Truck, AlertCircle, TrendingUp, BarChart3, Star, Clock, Package } from 'lucide-react';
 import NotificationsCard from '@/components/NotificationsCard';
 import { OrderCardSkeleton } from '@/components/OrderCardSkeleton';
@@ -23,8 +26,15 @@ const ManagerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [deliveryUpdates, setDeliveryUpdates] = useState<Record<string, string>>({});
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<OrderType | null>(null);
+  const [deliveryForm, setDeliveryForm] = useState({
+    amount: '',
+    deliveryNoteNumber: '',
+    driverName: '',
+    notes: '',
+  });
 
   const translations = {
     he: {
@@ -60,6 +70,13 @@ const ManagerDashboard: React.FC = () => {
       viewAllOrders: 'צפה בכל ההזמנות',
       tons: 'טון',
       last50Note: '* מבוסס על 50 ההזמנות האחרונות',
+      deliveryNoteNumber: 'מספר תעודת משלוח',
+      driverName: 'שם נהג',
+      deliveryNotes: 'הערות',
+      deliveryDialogTitle: 'עדכון אספקה',
+      deliveryNoteRequired: 'יש להזין מספר תעודת משלוח',
+      cancel: 'ביטול',
+      quantity: 'כמות',
     },
     en: {
       title: 'Manager Dashboard',
@@ -94,6 +111,13 @@ const ManagerDashboard: React.FC = () => {
       viewAllOrders: 'View all orders',
       tons: 'tons',
       last50Note: '* Based on the last 50 orders',
+      deliveryNoteNumber: 'Delivery Note Number',
+      driverName: 'Driver Name',
+      deliveryNotes: 'Notes',
+      deliveryDialogTitle: 'Update Delivery',
+      deliveryNoteRequired: 'Delivery note number is required',
+      cancel: 'Cancel',
+      quantity: 'Quantity',
     }
   };
 
@@ -142,8 +166,25 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  const handleUpdateDelivery = async (order: OrderType) => {
-    const added = parseFloat(deliveryUpdates[order.id]);
+  const handleOpenDeliveryDialog = (order: OrderType) => {
+    setSelectedOrderForDelivery(order);
+    const delivered = order.delivered_quantity_tons || 0;
+    const total = order.quantity_tons || 0;
+    const remaining = Math.max(0, total - delivered);
+
+    setDeliveryForm({
+      amount: remaining > 0 ? remaining.toString() : '',
+      deliveryNoteNumber: '',
+      driverName: order.driver_name || '',
+      notes: order.delivery_notes || '',
+    });
+    setDeliveryDialogOpen(true);
+  };
+
+  const handleConfirmDelivery = async () => {
+    if (!selectedOrderForDelivery) return;
+
+    const added = parseFloat(deliveryForm.amount.replace(',', '.'));
     if (isNaN(added) || added <= 0) {
       toast({
         title: t.invalidAmount,
@@ -152,28 +193,38 @@ const ManagerDashboard: React.FC = () => {
       return;
     }
 
+    if (!deliveryForm.deliveryNoteNumber.trim()) {
+      toast({
+        title: t.error,
+        description: t.deliveryNoteRequired,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const order = selectedOrderForDelivery;
     try {
       setIsUpdating(order.id);
       const currentDelivered = order.delivered_quantity_tons || 0;
-      const newDelivered = Math.min(currentDelivered + added, order.quantity_tons);
-      const isCompleted = newDelivered >= order.quantity_tons;
+      const newDelivered = Math.min(currentDelivered + added, order.quantity_tons || 0);
+      const isCompleted = newDelivered >= (order.quantity_tons || 0);
 
       await Order.update(order.id, {
         delivered_quantity_tons: newDelivered,
         is_delivered: isCompleted,
-        delivered_at: isCompleted ? new Date().toISOString() : order.delivered_at
+        delivered_at: isCompleted ? new Date().toISOString() : order.delivered_at,
+        delivery_note_number: deliveryForm.deliveryNoteNumber.trim(),
+        driver_name: deliveryForm.driverName.trim() || undefined,
+        delivery_notes: deliveryForm.notes.trim() || undefined,
       });
 
       toast({
         title: t.successDelivery,
       });
-      
-      setDeliveryUpdates(prev => {
-        const next = { ...prev };
-        delete next[order.id];
-        return next;
-      });
-      
+
+      setDeliveryDialogOpen(false);
+      setSelectedOrderForDelivery(null);
+      setDeliveryForm({ amount: '', deliveryNoteNumber: '', driverName: '', notes: '' });
       loadOrders();
     } catch (err) {
       console.error('Error updating delivery:', err);
@@ -474,17 +525,10 @@ const ManagerDashboard: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 w-full">
-                        <Input
-                          type="number"
-                          placeholder={t.deliveryAmountPlaceholder}
-                          className="h-10 text-sm w-full sm:flex-1"
-                          value={deliveryUpdates[order.id] || ''}
-                          onChange={(e) => setDeliveryUpdates(prev => ({ ...prev, [order.id]: e.target.value }))}
-                        />
                         <Button 
                           size="sm" 
                           className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto sm:flex-none whitespace-nowrap h-10"
-                          onClick={() => handleUpdateDelivery(order)}
+                          onClick={() => handleOpenDeliveryDialog(order)}
                           disabled={isUpdating === order.id}
                         >
                           {t.addDelivery}
@@ -583,6 +627,90 @@ const ManagerDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={deliveryDialogOpen}
+        onOpenChange={(open) => {
+          setDeliveryDialogOpen(open);
+          if (!open) {
+            setSelectedOrderForDelivery(null);
+          }
+        }}
+      >
+        <DialogContent dir={isRTL ? 'rtl' : 'ltr'} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.deliveryDialogTitle}</DialogTitle>
+            {selectedOrderForDelivery && (
+              <DialogDescription className="text-gray-500 mt-1">
+                #{selectedOrderForDelivery.order_number} — {getClientName(selectedOrderForDelivery, sitesMap, clientsMap)}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="block mb-1">{t.quantity}</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={deliveryForm.amount}
+                onChange={(e) => setDeliveryForm((prev) => ({ ...prev, amount: e.target.value }))}
+                placeholder={t.deliveryAmountPlaceholder}
+              />
+            </div>
+
+            <div>
+              <Label className="block mb-1">{t.deliveryNoteNumber}</Label>
+              <Input
+                value={deliveryForm.deliveryNoteNumber}
+                onChange={(e) => setDeliveryForm((prev) => ({ ...prev, deliveryNoteNumber: e.target.value }))}
+                placeholder={t.deliveryNoteNumber}
+              />
+            </div>
+
+            <div>
+              <Label className="block mb-1">{t.driverName}</Label>
+              <Input
+                value={deliveryForm.driverName}
+                onChange={(e) => setDeliveryForm((prev) => ({ ...prev, driverName: e.target.value }))}
+                placeholder={t.driverName}
+              />
+            </div>
+
+            <div>
+              <Label className="block mb-1">{t.deliveryNotes}</Label>
+              <Textarea
+                value={deliveryForm.notes}
+                onChange={(e) => setDeliveryForm((prev) => ({ ...prev, notes: e.target.value }))}
+                className="min-h-[80px]"
+                placeholder={t.deliveryNotes}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className={cn("gap-2 sm:gap-0", isRTL ? 'flex-row-reverse' : '')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDeliveryDialogOpen(false);
+                setSelectedOrderForDelivery(null);
+              }}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmDelivery}
+              disabled={isUpdating === selectedOrderForDelivery?.id}
+            >
+              {isUpdating === selectedOrderForDelivery?.id
+                ? language === 'he' ? 'שומר...' : 'Saving...'
+                : t.addDelivery}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
