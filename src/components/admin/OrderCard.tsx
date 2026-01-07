@@ -6,6 +6,7 @@ import { Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, Edit, Tras
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getProductName, getSiteName, getClientName as resolveClientName, getSupplierName, getStatusConfig } from '@/lib/orderUtils';
+import { cn } from '@/lib/utils';
 
 const getAvailableActions = (status: string) => {
     const base = {
@@ -112,13 +113,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     };
 
     return (
-        <Card>
+        <Card className="industrial-card hover:shadow-md transition-shadow">
             <CardContent className="p-4">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="font-bold text-sm sm:text-base">
+                            <h3 className="font-bold text-sm sm:text-base text-gray-900">
                                 {t.orderNumber} #{order.order_number || order.id.slice(-6)}
                             </h3>
                             <Badge className={statusConfig.className}>
@@ -155,56 +156,56 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <div className="space-y-2 mb-3">
                     {order.site_id && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
-                            <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="text-gray-500">{t.site}:</span>
-                            <span className="font-medium text-gray-900">{getSiteName(order.site_id, sites)}</span>
+                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-700 font-medium">{t.site}:</span>
+                            <span className="font-bold text-gray-900">{getSiteName(order.site_id, sites)}</span>
                         </div>
                     )}
                     {order.site_id && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
                             <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                            <span className="text-gray-500">{t.region}:</span>
-                            <span className="font-medium text-blue-700">{getRegionName(order.site_id)}</span>
+                            <span className="text-gray-700 font-medium">{t.region}:</span>
+                            <span className="font-bold text-blue-700">{getRegionName(order.site_id)}</span>
                         </div>
                     )}
                     {order.supplier && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
                             <Factory className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                            <span className="text-gray-500">{t.supplier}:</span>
-                            <span className="font-medium text-orange-700">{getSupplierName(order.supplier, language)}</span>
+                            <span className="text-gray-700 font-medium">{t.supplier}:</span>
+                            <span className="font-bold text-orange-700">{getSupplierName(order.supplier, language)}</span>
                         </div>
                     )}
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Box className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                        <span className="text-gray-500">{t.product}:</span>
-                        <span className="font-medium text-gray-900">{getProductName(order.product_id, products, language)}</span>
+                        <Box className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-700 font-medium">{t.product}:</span>
+                        <span className="font-bold text-gray-900">{getProductName(order.product_id, products, language)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Scale className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                        <span className="text-gray-500">{t.quantity}:</span>
-                        <span className="font-medium text-gray-900">{order.quantity_tons} {t.tons}</span>
+                        <Scale className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-700 font-medium">{t.quantity}:</span>
+                        <span className="font-bold text-gray-900">{order.quantity_tons} {t.tons}</span>
                     </div>
                     {order.delivery_date && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
-                            <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="text-gray-500">{t.deliveryDate}:</span>
-                            <span className="font-medium text-gray-900">{formatDate(order.delivery_date)}</span>
+                            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-700 font-medium">{t.deliveryDate}:</span>
+                            <span className="font-bold text-gray-900">{formatDate(order.delivery_date)}</span>
                         </div>
                     )}
                     {order.delivery_window && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
                             <TimeIcon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-                            <span className="text-gray-500">{t.timeWindow}:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="text-gray-700 font-medium">{t.timeWindow}:</span>
+                            <span className="font-bold text-gray-900">
                                 {order.delivery_window === 'morning' ? t.morning : t.afternoon}
                             </span>
                         </div>
                     )}
                     {order.delivery_method && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
-                            <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="text-gray-500">{t.deliveryMethod}:</span>
-                            <span className="font-medium text-gray-900">
+                            <Truck className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-700 font-medium">{t.deliveryMethod}:</span>
+                            <span className="font-bold text-gray-900">
                                 {order.delivery_method === 'self' ? t.self : t.external}
                             </span>
                         </div>
@@ -216,21 +217,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             {order.delivery_note_number && (
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                                     <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                    <span className="text-gray-500">{t.deliveryNoteNumber}:</span>
+                                    <span className="text-gray-700 font-medium">{t.deliveryNoteNumber}:</span>
                                     <span className="font-bold text-blue-700">{order.delivery_note_number}</span>
                                 </div>
                             )}
                             {order.driver_name && (
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                                     <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                    <span className="text-gray-500">{t.driverName}:</span>
-                                    <span className="font-medium text-gray-900">{order.driver_name}</span>
+                                    <span className="text-gray-700 font-medium">{t.driverName}:</span>
+                                    <span className="font-bold text-gray-900">{order.driver_name}</span>
                                 </div>
                             )}
                             {(order.is_delivered || order.delivered_quantity_tons > 0) && (
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                                     <Scale className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                    <span className="text-gray-500">{t.deliveredQuantity}:</span>
+                                    <span className="text-gray-700 font-medium">{t.deliveredQuantity}:</span>
                                     <span className="font-bold text-gray-900">
                                         {order.delivered_quantity_tons || 0} / {order.quantity_tons} {t.tons}
                                     </span>

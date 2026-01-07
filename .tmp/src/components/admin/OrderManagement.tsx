@@ -8,9 +8,14 @@ import type { Order as OrderType, User as UserType, Client as ClientType, Site a
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Package, Plus, Search, X } from 'lucide-react';
+import { Package, Plus, Search, X, Calendar as CalendarIcon } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { OrderCard } from './OrderCard';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { he } from 'date-fns/locale';
 import OrderEditDialog from './OrderEditDialog';
 import { getProductName, getSiteName } from '@/lib/orderUtils';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -27,6 +32,7 @@ export const OrderManagement: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
     const [editingOrder, setEditingOrder] = useState<OrderType | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [page, setPage] = useState(1);
@@ -121,7 +127,9 @@ export const OrderManagement: React.FC = () => {
             deliveryNoteNumber: 'תעודת משלוח',
             driverName: 'שם נהג',
             deliveredQuantity: 'כמות שסופקה',
-            duplicateOrder: 'שכפל הזמנה 📋'
+            duplicateOrder: 'שכפל הזמנה 📋',
+            dateRangeLabel: 'טווח תאריכים',
+            clearFilter: 'נקה'
         },
         en: {
             title: 'Orders',
@@ -187,7 +195,9 @@ export const OrderManagement: React.FC = () => {
             deliveryNoteNumber: 'Delivery Note',
             driverName: 'Driver Name',
             deliveredQuantity: 'Delivered Quantity',
-            duplicateOrder: 'Duplicate order 📋'
+            duplicateOrder: 'Duplicate order 📋',
+            dateRangeLabel: 'Date range',
+            clearFilter: 'Clear'
         }
     };
 
@@ -501,9 +511,17 @@ export const OrderManagement: React.FC = () => {
                 order.status === statusFilter ||
                 (statusFilter === 'completed' && isCompletedLike);
 
-            return matchesSearch && matchesStatus;
+            let matchesDate = true;
+            if (dateRange?.from) {
+                const from = startOfDay(dateRange.from);
+                const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+                const orderDate = new Date(order.delivery_date);
+                matchesDate = isWithinInterval(orderDate, { start: from, end: to });
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
         });
-    }, [orders, debouncedSearch, statusFilter, sitesMap, productsMap, language]);
+    }, [orders, debouncedSearch, statusFilter, dateRange, sitesMap, productsMap, language]);
 
     if (loading || dataLoading) {
         return (
@@ -537,46 +555,110 @@ export const OrderManagement: React.FC = () => {
 
             {/* Filters & Search */}
             <div className="space-y-4">
-                {/* Search Bar */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder={t.search}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
-                    />
-                    <div className={cn("absolute top-2.5 text-gray-400", isRTL ? "right-3" : "left-3")}>
-                        <Search className="w-5 h-5" />
+                <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Search Bar */}
+                    <div className="relative flex-1">
+                        <Search className={cn(
+                            "absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10",
+                            isRTL ? "right-3" : "left-3"
+                        )} />
+                        <Input
+                            type="text"
+                            placeholder={t.search}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className={cn(
+                                "w-full border-gray-200 focus-visible:ring-yellow-500",
+                                isRTL ? "pr-10" : "pl-10"
+                            )}
+                        />
+                    </div>
+
+                    {/* Date Range Selector */}
+                    <div className="flex items-center gap-2">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full sm:w-[240px] justify-start text-left font-normal border-gray-200",
+                                        !dateRange?.from && "text-muted-foreground",
+                                        isRTL && "text-right flex-row-reverse"
+                                    )}
+                                >
+                                    <CalendarIcon className={cn("h-4 w-4", isRTL ? "ml-2" : "mr-2")} />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>
+                                                {format(dateRange.from, "dd/MM/yyyy")} -{" "}
+                                                {format(dateRange.to, "dd/MM/yyyy")}
+                                            </>
+                                        ) : (
+                                            format(dateRange.from, "dd/MM/yyyy")
+                                        )
+                                    ) : (
+                                        <span>{t.dateRangeLabel}</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={1}
+                                    locale={isRTL ? he : undefined}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        
+                        {dateRange?.from && (
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setDateRange({})}
+                                className="h-9 px-2 text-gray-500 hover:text-gray-700"
+                            >
+                                <X className="w-4 h-4 ml-1" />
+                                {t.clearFilter}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
                 {/* Status Filter Row */}
                 <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto no-scrollbar">
-                    {['all', 'pending', 'approved', 'in_transit', 'completed', 'rejected'].map((status) => (
-                        <Button
-                            key={status}
-                            variant={statusFilter === status ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setStatusFilter(status)}
-                            className={cn(
-                                "rounded-full px-4 h-9 whitespace-nowrap transition-all",
-                                statusFilter === status 
-                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500' 
-                                    : 'text-gray-600 hover:bg-gray-50'
-                            )}
-                        >
-                            {status === 'all' 
-                                ? `${t.filterAll} (${orders.length})` 
-                                : `${t[`filter${status.charAt(0).toUpperCase() + status.slice(1).replace('_', '')}`]} (${orders.filter(o => {
-                                    if (status === 'completed') {
-                                        return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
-                                    }
-                                    return o.status === status;
-                                }).length})`
-                            }
-                        </Button>
-                    ))}
+                    {['all', 'pending', 'approved', 'in_transit', 'completed', 'rejected'].map((status) => {
+                        const labelKey = `filter${status.charAt(0).toUpperCase() + status.slice(1).replace('_', '')}`;
+                        const label = status === 'all' ? t.filterAll : (t[labelKey] || status);
+                        const count = status === 'all' 
+                            ? orders.length 
+                            : orders.filter(o => {
+                                if (status === 'completed') {
+                                    return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
+                                }
+                                return o.status === status;
+                            }).length;
+
+                        return (
+                            <Button
+                                key={status}
+                                variant={statusFilter === status ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setStatusFilter(status)}
+                                className={cn(
+                                    "rounded-md px-4 h-9 whitespace-nowrap transition-all font-bold border-gray-200",
+                                    statusFilter === status 
+                                        ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500 shadow-sm' 
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                )}
+                            >
+                                {label} ({count})
+                            </Button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -586,15 +668,16 @@ export const OrderManagement: React.FC = () => {
                     <CardContent className="py-12 text-center">
                         <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                         <p className="text-gray-500 font-medium mb-4">{t.noOrders}</p>
-                        {(searchTerm || statusFilter !== 'all') && (
+                        {(searchTerm || statusFilter !== 'all' || dateRange.from) && (
                             <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => {
                                     setSearchTerm('');
                                     setStatusFilter('all');
+                                    setDateRange({});
                                 }}
-                                className="rounded-full"
+                                className="rounded-md"
                             >
                                 <X className="w-4 h-4 mr-2" />
                                 {t.clearFilters}
@@ -630,7 +713,7 @@ export const OrderManagement: React.FC = () => {
 
             {totalCount > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
-                    <div className="text-sm text-gray-500 order-2 sm:order-1">
+                    <div className="text-sm text-gray-600 font-medium order-2 sm:order-1">
                         {isRTL ? 'מציג' : 'Showing'} {((page - 1) * PAGE_SIZE) + 1}-{Math.min(page * PAGE_SIZE, totalCount)} {isRTL ? 'מתוך' : 'of'} {totalCount} {isRTL ? 'הזמנות' : 'orders'}
                     </div>
                     <div className="flex items-center gap-2 order-1 sm:order-2">
