@@ -198,7 +198,7 @@ const Reports: React.FC = () => {
         // 2. Performance KPIs
         // Average Approval Time (hours)
         const approvedOrders = orders.filter(o => 
-            ['approved', 'in_transit', 'completed'].includes(o.status) && 
+            (['approved', 'in_transit', 'completed'].includes(o.status) || o.is_delivered || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons)) && 
             o.created_at && o.updated_at
         );
         const avgApprovalTime = approvedOrders.length > 0
@@ -209,10 +209,10 @@ const Reports: React.FC = () => {
             : '—';
 
         // On-time delivery rate
-        const deliveredOrders = orders.filter(o => o.is_delivered && o.delivery_date);
+        const deliveredOrders = orders.filter(o => (o.is_delivered || o.status === 'completed' || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons)) && o.delivery_date);
         const onTimeDeliveries = deliveredOrders.filter(o => {
             const planned = new Date(o.delivery_date);
-            const actual = new Date(o.actual_delivery_date || o.delivered_at);
+            const actual = new Date(o.actual_delivery_date || o.delivered_at || o.updated_at);
             // On time if same day or earlier
             return actual.getTime() <= planned.setHours(23, 59, 59, 999);
         });

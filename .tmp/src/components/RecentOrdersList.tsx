@@ -110,11 +110,25 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
         setRetryCount(prev => prev + 1);
     };
 
+    const checkIsCompleted = (order: any) => {
+        return order.status === 'completed' || 
+               order.is_delivered === true || 
+               (order.delivered_quantity_tons && order.quantity_tons && order.delivered_quantity_tons >= order.quantity_tons);
+    };
+
     const applyFilters = () => {
         let filtered = [...orders];
 
         if (statusFilter !== 'all') {
-            filtered = filtered.filter(order => order.status === statusFilter);
+            filtered = filtered.filter(order => {
+                const isCompletedLike = checkIsCompleted(order);
+
+                if (statusFilter === 'completed') {
+                    return isCompletedLike;
+                }
+
+                return order.status === statusFilter;
+            });
         }
 
         if (supplierFilter !== 'all') {
@@ -134,10 +148,10 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     const pendingCount = orders.filter(o => o.status === 'pending').length;
     const approvedCount = orders.filter(o => o.status === 'approved').length;
     const rejectedCount = orders.filter(o => o.status === 'rejected').length;
-    const completedCount = orders.filter(o => o.status === 'completed').length;
+    const completedCount = orders.filter(o => checkIsCompleted(o)).length;
 
     const getStatusBadge = (order: any) => {
-        const effectiveStatus = (order.status === 'completed' || order.is_delivered)
+        const effectiveStatus = checkIsCompleted(order)
             ? 'completed'
             : order.status;
 
@@ -310,7 +324,7 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                                 <span className="font-bold text-gray-900">#{order.order_number}</span>
                                                 {getStatusBadge(order)}
                                                 {/* Delivery and confirmation badges */}
-                                                {order.is_delivered && !order.is_client_confirmed && (
+                                                {(order.is_delivered || checkIsCompleted(order)) && !order.is_client_confirmed && (
                                                     <Badge className="bg-orange-100 text-orange-800 text-xs">
                                                         <Clock className="w-3 h-3 ml-1" />
                                                         ממתין לאישור לקוח
@@ -379,14 +393,14 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                     </div>
 
                                     {/* Order Confirmation Component */}
-                                    {(order.status === 'approved' || order.status === 'completed') && (
+                                    {(order.status === 'approved' || order.status === 'completed' || checkIsCompleted(order)) && (
                                         <div className="mt-4">
                                             <OrderConfirmation order={order} onConfirm={loadOrders} />
                                         </div>
                                     )}
 
                                     {/* Order Rating Component - Show only after confirmation */}
-                                    {(order.status === 'approved' || order.status === 'completed') && order.is_client_confirmed && (
+                                    {(order.status === 'approved' || order.status === 'completed' || checkIsCompleted(order)) && order.is_client_confirmed && (
                                         <div className="mt-3">
                                             <OrderRating order={order} onRate={loadOrders} />
                                         </div>

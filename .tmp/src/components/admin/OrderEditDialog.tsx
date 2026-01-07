@@ -407,7 +407,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
             }
 
             if (order) {
-                const statusChanged = order.status !== formData.status;
+                const statusChanged = order.status !== effectiveStatus;
                 const isCompletedAfterSave = !!orderData.is_delivered && orderData.status === 'completed';
                 const deliveredQtyForNotification = orderData.delivered_quantity_tons ?? formData.delivered_quantity_tons ?? 0;
                 const deliveryChanged = !order.is_delivered && isDeliveredFlag;
@@ -415,7 +415,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 await Order.update(order.id, orderData);
 
                 if (statusChanged) {
-                    await createStatusChangeNotifications(order.order_number, formData.status, order.created_by);
+                    await createStatusChangeNotifications(order.order_number, effectiveStatus, order.created_by);
                 }
 
                 if (deliveryChanged) {

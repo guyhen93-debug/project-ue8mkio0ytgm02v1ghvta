@@ -72,10 +72,17 @@ const ClientDashboard: React.FC = () => {
   };
 
   const { openOrdersCount, inTransitCount, completedThisMonthCount } = useMemo(() => {
-    const open = orders.filter(o => o.status === 'pending' || o.status === 'approved').length;
-    const inTransit = orders.filter(o => o.status === 'in_transit' || o.status === 'in-transit').length;
+    const checkIsCompleted = (o: OrderType) => {
+      return o.status === 'completed' || 
+             o.is_delivered === true || 
+             (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
+    };
+
+    const open = orders.filter(o => !checkIsCompleted(o) && (o.status === 'pending' || o.status === 'approved')).length;
+    const inTransit = orders.filter(o => !checkIsCompleted(o) && (o.status === 'in_transit' || o.status === 'in-transit')).length;
+    
     const completed = orders.filter(o => 
-      o.status === 'completed' && 
+      checkIsCompleted(o) && 
       (isInCurrentMonth(o.delivery_date) || isInCurrentMonth(o.actual_delivery_date) || isInCurrentMonth(o.created_at))
     ).length;
 

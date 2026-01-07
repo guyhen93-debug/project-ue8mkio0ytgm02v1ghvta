@@ -161,7 +161,18 @@ const OrderHistory: React.FC = () => {
         let filtered = [...orders];
 
         if (statusFilter !== 'all') {
-            filtered = filtered.filter(order => order.status === statusFilter);
+            filtered = filtered.filter(order => {
+                const isCompletedLike =
+                    order.status === 'completed' ||
+                    order.is_delivered === true ||
+                    (order.delivered_quantity_tons && order.quantity_tons && order.delivered_quantity_tons >= order.quantity_tons);
+
+                if (statusFilter === 'completed') {
+                    return isCompletedLike;
+                }
+
+                return order.status === statusFilter;
+            });
         }
 
         if (dateRange?.from) {
@@ -221,7 +232,11 @@ const OrderHistory: React.FC = () => {
     const pendingCount = orders.filter(o => o.status === 'pending').length;
     const approvedCount = orders.filter(o => o.status === 'approved').length;
     const rejectedCount = orders.filter(o => o.status === 'rejected').length;
-    const completedCount = orders.filter(o => o.status === 'completed').length;
+    const completedCount = orders.filter(o => (
+        o.status === 'completed' ||
+        o.is_delivered === true ||
+        (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons)
+    )).length;
 
     if (loading || isManager) {
         return (

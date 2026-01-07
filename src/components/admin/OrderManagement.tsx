@@ -489,7 +489,15 @@ export const OrderManagement: React.FC = () => {
                 getSiteName(order.site_id, sitesMap).toLowerCase().includes(search) ||
                 getProductName(order.product_id, productsMap, language).toLowerCase().includes(search);
 
-            const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+            const isCompletedLike =
+                order.status === 'completed' ||
+                order.is_delivered === true ||
+                (order.delivered_quantity_tons && order.quantity_tons && order.delivered_quantity_tons >= order.quantity_tons);
+
+            const matchesStatus =
+                statusFilter === 'all' ||
+                order.status === statusFilter ||
+                (statusFilter === 'completed' && isCompletedLike);
 
             return matchesSearch && matchesStatus;
         });
