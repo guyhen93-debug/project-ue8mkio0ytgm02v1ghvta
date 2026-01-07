@@ -630,32 +630,37 @@ export const OrderManagement: React.FC = () => {
 
                 {/* Status Filter Row */}
                 <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto no-scrollbar">
-                    {['all', 'pending', 'approved', 'in_transit', 'completed', 'rejected'].map((status) => {
-                        const labelKey = `filter${status.charAt(0).toUpperCase() + status.slice(1).replace('_', '')}`;
-                        const label = status === 'all' ? t.filterAll : (t[labelKey] || status);
-                        const count = status === 'all' 
+                    {[
+                        { value: 'all', label: t.filterAll },
+                        { value: 'pending', label: t.filterPending },
+                        { value: 'approved', label: t.filterApproved },
+                        { value: 'in_transit', label: t.filterInTransit },
+                        { value: 'completed', label: t.filterCompleted },
+                        { value: 'rejected', label: t.filterRejected },
+                    ].map((filter) => {
+                        const count = filter.value === 'all' 
                             ? orders.length 
                             : orders.filter(o => {
-                                if (status === 'completed') {
+                                if (filter.value === 'completed') {
                                     return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
                                 }
-                                return o.status === status;
+                                return o.status === filter.value;
                             }).length;
 
                         return (
                             <Button
-                                key={status}
-                                variant={statusFilter === status ? 'default' : 'outline'}
+                                key={filter.value}
+                                variant={statusFilter === filter.value ? 'default' : 'outline'}
                                 size="sm"
-                                onClick={() => setStatusFilter(status)}
+                                onClick={() => setStatusFilter(filter.value)}
                                 className={cn(
                                     "rounded-md px-4 h-9 whitespace-nowrap transition-all font-bold border-gray-200",
-                                    statusFilter === status 
+                                    statusFilter === filter.value 
                                         ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500 shadow-sm' 
                                         : 'text-gray-700 hover:bg-gray-50'
                                 )}
                             >
-                                {label} ({count})
+                                {filter.label} ({count})
                             </Button>
                         );
                     })}

@@ -4,11 +4,12 @@ import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale, User as UserIcon, Phone, Truck, FileText } from 'lucide-react';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale, User as UserIcon, Phone, Truck, FileText, Search } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -30,6 +31,7 @@ const OrderHistory: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const toggleExpanded = (orderId: string) => {
         setExpandedOrderId(prev => (prev === orderId ? null : orderId));
@@ -127,7 +129,7 @@ const OrderHistory: React.FC = () => {
 
     useEffect(() => {
         applyFilters();
-    }, [orders, statusFilter, dateRange]);
+    }, [orders, statusFilter, dateRange, searchTerm]);
 
     const loadOrders = async () => {
         if (!user || isManager) {
@@ -201,6 +203,18 @@ const OrderHistory: React.FC = () => {
             filtered = filtered.filter(order => {
                 const orderDate = new Date(order.delivery_date);
                 return isWithinInterval(orderDate, { start: from, end: to });
+            });
+        }
+
+        if (searchTerm.trim()) {
+            const search = searchTerm.trim().toLowerCase();
+            filtered = filtered.filter(order => {
+                const orderNumber = (order.order_number || '').toString().toLowerCase();
+                const siteName = getSiteName(order.site_id).toLowerCase();
+                const productName = getProductName(order.product_id).toLowerCase();
+                return orderNumber.includes(search) || 
+                       siteName.includes(search) || 
+                       productName.includes(search);
             });
         }
 
@@ -303,6 +317,26 @@ const OrderHistory: React.FC = () => {
                         <Plus className="w-5 h-5 mr-2" />
                         צור הזמנה חדשה
                     </Button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="mb-6">
+                    <div className="relative">
+                        <Search className={cn(
+                            "absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10",
+                            isRTL ? "right-3" : "left-3"
+                        )} />
+                        <Input
+                            type="text"
+                            placeholder={language === 'he' ? 'חיפוש הזמנה, אתר או מוצר...' : 'Search order, site or product...'}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className={cn(
+                                "w-full border-gray-200 focus-visible:ring-yellow-500",
+                                isRTL ? "pr-10" : "pl-10"
+                            )}
+                        />
+                    </div>
                 </div>
 
                 {/* Filters */}
