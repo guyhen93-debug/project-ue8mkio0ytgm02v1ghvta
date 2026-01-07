@@ -40,7 +40,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 }) => {
     const isRTL = language === 'he';
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
-    const statusConfig = getStatusConfig(order.status, language);
+    const effectiveStatus = (order.status === 'completed' || order.is_delivered)
+        ? 'completed'
+        : order.status;
+    const statusConfig = getStatusConfig(effectiveStatus, language);
 
     const getStatusEmoji = (status: string) => {
         switch (status) {

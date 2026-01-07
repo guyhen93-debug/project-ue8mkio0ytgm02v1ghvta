@@ -7,6 +7,7 @@ import { Order, Product, Client, Site } from '@/entities';
 import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { getClientName as resolveClientName } from '@/lib/orderUtils';
 import OrderContactDialog from './order/OrderContactDialog';
 import OrderConfirmation from './order/OrderConfirmation';
@@ -135,16 +136,36 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     const rejectedCount = orders.filter(o => o.status === 'rejected').length;
     const completedCount = orders.filter(o => o.status === 'completed').length;
 
-    const getStatusBadge = (status: string) => {
-        const statusConfig = {
-            pending: { label: 'ממתין', className: 'bg-yellow-100 text-yellow-800' },
-            approved: { label: 'אושר', className: 'bg-green-100 text-green-800' },
-            rejected: { label: 'נדחה', className: 'bg-red-100 text-red-800' },
-            completed: { label: 'הושלם', className: 'bg-blue-100 text-blue-800' }
+    const getStatusBadge = (order: any) => {
+        const effectiveStatus = (order.status === 'completed' || order.is_delivered)
+            ? 'completed'
+            : order.status;
+
+        const statusConfig: Record<string, { label: string; className: string }> = {
+            pending: {
+                label: 'ממתין',
+                className: 'bg-orange-100 text-orange-700 border border-orange-200',
+            },
+            approved: {
+                label: 'אושר',
+                className: 'bg-green-100 text-green-700 border border-green-200',
+            },
+            completed: {
+                label: 'הושלם',
+                className: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+            },
+            in_transit: {
+                label: 'בדרך',
+                className: 'bg-blue-100 text-blue-700 border border-blue-200',
+            },
+            rejected: {
+                label: 'נדחה',
+                className: 'bg-red-100 text-red-700 border border-red-200',
+            },
         };
 
-        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-        return <Badge className={config.className}>{config.label}</Badge>;
+        const config = statusConfig[effectiveStatus] || statusConfig.pending;
+        return <Badge className={cn("px-2.5 py-1 text-[11px] font-semibold rounded-full", config.className)}>{config.label}</Badge>;
     };
 
     const getProductName = (productId: string) => {
@@ -287,7 +308,7 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                 <span className="font-bold text-gray-900">#{order.order_number}</span>
-                                                {getStatusBadge(order.status)}
+                                                {getStatusBadge(order)}
                                                 {/* Delivery and confirmation badges */}
                                                 {order.is_delivered && !order.is_client_confirmed && (
                                                     <Badge className="bg-orange-100 text-orange-800 text-xs">

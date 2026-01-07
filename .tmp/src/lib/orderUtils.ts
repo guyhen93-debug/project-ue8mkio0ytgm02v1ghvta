@@ -87,34 +87,31 @@ export const formatOrderDateTime = (dateString: string, language: string = 'he')
  * Get status badge configuration
  */
 export const getStatusConfig = (status: string, language: string = 'he') => {
-    const configs = {
+    const configs: Record<string, { label: string; className: string }> = {
         pending: {
-            label: { he: 'ממתין לאישור', en: 'Pending approval' },
-            className: 'bg-[#FEF3C7] text-[#F59E0B] border border-[#FBBF24] px-2.5 py-1 text-[11px] font-semibold rounded-full'
+            label: language === 'he' ? 'ממתין לאישור' : 'Pending',
+            className: 'bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
         },
         approved: {
-            label: { he: 'מאושר', en: 'Approved' },
-            className: 'bg-[#D1FAE5] text-[#10B981] border border-[#34D399] px-2.5 py-1 text-[11px] font-semibold rounded-full'
-        },
-        in_transit: {
-            label: { he: 'בדרך', en: 'In Transit' },
-            className: 'bg-[#CFFAFE] text-[#06B6D4] border border-[#22D3EE] px-2.5 py-1 text-[11px] font-semibold rounded-full'
+            label: language === 'he' ? 'מאושר' : 'Approved',
+            className: 'bg-green-100 text-green-700 border border-green-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
         },
         completed: {
-            label: { he: 'הושלם', en: 'Completed' },
-            className: 'bg-[#DCFCE7] text-[#059669] border border-[#16A34A] px-2.5 py-1 text-[11px] font-semibold rounded-full'
+            label: language === 'he' ? 'הושלם' : 'Completed',
+            className: 'bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+        },
+        in_transit: {
+            label: language === 'he' ? 'בדרך' : 'In Transit',
+            className: 'bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
         },
         rejected: {
-            label: { he: 'נדחה', en: 'Rejected' },
-            className: 'bg-[#FEE2E2] text-[#DC2626] border border-[#FCA5A5] px-2.5 py-1 text-[11px] font-semibold rounded-full'
-        }
+            label: language === 'he' ? 'נדחה' : 'Rejected',
+            className: 'bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+        },
     };
-    
-    const config = configs[status as keyof typeof configs] || configs.pending;
-    return {
-        label: config.label[language as keyof typeof config.label],
-        className: config.className
-    };
+
+    const config = configs[status] || configs.pending;
+    return config;
 };
 
 /**

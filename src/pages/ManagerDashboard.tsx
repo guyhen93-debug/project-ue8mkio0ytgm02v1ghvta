@@ -576,7 +576,10 @@ const ManagerDashboard: React.FC = () => {
               <>
                 {recentOrdersList.length > 0 ? (
                   recentOrdersList.map(order => {
-                    const status = getStatusConfig(order.status, language);
+                    const effectiveStatus = (order.status === 'completed' || order.is_delivered)
+                      ? 'completed'
+                      : order.status;
+                    const status = getStatusConfig(effectiveStatus, language);
                     return (
                       <Card 
                         key={order.id} 
