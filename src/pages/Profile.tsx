@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,10 @@ const translations = {
     // Extra requested keys
     shareUpdates: 'שתף שיוויים',
     disconnect: 'התנתק',
+    viewAsClientButton: 'צפה כלקוח 👁️',
+    backToManagerView: 'חזור לתצוגת מנהל',
+    viewAsClientDescription: 'הצג את המערכת כפי שלקוח רואה אותה (לצורך הדגמה בלבד)',
+    backToManagerDescription: 'חזור לתצוגה מלאה של מנהל',
   },
   en: {
     profile: 'Profile',
@@ -109,12 +114,17 @@ const translations = {
     // Extra requested keys
     shareUpdates: 'Share Updates',
     disconnect: 'Disconnect',
+    viewAsClientButton: 'View as client 👁️',
+    backToManagerView: 'Back to manager view',
+    viewAsClientDescription: 'See the app as a client for demo purposes only',
+    backToManagerDescription: 'Return to full manager view',
   },
 } as const;
 
 const Profile = () => {
   const navigate = useNavigate();
   const { language, isRTL } = useLanguage();
+  const { viewAsClient, setViewAsClient } = useAuth();
   const t = translations[(language === 'en' ? 'en' : 'he')];
   
   const [user, setUser] = useState<any>(null);
@@ -438,6 +448,33 @@ const Profile = () => {
                 </span>
               </div>
             </div>
+
+            {/* View as Client Demo Toggle */}
+            {(user.role === 'manager' || user.role === 'administrator') && (
+              <div className="space-y-2 pt-4 border-t border-gray-200 mt-2">
+                <p className="text-sm font-medium text-gray-900 rtl:text-right">
+                  {viewAsClient ? t.backToManagerDescription : t.viewAsClientDescription}
+                </p>
+                <Button
+                  type="button"
+                  variant={viewAsClient ? 'outline' : 'default'}
+                  className={viewAsClient
+                    ? 'w-full border-yellow-500 text-yellow-700 hover:bg-yellow-50'
+                    : 'w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold'}
+                  onClick={() => {
+                    if (viewAsClient) {
+                      setViewAsClient(false);
+                      navigate('/manager-dashboard');
+                    } else {
+                      setViewAsClient(true);
+                      navigate('/client-dashboard');
+                    }
+                  }}
+                >
+                  {viewAsClient ? t.backToManagerView : t.viewAsClientButton}
+                </Button>
+              </div>
+            )}
 
             {/* Save Button */}
             <Button
