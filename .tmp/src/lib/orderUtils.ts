@@ -27,20 +27,34 @@ export const getSiteName = (siteId: string, sites: Record<string, any>): string 
  */
 export const getClientName = (
     order: any,
-    sites: Record<string, any>,
-    clients: Record<string, any>
+    sites: Record<string, any> | any[] | null | undefined,
+    clients: Record<string, any> | any[] | null | undefined
 ): string => {
-    // 1. Try from order.client_id directly
-    if (order.client_id && clients[order.client_id]) {
-        return clients[order.client_id].name;
-    }
+    try {
+        if (!order) return 'לקוח לא ידוע';
 
-    // 2. Fallback to site's client_id
-    if (order.site_id && sites[order.site_id]) {
-        const site = sites[order.site_id];
-        if (site.client_id && clients[site.client_id]) {
-            return clients[site.client_id].name;
+        // 1. Try direct client_id on order
+        if (order.client_id && clients && typeof clients === 'object') {
+            const clientFromOrder = (clients as any)[order.client_id];
+            if (clientFromOrder && typeof clientFromOrder.name === 'string') {
+                return clientFromOrder.name;
+            }
         }
+
+        // 2. Fallback: go through site -> client_id
+        if (order.site_id && sites && typeof sites === 'object') {
+            const siteFromMap = (sites as any)[order.site_id];
+            const site = siteFromMap || null;
+
+            if (site && site.client_id && clients && typeof clients === 'object') {
+                const clientFromSite = (clients as any)[site.client_id];
+                if (clientFromSite && typeof clientFromSite.name === 'string') {
+                    return clientFromSite.name;
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error in getClientName helper', err, { order, sites, clients });
     }
 
     return 'לקוח לא ידוע';
