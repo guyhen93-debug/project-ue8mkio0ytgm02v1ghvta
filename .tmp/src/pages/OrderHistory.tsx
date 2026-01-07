@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale } from 'lucide-react';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale, User as UserIcon, Phone, Truck, FileText } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -29,6 +29,11 @@ const OrderHistory: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+    const toggleExpanded = (orderId: string) => {
+        setExpandedOrderId(prev => (prev === orderId ? null : orderId));
+    };
 
     const translations = {
         he: {
@@ -61,7 +66,13 @@ const OrderHistory: React.FC = () => {
             maavarRabin: 'מעבר רבין',
             dateRangeLabel: 'טווח תאריכים',
             clearFilter: 'נקה',
-            createOrderButton: 'צור הזמנה חדשה'
+            createOrderButton: 'צור הזמנה חדשה',
+            moreDetails: 'פרטים נוספים',
+            hideDetails: 'הסתר פרטים',
+            contactLabel: 'איש קשר:',
+            notesLabel: 'הערות:',
+            deliveryNoteLabel: 'תעודת משלוח:',
+            driverLabel: 'נהג:',
         },
         en: {
             title: 'Orders',
@@ -93,7 +104,13 @@ const OrderHistory: React.FC = () => {
             maavarRabin: 'Maavar Rabin',
             dateRangeLabel: 'Date range',
             clearFilter: 'Clear',
-            createOrderButton: 'Create New Order'
+            createOrderButton: 'Create New Order',
+            moreDetails: 'More details',
+            hideDetails: 'Hide details',
+            contactLabel: 'Contact:',
+            notesLabel: 'Notes:',
+            deliveryNoteLabel: 'Delivery note:',
+            driverLabel: 'Driver:',
         }
     };
 
@@ -224,6 +241,14 @@ const OrderHistory: React.FC = () => {
     const getSiteName = (siteId: string) => {
         const site = sites[siteId];
         return site?.site_name || 'אתר לא ידוע';
+    };
+
+    const getSiteContact = (order: any) => {
+        const site = sites[order.site_id];
+        return {
+            name: order.site_contact || site?.contact_name || '',
+            phone: order.site_phone || site?.contact_phone || ''
+        };
     };
 
     const getSupplierName = (supplier: string) => {
@@ -447,6 +472,83 @@ const OrderHistory: React.FC = () => {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* More Details Toggle */}
+                                    <div className="mt-4 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpanded(order.id);
+                                            }}
+                                            className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                                        >
+                                            <span className="font-medium">
+                                                {expandedOrderId === order.id ? t.hideDetails : t.moreDetails}
+                                            </span>
+                                            <span className="text-[10px]">
+                                                {expandedOrderId === order.id ? '▲' : '▼'}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    {/* Expandable Details Section */}
+                                    {expandedOrderId === order.id && (
+                                        <div className="mt-4 pt-4 border-t space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {/* Contact person */}
+                                            {(() => {
+                                                const contact = getSiteContact(order);
+                                                return contact.name && (
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <UserIcon className="w-4 h-4 text-gray-500" />
+                                                        <span className="font-medium">{t.contactLabel}</span>
+                                                        <span>{contact.name}</span>
+                                                        {contact.phone && (
+                                                            <a
+                                                                href={`tel:${contact.phone}`}
+                                                                className="text-blue-600 inline-flex items-center gap-1 hover:underline ml-1"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <Phone className="w-3.5 h-3.5" />
+                                                                <span>{contact.phone}</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Notes */}
+                                            {order.notes && (
+                                                <div className="flex items-start gap-2 text-sm">
+                                                    <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="font-medium">{t.notesLabel}</span>
+                                                        <p className="text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">{order.notes}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Delivery note number */}
+                                            {order.delivery_note_number && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <FileText className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium">{t.deliveryNoteLabel}</span>
+                                                    <span className="font-mono text-xs sm:text-sm bg-gray-50 px-1.5 py-0.5 rounded border">
+                                                        {order.delivery_note_number}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Driver */}
+                                            {order.driver_name && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Truck className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium">{t.driverLabel}</span>
+                                                    <span>{order.driver_name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}

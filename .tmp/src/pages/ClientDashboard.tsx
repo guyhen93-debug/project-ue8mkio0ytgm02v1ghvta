@@ -39,6 +39,12 @@ const ClientDashboard: React.FC = () => {
       errorTitle: 'שגיאה בטעינת הנתונים',
       errorMessage: 'ניסיון לטעון מחדש את הדף או לבדוק את החיבור לרשת.',
       retry: 'נסה שוב',
+      moreDetails: 'פרטים נוספים',
+      hideDetails: 'הסתר פרטים',
+      contactLabel: 'איש קשר:',
+      notesLabel: 'הערות:',
+      deliveryNoteLabel: 'תעודת משלוח:',
+      driverLabel: 'נהג:',
     },
     en: {
       title: 'Client Dashboard',
@@ -56,6 +62,12 @@ const ClientDashboard: React.FC = () => {
       errorTitle: 'Error loading data',
       errorMessage: 'Please try again or check your network connection.',
       retry: 'Retry',
+      moreDetails: 'More details',
+      hideDetails: 'Hide details',
+      contactLabel: 'Contact:',
+      notesLabel: 'Notes:',
+      deliveryNoteLabel: 'Delivery note:',
+      driverLabel: 'Driver:',
     }
   };
 

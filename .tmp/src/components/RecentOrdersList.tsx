@@ -4,11 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, Product, Client, Site } from '@/entities';
-import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star, Box, Scale } from 'lucide-react';
+import { Package, Calendar, MapPin, Loader2, Factory, AlertCircle, RefreshCw, FileText, CheckCircle, Clock, Star, Box, Scale, User as UserIcon, Phone, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { getClientName as resolveClientName } from '@/lib/orderUtils';
+import { useLanguage } from '@/contexts/LanguageContext';
 import OrderContactDialog from './order/OrderContactDialog';
 import OrderConfirmation from './order/OrderConfirmation';
 import OrderRating from './order/OrderRating';
@@ -19,6 +20,7 @@ interface RecentOrdersListProps {
 }
 
 const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId }) => {
+    const { language } = useLanguage();
     const [orders, setOrders] = useState<any[]>([]);
     const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
     const [products, setProducts] = useState<Record<string, any>>({});
@@ -31,6 +33,32 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
     const [supplierFilter, setSupplierFilter] = useState<string>('all');
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+    const toggleExpanded = (orderId: string) => {
+        setExpandedOrderId(prev => (prev === orderId ? null : orderId));
+    };
+
+    const translations = {
+        he: {
+            moreDetails: 'פרטים נוספים',
+            hideDetails: 'הסתר פרטים',
+            contactLabel: 'איש קשר:',
+            notesLabel: 'הערות:',
+            deliveryNoteLabel: 'תעודת משלוח:',
+            driverLabel: 'נהג:',
+        },
+        en: {
+            moreDetails: 'More details',
+            hideDetails: 'Hide details',
+            contactLabel: 'Contact:',
+            notesLabel: 'Notes:',
+            deliveryNoteLabel: 'Delivery note:',
+            driverLabel: 'Driver:',
+        }
+    };
+
+    const t = translations[language as keyof typeof translations] || translations.he;
 
     useEffect(() => {
         loadOrders();
@@ -203,11 +231,11 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
         return site.region_type === 'eilat' ? 'אילת' : 'מחוץ לאילת';
     };
 
-    const getSiteContact = (siteId: string) => {
-        const site = sites[siteId];
+    const getSiteContact = (order: any) => {
+        const site = sites[order.site_id];
         return {
-            name: site?.contact_name || '',
-            phone: site?.contact_phone || ''
+            name: order.site_contact || site?.contact_name || '',
+            phone: order.site_phone || site?.contact_phone || ''
         };
     };
 
@@ -313,7 +341,7 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
             ) : (
                 <div className="space-y-3">
                     {filteredOrders.map((order) => {
-                        const siteContact = getSiteContact(order.site_id);
+                        const siteContact = getSiteContact(order);
 
                         return (
                             <Card key={order.id} className="industrial-card hover:shadow-md transition-shadow">
@@ -409,18 +437,79 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                                         </div>
                                     )}
 
-                                    {/* Contact and Notes Button */}
-                                    <div className="mt-4 pt-3 border-t border-gray-200">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleShowContact(order)}
-                                            className="w-full gap-2 hover:bg-yellow-50 hover:border-yellow-500"
+                                    {/* More Details Toggle */}
+                                    <div className="mt-4 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpanded(order.id);
+                                            }}
+                                            className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
                                         >
-                                            <FileText className="h-4 w-4" />
-                                            הצג איש קשר והערות
-                                        </Button>
+                                            <span className="font-medium">
+                                                {expandedOrderId === order.id ? t.hideDetails : t.moreDetails}
+                                            </span>
+                                            <span className="text-[10px]">
+                                                {expandedOrderId === order.id ? '▲' : '▼'}
+                                            </span>
+                                        </button>
                                     </div>
+
+                                    {/* Expandable Details Section */}
+                                    {expandedOrderId === order.id && (
+                                        <div className="mt-4 pt-4 border-t space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {/* Contact person */}
+                                            {siteContact.name && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <UserIcon className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium">{t.contactLabel}</span>
+                                                    <span>{siteContact.name}</span>
+                                                    {siteContact.phone && (
+                                                        <a
+                                                            href={`tel:${siteContact.phone}`}
+                                                            className="text-blue-600 inline-flex items-center gap-1 hover:underline ml-1"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <Phone className="w-3.5 h-3.5" />
+                                                            <span>{siteContact.phone}</span>
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Notes */}
+                                            {order.notes && (
+                                                <div className="flex items-start gap-2 text-sm">
+                                                    <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                                                    <div>
+                                                        <span className="font-medium">{t.notesLabel}</span>
+                                                        <p className="text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">{order.notes}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Delivery note number */}
+                                            {order.delivery_note_number && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <FileText className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium">{t.deliveryNoteLabel}</span>
+                                                    <span className="font-mono text-xs sm:text-sm bg-gray-50 px-1.5 py-0.5 rounded border">
+                                                        {order.delivery_note_number}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Driver */}
+                                            {order.driver_name && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Truck className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium">{t.driverLabel}</span>
+                                                    <span>{order.driver_name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         );
@@ -433,8 +522,8 @@ const RecentOrdersList: React.FC<RecentOrdersListProps> = ({ limit = 5, clientId
                 <OrderContactDialog
                     open={dialogOpen}
                     onOpenChange={setDialogOpen}
-                    contactName={getSiteContact(selectedOrder.site_id).name}
-                    contactPhone={getSiteContact(selectedOrder.site_id).phone}
+                    contactName={getSiteContact(selectedOrder).name}
+                    contactPhone={getSiteContact(selectedOrder).phone}
                     notes={selectedOrder.notes || ''}
                     orderNumber={selectedOrder.order_number}
                 />
