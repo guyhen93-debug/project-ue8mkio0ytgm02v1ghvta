@@ -109,6 +109,8 @@ const ClientDashboard: React.FC = () => {
   }, [orders]);
 
   const displayName = (user && (user.full_name || user.email)) || (userClient && userClient.name) || '';
+  const recentTitle = language === 'he' ? '📦 הזמנות אחרונות' : '📦 Recent orders';
+  const viewAllLabel = language === 'he' ? 'צפה בכל ההזמנות' : 'View all orders';
 
   const ordersNeedingAttention = orders.filter(o =>
     (o.is_delivered && !o.is_client_confirmed) ||
@@ -332,16 +334,8 @@ const ClientDashboard: React.FC = () => {
         {/* Recent Orders */}
         <Card className="industrial-card">
           <CardHeader className="p-3 sm:p-4 md:p-5 border-b">
-            <CardTitle className="text-base sm:text-lg flex items-center justify-between gap-2">
-              <span>{t.myOrders}</span>
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0 h-auto text-xs sm:text-sm text-yellow-600 hover:text-yellow-700"
-                onClick={() => navigate('/order-history')}
-              >
-                {t.viewAllMyOrders}
-              </Button>
+            <CardTitle className="text-base sm:text-lg">
+              {recentTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -350,41 +344,53 @@ const ClientDashboard: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500" />
               </div>
             ) : userClient && recentOrders.length > 0 ? (
-              <div className="divide-y">
-                {recentOrders.map((order) => {
-                  const effectiveStatus = (order.status === 'completed' || (order as any).is_delivered ||
-                    ((order as any).delivered_quantity_tons && order.quantity_tons && (order as any).delivered_quantity_tons >= order.quantity_tons))
-                    ? 'completed'
-                    : order.status;
-                  const status = getStatusConfig(effectiveStatus, language);
-                  const productName = getProductName((order as any).product_id);
+              <>
+                <div className="divide-y divide-gray-100">
+                  {recentOrders.map((order) => {
+                    const effectiveStatus = (order.status === 'completed' || (order as any).is_delivered === true ||
+                      ((order as any).delivered_quantity_tons && order.quantity_tons && (order as any).delivered_quantity_tons >= order.quantity_tons))
+                      ? 'completed'
+                      : order.status;
+                    const statusConfig = getStatusConfig(effectiveStatus, language);
+                    const productName = getProductName((order as any).product_id);
 
-                  return (
-                    <div
-                      key={order.id}
-                      className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-4 transition-colors"
-                      onClick={() => navigate('/order-history')}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-900 text-sm sm:text-base truncate">
-                          #{order.order_number}
-                        </div>
-                        <div className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">
-                          {productName} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date)}
-                        </div>
-                      </div>
+                    return (
                       <div
-                        className={cn(
-                          "px-2 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap border shadow-sm",
-                          status.className
-                        )}
+                        key={order.id}
+                        className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
+                        onClick={() => navigate('/order-history')}
                       >
-                        {status.label}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-gray-900 text-base truncate">
+                            #{order.order_number}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5 truncate">
+                            {productName} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date)}
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            'px-2 py-1 rounded text-xs font-bold border shadow-sm',
+                            statusConfig.className
+                          )}
+                        >
+                          {statusConfig.label}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                <div className="p-3 bg-gray-50 border-t flex justify-center">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => navigate('/order-history')}
+                    className="text-blue-600 hover:text-blue-700 p-0 h-auto text-xs sm:text-sm"
+                  >
+                    {viewAllLabel}
+                  </Button>
+                </div>
+              </>
             ) : (
               <div className="text-center py-12 text-gray-500 text-sm">
                 {t.noOrders}
