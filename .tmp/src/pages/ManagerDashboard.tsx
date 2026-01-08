@@ -128,23 +128,7 @@ const ManagerDashboard: React.FC = () => {
 
   useEffect(() => {
     loadOrders();
-    markNotificationsAsRead();
   }, [retryCount]);
-
-  const markNotificationsAsRead = async () => {
-    try {
-      const user = currentUser || await User.me();
-      if (!user) return;
-
-      const unread = await Notification.filter({ recipient_email: user.email, is_read: false }, '-created_at', 100);
-      if (unread.length > 0) {
-        await Promise.all(unread.map(n => Notification.update(n.id, { is_read: true })));
-        window.dispatchEvent(new Event('notifications-updated'));
-      }
-    } catch (err) {
-      console.error('Error marking notifications as read:', err);
-    }
-  };
 
   const createManagerDashboardDeliveryNotification = async (order: OrderType, newDelivered: number, isCompleted: boolean) => {
     try {
@@ -499,100 +483,162 @@ const ManagerDashboard: React.FC = () => {
                           <Package className="w-3 h-3" />
                           {getProductName(order.product_id, productsMap, language)}
                         </span>
-                        <span className="flex items-center gap-1 font-bold text-gray-700">
-                          <TrendingUp className="w-3 h-3" />
-                          {order.quantity_tons} {t.tons}
-                        </span>
+                        <span>•</span>
+                        <span>{order.quantity_tons} {t.tons}</span>
+                        <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatOrderDate(order.delivery_date, language)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white h-9 px-4"
-                        onClick={() => handleStatusUpdate(order.id, 'approved')}
-                        disabled={isUpdating === order.id}
-                      >
-                        <Check className="w-4 h-4 mr-1.5" />
-                        {t.approve}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 border-red-200 hover:bg-red-50 h-9 px-4"
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                         onClick={() => handleStatusUpdate(order.id, 'rejected')}
                         disabled={isUpdating === order.id}
                       >
-                        <X className="w-4 h-4 mr-1.5" />
-                        {t.reject}
+                        <X className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="h-9 px-4 bg-green-600 hover:bg-green-700 text-white border-none gap-2 font-bold"
+                        onClick={() => handleStatusUpdate(order.id, 'approved')}
+                        disabled={isUpdating === order.id}
+                      >
+                        <Check className="w-4 h-4" />
+                        {t.approve}
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
+              <div className="p-3 bg-gray-50 border-t flex justify-center">
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-gray-600 hover:text-gray-900 font-medium h-auto py-0"
+                  onClick={() => navigate('/orders?status=pending')}
+                >
+                  {t.viewAllOrders}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Partial Delivery Section */}
+        {/* Partially Delivered Orders */}
         {partialOrders.length > 0 && (
-          <Card className="industrial-card mb-8 overflow-hidden">
-            <CardHeader className="p-4 border-b border-gray-100">
-              <CardTitle className="text-lg flex items-center gap-2 text-gray-900">
-                <Truck className="w-5 h-5 text-blue-500" />
-                {t.partialSectionTitle}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-gray-100">
-                {partialOrders.map(order => {
-                  const delivered = order.delivered_quantity_tons || 0;
-                  const total = order.quantity_tons || 0;
-                  const percent = Math.round((delivered / total) * 100);
+          <div className="mb-6">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-sky-600" />
+              {t.partialSectionTitle}
+            </h2>
+            <div className="space-y-3">
+              {partialOrders.map(order => {
+                const delivered = order.delivered_quantity_tons || 0;
+                const total = order.quantity_tons || 0;
+                const progress = (delivered / total) * 100;
 
-                  return (
-                    <div key={order.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
+                return (
+                  <Card key={order.id} className="industrial-card overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center justify-between">
                             <span className="font-bold text-gray-900">#{order.order_number}</span>
-                            <span className="text-xs text-gray-500">•</span>
-                            <span className="text-sm text-gray-700">{getClientName(order, sitesMap, clientsMap)}</span>
+                            <span className="text-xs font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                              {Math.round(progress)}% {t.delivered}
+                            </span>
                           </div>
-                          <span className="text-xs font-bold text-blue-600">{percent}%</span>
+                          <p className="text-sm text-gray-700 font-medium">
+                            {getClientName(order, sitesMap, clientsMap)}
+                          </p>
+                          <div className="text-xs text-gray-500 mb-2">
+                            {getProductName(order.product_id, productsMap, language)} • {total} {t.tons}
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-sky-500 rounded-full transition-all duration-500" 
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-gray-500 font-medium">
+                            <span>{delivered} {t.delivered}</span>
+                            <span>{total - delivered} {t.remaining}</span>
+                          </div>
                         </div>
-                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
-                          <span>{t.delivered}: {delivered} {t.tons}</span>
-                          <span className="text-gray-400">{t.remaining}: {(total - delivered).toFixed(1)} {t.tons}</span>
+                        <div className="flex items-center gap-2 shrink-0 sm:pt-0 pt-2 border-t sm:border-0">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-9 px-3 gap-2 text-gray-600 border-gray-200"
+                            onClick={() => handleSendMessage(order)}
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="sm:inline hidden">{t.sendMessage}</span>
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="h-9 px-4 bg-sky-600 hover:bg-sky-700 text-white border-none gap-2 font-bold"
+                            onClick={() => handleOpenDeliveryDialog(order)}
+                            disabled={isUpdating === order.id}
+                          >
+                            <Plus className="w-4 h-4" />
+                            {t.addDelivery}
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 px-4 border-blue-200 text-blue-700 hover:bg-blue-50"
-                          onClick={() => handleOpenDeliveryDialog(order)}
-                        >
-                          <Truck className="w-4 h-4 mr-1.5" />
-                          {t.addDelivery}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                          onClick={() => handleSendMessage(order)}
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Orders Overview */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              {t.recentSectionTitle}
+            </h2>
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="text-yellow-600 hover:text-yellow-700 font-bold p-0 h-auto"
+              onClick={() => navigate('/orders')}
+            >
+              {t.viewAllOrders}
+            </Button>
+          </div>
+          <Card className="industrial-card overflow-hidden">
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-100">
+                {recentOrdersList.map(order => {
+                  const status = getStatusConfig(order.status, language);
+                  return (
+                    <div 
+                      key={order.id} 
+                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/orders?search=${order.order_number}`)}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-gray-900">#{order.order_number}</span>
+                        <Badge className={cn("border-none px-2 py-0.5 text-[10px] font-bold", status.className)}>
+                          {status.label}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-gray-700 font-medium mb-1">
+                        {getClientName(order, sitesMap, clientsMap)}
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{getProductName(order.product_id, productsMap, language)} • {order.quantity_tons} {t.tons}</span>
+                        <span>{formatOrderDate(order.created_at, language)}</span>
                       </div>
                     </div>
                   );
@@ -600,178 +646,69 @@ const ManagerDashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Recent Orders List */}
-        <div className="mb-4 flex items-center justify-between px-1">
-          <h2 className="text-lg font-bold text-gray-900">{t.recentSectionTitle}</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-yellow-700 hover:text-yellow-800 hover:bg-yellow-50 font-semibold"
-            onClick={() => navigate('/orders')}
-          >
-            {t.viewAllOrders}
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          {loading ? (
-            Array(3).fill(0).map((_, i) => <OrderCardSkeleton key={i} />)
-          ) : recentOrdersList.length > 0 ? (
-            recentOrdersList.map(order => {
-              const statusConfig = getStatusConfig(order.status, language);
-              return (
-                <Card 
-                  key={order.id} 
-                  className="industrial-card hover:border-yellow-200 transition-all cursor-pointer"
-                  onClick={() => navigate(`/orders?id=${order.id}`)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900">#{order.order_number}</span>
-                          <Badge className={cn("px-2 py-0.5 text-[10px] font-bold border-none", statusConfig.className)}>
-                            {statusConfig.label}
-                          </Badge>
-                        </div>
-                        <p className="text-sm font-medium text-gray-700">
-                          {getClientName(order, sitesMap, clientsMap)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">{formatOrderDate(order.delivery_date, language)}</p>
-                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">
-                          {order.delivery_window === 'morning' ? (language === 'he' ? 'בוקר' : 'Morning') : (language === 'he' ? 'צהריים' : 'Afternoon')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-600 pt-2 border-t border-gray-50">
-                      <div className="flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="truncate max-w-[120px]">{getProductName(order.product_id, productsMap, language)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-auto">
-                        <TrendingUp className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="font-bold">{order.quantity_tons} {t.tons}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          ) : (
-            <div className="bg-white border border-dashed border-gray-200 rounded-xl py-12 text-center">
-              <Package className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">עדיין אין הזמנות במערכת</h3>
-              <p className="text-gray-500 mb-6 px-8 max-w-sm mx-auto">התחל על ידי יצירת ההזמנה הראשונה ללקוחות שלך</p>
-              <Button 
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 h-12"
-                onClick={() => navigate('/create-order')}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                צור הזמנה ראשונה
-              </Button>
-            </div>
-          )}
+          <p className="text-[10px] text-gray-400 mt-3 text-center italic">
+            {t.last50Note}
+          </p>
         </div>
       </div>
 
       {/* Delivery Update Dialog */}
       <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none rounded-2xl shadow-2xl" dir={isRTL ? 'rtl' : 'ltr'}>
-          <div className="bg-yellow-500 p-6 text-black">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-black flex items-center gap-2">
-                <Truck className="w-6 h-6" />
-                {t.deliveryDialogTitle}
-              </DialogTitle>
-              <DialogDescription className="text-black/70 font-medium">
-                #{selectedOrderForDelivery?.order_number} - {getClientName(selectedOrderForDelivery, sitesMap, clientsMap)}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          
-          <div className="p-6 space-y-5 bg-white">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-yellow-600" />
-                  {t.quantity} ({t.tons})
-                </Label>
-                <Input
-                  id="amount"
-                  type="text"
-                  inputMode="decimal"
-                  value={deliveryForm.amount}
-                  onChange={(e) => setDeliveryForm({ ...deliveryForm, amount: e.target.value })}
-                  placeholder="0.0"
-                  className="h-12 border-gray-200 focus:border-yellow-500 focus:ring-yellow-500/20 text-lg font-bold rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="note" className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                  <BarChart3 className="w-4 h-4 text-yellow-600" />
-                  {t.deliveryNoteNumber}
-                </Label>
-                <Input
-                  id="note"
-                  value={deliveryForm.deliveryNoteNumber}
-                  onChange={(e) => setDeliveryForm({ ...deliveryForm, deliveryNoteNumber: e.target.value })}
-                  placeholder="---"
-                  className="h-12 border-gray-200 focus:border-yellow-500 focus:ring-yellow-500/20 text-lg font-bold rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="driver" className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-yellow-600" />
-                {t.driverName}
-              </Label>
+        <DialogContent className="sm:max-w-[425px]" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle>{t.deliveryDialogTitle}</DialogTitle>
+            <DialogDescription>
+              {selectedOrderForDelivery ? `הזמנה #${selectedOrderForDelivery.order_number} - ${getClientName(selectedOrderForDelivery, sitesMap, clientsMap)}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="amount">{t.quantity} ({t.tons})</Label>
               <Input
-                id="driver"
-                value={deliveryForm.driverName}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, driverName: e.target.value })}
-                placeholder="---"
-                className="h-12 border-gray-200 focus:border-yellow-500 focus:ring-yellow-500/20 font-medium rounded-xl"
+                id="amount"
+                type="text"
+                inputMode="decimal"
+                value={deliveryForm.amount}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, amount: e.target.value })}
+                placeholder={t.deliveryAmountPlaceholder}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4 text-yellow-600" />
-                {t.deliveryNotes}
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="deliveryNoteNumber">{t.deliveryNoteNumber} *</Label>
+              <Input
+                id="deliveryNoteNumber"
+                value={deliveryForm.deliveryNoteNumber}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_note_number: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="driverName">{t.driverName}</Label>
+              <Input
+                id="driverName"
+                value={deliveryForm.driverName}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, driver_name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">{t.deliveryNotes}</Label>
               <Textarea
                 id="notes"
                 value={deliveryForm.notes}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, notes: e.target.value })}
-                className="min-h-[80px] border-gray-200 focus:border-yellow-500 focus:ring-yellow-500/20 rounded-xl"
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_notes: e.target.value })}
+                rows={3}
               />
             </div>
           </div>
-
-          <DialogFooter className="p-6 bg-gray-50 flex sm:flex-row-reverse gap-3 border-t border-gray-100">
-            <Button
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-black h-12 rounded-xl shadow-lg shadow-yellow-500/20"
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>
+              {t.cancel}
+            </Button>
+            <Button 
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold" 
               onClick={handleConfirmDelivery}
               disabled={isUpdating === selectedOrderForDelivery?.id}
             >
-              {isUpdating === selectedOrderForDelivery?.id ? (
-                <Clock className="w-5 h-5 animate-spin" />
-              ) : (
-                <Check className="w-5 h-5 mr-2" />
-              )}
-              {t.approve}
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex-1 h-12 text-gray-500 font-bold hover:bg-gray-100 rounded-xl"
-              onClick={() => setDeliveryDialogOpen(false)}
-            >
-              {t.cancel}
+              {t.addDelivery}
             </Button>
           </DialogFooter>
         </DialogContent>

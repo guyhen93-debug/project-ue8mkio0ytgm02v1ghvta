@@ -189,23 +189,7 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    markNotificationsAsRead();
   }, []);
-
-  const markNotificationsAsRead = async () => {
-    try {
-      const currentUser = await User.me();
-      if (!currentUser) return;
-
-      const unread = await Notification.filter({ recipient_email: currentUser.email, is_read: false }, '-created_at', 100);
-      if (unread.length > 0) {
-        await Promise.all(unread.map(n => Notification.update(n.id, { is_read: true })));
-        window.dispatchEvent(new Event('notifications-updated'));
-      }
-    } catch (err) {
-      console.error('Error marking notifications as read:', err);
-    }
-  };
 
   const loadData = async () => {
     try {

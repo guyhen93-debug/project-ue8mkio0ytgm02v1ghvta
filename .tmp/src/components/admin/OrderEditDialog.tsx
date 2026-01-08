@@ -529,7 +529,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                                 </SelectTrigger>
                                 <SelectContent>
                                     {products.map((product) => (
-                                        <SelectItem key={product.id} value={product.product_id}>
+                                        <SelectItem key={product.id} value={product.id}>
                                             {language === 'he' ? product.name_he : product.name_en}
                                             {product.size && ` (${product.size})`}
                                         </SelectItem>
