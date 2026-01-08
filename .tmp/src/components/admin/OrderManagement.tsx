@@ -129,7 +129,8 @@ export const OrderManagement: React.FC = () => {
             deliveredQuantity: 'כמות שסופקה',
             duplicateOrder: 'שכפל הזמנה 📋',
             dateRangeLabel: 'טווח תאריכים',
-            clearFilter: 'נקה'
+            clearFilter: 'נקה',
+            createOrder: 'צור הזמנה חדשה',
         },
         en: {
             title: 'Orders',
@@ -197,7 +198,8 @@ export const OrderManagement: React.FC = () => {
             deliveredQuantity: 'Delivered Quantity',
             duplicateOrder: 'Duplicate order 📋',
             dateRangeLabel: 'Date range',
-            clearFilter: 'Clear'
+            clearFilter: 'Clear',
+            createOrder: 'Create New Order',
         }
     };
 
@@ -549,7 +551,7 @@ export const OrderManagement: React.FC = () => {
                     onClick={() => navigate('/create-order')}
                 >
                     <Plus className="w-5 h-5 mr-2" />
-                    {t.addOrder}
+                    {t.createOrder}
                 </Button>
             </div>
 

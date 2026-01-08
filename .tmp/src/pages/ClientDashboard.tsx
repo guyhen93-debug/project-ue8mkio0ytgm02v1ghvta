@@ -30,7 +30,7 @@ const ClientDashboard: React.FC = () => {
       greeting: 'שלום',
       client: 'לקוח',
       myOrders: '📦 ההזמנות האחרונות שלי',
-      createOrder: '➕ צור הזמנה חדשה',
+      createOrder: 'צור הזמנה חדשה',
       noOrders: 'אין לך הזמנות עדיין',
       statusTitle: '⚡ סטטוס הזמנות',
       statusOpen: 'פתוחות',
@@ -53,7 +53,7 @@ const ClientDashboard: React.FC = () => {
       greeting: 'Hello',
       client: 'Client',
       myOrders: '📦 My Recent Orders',
-      createOrder: '➕ Create New Order',
+      createOrder: 'Create New Order',
       noOrders: 'You have no orders yet',
       statusTitle: '⚡ Order Status',
       statusOpen: 'Open',
@@ -277,7 +277,7 @@ const ClientDashboard: React.FC = () => {
             onClick={() => navigate('/create-order')}
           >
             <Plus className="w-5 h-5 mr-2" />
-            צור הזמנה חדשה
+            {t.createOrder}
           </Button>
         </div>
 

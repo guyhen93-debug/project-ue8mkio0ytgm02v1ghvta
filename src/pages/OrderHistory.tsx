@@ -69,6 +69,7 @@ const OrderHistory: React.FC = () => {
             dateRangeLabel: 'טווח תאריכים',
             clearFilter: 'נקה',
             createOrderButton: 'צור הזמנה חדשה',
+            createOrder: 'צור הזמנה חדשה',
             moreDetails: 'פרטים נוספים',
             hideDetails: 'הסתר פרטים',
             contactLabel: 'איש קשר:',
@@ -107,6 +108,7 @@ const OrderHistory: React.FC = () => {
             dateRangeLabel: 'Date range',
             clearFilter: 'Clear',
             createOrderButton: 'Create New Order',
+            createOrder: 'Create New Order',
             moreDetails: 'More details',
             hideDetails: 'Hide details',
             contactLabel: 'Contact:',
@@ -315,7 +317,7 @@ const OrderHistory: React.FC = () => {
                         onClick={() => navigate('/create-order')}
                     >
                         <Plus className="w-5 h-5 mr-2" />
-                        צור הזמנה חדשה
+                        {t.createOrder}
                     </Button>
                 </div>
 

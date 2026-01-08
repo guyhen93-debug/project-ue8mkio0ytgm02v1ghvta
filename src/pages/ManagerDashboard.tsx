@@ -408,7 +408,7 @@ const ManagerDashboard: React.FC = () => {
             onClick={() => navigate('/create-order')}
           >
             <Plus className="w-5 h-5 mr-2" />
-            צור הזמנה חדשה
+            {t.createOrder}
           </Button>
         </div>
 

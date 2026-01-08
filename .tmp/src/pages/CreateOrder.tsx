@@ -9,6 +9,7 @@ import { Order, User, Notification } from '@/entities';
 import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useOrderValidation } from '@/hooks/useOrderValidation';
 import { OrderClientSection } from '@/components/order/OrderClientSection';
 import { OrderProductSection } from '@/components/order/OrderProductSection';
@@ -20,9 +21,56 @@ import { findUserClient } from '@/lib/orderUtils';
 const CreateOrder = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { language } = useLanguage();
     const duplicateOrder = (location.state as { duplicateOrder?: OrderType })?.duplicateOrder;
     const [duplicateApplied, setDuplicateApplied] = useState(false);
     const { user: currentUser } = useAuth();
+
+    const translations = {
+        he: {
+            title: 'יצירת הזמנה',
+            subtitle: 'מלא את הפרטים ליצירת הזמנה',
+            clientSection: 'לקוח ואתר',
+            client: 'לקוח',
+            site: 'אתר',
+            productSection: 'מוצר וכמות',
+            supplier: 'ספק',
+            product: 'מוצר',
+            quantity: 'כמות',
+            deliverySection: 'מועד אספקה',
+            deliveryDate: 'תאריך אספקה',
+            deliveryWindow: 'חלון זמן',
+            deliveryMethod: 'שיטת אספקה',
+            notes: 'הערות',
+            notesPlaceholder: 'הערות נוספות להזמנה (אופציונלי)',
+            submit: 'שלח הזמנה',
+            submitting: 'שולח הזמנה...',
+            createOrder: 'צור הזמנה חדשה',
+        },
+        en: {
+            title: 'Create Order',
+            subtitle: 'Fill in the details to create an order',
+            clientSection: 'Client and Site',
+            client: 'Client',
+            site: 'Site',
+            productSection: 'Product and Quantity',
+            supplier: 'Supplier',
+            product: 'Product',
+            quantity: 'Quantity',
+            deliverySection: 'Delivery Schedule',
+            deliveryDate: 'Delivery Date',
+            deliveryWindow: 'Time Window',
+            deliveryMethod: 'Delivery Method',
+            notes: 'Notes',
+            notesPlaceholder: 'Additional notes for order (optional)',
+            submit: 'Send Order',
+            submitting: 'Sending order...',
+            createOrder: 'Create New Order',
+        },
+    } as const;
+
+    const t = translations[language as 'he' | 'en'] || translations.he;
+
     const { clients, sites, loading: dataLoading } = useData();
     const [filteredSites, setFilteredSites] = useState<SiteType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -297,19 +345,19 @@ const CreateOrder = () => {
 
     if (loading || dataLoading) {
         return (
-            <Layout title="יצירת הזמנה">
+            <Layout title={t.title}>
                 <LoadingSpinner text="טוען..." />
             </Layout>
         );
     }
 
     return (
-        <Layout title="יצירת הזמנה">
+        <Layout title={t.title}>
             <div className="relative min-h-screen">
                 <div className="p-4 space-y-6 pb-48">
                     <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">הזמנה חדשה</h1>
-                        <p className="text-gray-600">מלא את הפרטים ליצירת הזמנה</p>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
+                        <p className="text-gray-600">{t.subtitle}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -357,7 +405,7 @@ const CreateOrder = () => {
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <FileText className="h-5 w-5 text-gray-500" />
-                                    הערות
+                                    {t.notes}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -365,7 +413,7 @@ const CreateOrder = () => {
                                     id="notes"
                                     value={formData.notes}
                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    placeholder="הערות נוספות להזמנה (אופציונלי)"
+                                    placeholder={t.notesPlaceholder}
                                     className="text-right min-h-[100px]"
                                     rows={4}
                                 />
@@ -383,12 +431,12 @@ const CreateOrder = () => {
                                     {submitting ? (
                                         <>
                                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
-                                            שולח הזמנה...
+                                            {t.submitting}
                                         </>
                                     ) : (
                                         <>
                                             <Send className="h-5 w-5 ml-2" />
-                                            שלח הזמנה
+                                            {t.submit}
                                         </>
                                     )}
                                 </Button>
