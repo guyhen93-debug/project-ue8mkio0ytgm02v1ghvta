@@ -84,6 +84,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     const statusConfig = getStatusConfig(effectiveStatus, language);
     const actions = getAvailableActions(effectiveStatus);
 
+    const showDuplicateForApproved = (
+        order.status === 'approved' &&
+        (!order.is_delivered ||
+            (order.delivered_quantity_tons && order.quantity_tons && order.delivered_quantity_tons < order.quantity_tons))
+    );
+
     const clientName = resolveClientName(order, sites, clients);
     const siteName = getSiteName(order.site_id, sites);
     const productName = getProductName(order.product_id, products, language);
@@ -144,6 +150,50 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                         <div className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
                             <span>{formatDate(deliveryDate)}</span>
+                        </div>
+                    </div>
+
+                    {/* Row 4: operational details */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-xs text-gray-500 mt-1 pt-1 border-t border-gray-50">
+                        {(() => {
+                            const site = sites[order.site_id];
+                            const regionType = site?.region_type;
+                            if (!regionType) return null;
+                            return (
+                                <div className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    <span>{regionType === 'eilat' ? (language === 'he' ? 'אילת' : 'Eilat') : (language === 'he' ? 'מחוץ לאילת' : 'Outside Eilat')}</span>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Supplier */}
+                        <div className="flex items-center gap-1">
+                            <span className="text-gray-300">•</span>
+                            <Factory className="w-3 h-3" />
+                            <span>
+                                {order.supplier === 'shifuli_har'
+                                    ? (language === 'he' ? 'שיפולי הר' : 'Shifuli Har')
+                                    : (language === 'he' ? 'מעבר רבין' : 'Maavar Rabin')}
+                            </span>
+                        </div>
+
+                        {/* Time window */}
+                        <div className="flex items-center gap-1">
+                            <span className="text-gray-300">•</span>
+                            <Clock className="w-3 h-3" />
+                            <span>{order.delivery_window === 'morning' ? (language === 'he' ? 'בוקר' : 'Morning') : (language === 'he' ? 'אחר הצהריים' : 'Afternoon')}</span>
+                        </div>
+
+                        {/* Delivery method */}
+                        <div className="flex items-center gap-1">
+                            <span className="text-gray-300">•</span>
+                            <Truck className="w-3 h-3" />
+                            <span>
+                                {order.delivery_method === 'self'
+                                    ? (language === 'he' ? 'עצמית' : 'Self')
+                                    : (language === 'he' ? 'חיצונית' : 'External')}
+                            </span>
                         </div>
                     </div>
 
@@ -308,7 +358,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 </Button>
                             )}
 
-                            {actions.duplicate && onDuplicate && (
+                            {(actions.duplicate || showDuplicateForApproved) && onDuplicate && (
                                 <Button
                                     size="sm"
                                     variant="outline"

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, Product, Site, Client } from '@/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale, User as UserIcon, Phone, Truck, FileText, Search } from 'lucide-react';
+import { Package, Calendar as CalendarIcon, MapPin, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock, Star, Factory, X, Plus, Sparkles, Box, Scale, User as UserIcon, Phone, Truck, FileText, Search, Copy } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -443,7 +443,7 @@ const OrderHistory: React.FC = () => {
                         {filteredOrders.map((order) => (
                             <Card key={order.id} className="industrial-card hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-start justify-between w-full gap-4 mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                 <span className="font-bold text-gray-900">
@@ -464,6 +464,10 @@ const OrderHistory: React.FC = () => {
                                                 )}
                                             </div>
                                             <p className="text-sm text-gray-600 mt-1">{getClientName(order)}</p>
+                                        </div>
+                                        <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap flex items-center gap-1">
+                                            <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                            <span>{format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}</span>
                                         </div>
                                     </div>
 
@@ -490,20 +494,35 @@ const OrderHistory: React.FC = () => {
                                             </div>
                                         )}
 
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                            <CalendarIcon className="h-4 w-4 text-gray-400" />
-                                            <span>
-                                                {format(new Date(order.delivery_date), 'dd/MM/yyyy', { locale: he })}
-                                            </span>
-                                            <span className="text-gray-500">•</span>
-                                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                                {order.delivery_window === 'morning' ? 'בוקר' : 'צהריים'}
-                                            </span>
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-1">
+                                            {/* Region */}
+                                            {(() => {
+                                                const site = sites[order.site_id];
+                                                const regionType = site?.region_type; // 'eilat' | 'outside_eilat'
+                                                if (!regionType) return null;
+                                                return (
+                                                    <div className="flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" />
+                                                        <span>{regionType === 'eilat' ? (language === 'he' ? 'אילת' : 'Eilat') : (language === 'he' ? 'מחוץ לאילת' : 'Outside Eilat')}</span>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Delivery method */}
+                                            <span>•</span>
+                                            <div className="flex items-center gap-1">
+                                                <Truck className="w-3 h-3" />
+                                                <span>
+                                                    {order.delivery_method === 'self'
+                                                        ? (language === 'he' ? 'עצמית' : 'Self')
+                                                        : (language === 'he' ? 'חיצונית' : 'External')}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* More Details Toggle */}
-                                    <div className="mt-4 flex justify-end">
+                                    {/* Actions Row */}
+                                    <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-between items-stretch sm:items-center">
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -519,6 +538,19 @@ const OrderHistory: React.FC = () => {
                                                 {expandedOrderId === order.id ? '▲' : '▼'}
                                             </span>
                                         </button>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate('/create-order', { state: { duplicateOrder: order } });
+                                            }}
+                                            className="w-full sm:w-auto flex items-center justify-center h-9"
+                                        >
+                                            <Copy className="w-4 h-4 mr-2" />
+                                            {language === 'he' ? 'שכפל הזמנה' : 'Duplicate order'}
+                                        </Button>
                                     </div>
 
                                     {/* Expandable Details Section */}
