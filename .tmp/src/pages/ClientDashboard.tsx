@@ -7,7 +7,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Order, Site, Product, User, Client, Notification } from '@/entities';
 import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
 import NotificationsCard from '@/components/NotificationsCard';
@@ -109,6 +109,22 @@ const ClientDashboard: React.FC = () => {
   }, [orders]);
 
   const displayName = (user && (user.full_name || user.email)) || (userClient && userClient.name) || '';
+
+  const ordersNeedingAttention = orders.filter(o =>
+    (o.is_delivered && !o.is_client_confirmed) ||
+    (o.is_client_confirmed && !o.rating)
+  );
+  const attentionCount = ordersNeedingAttention.length;
+
+  const attentionTitle = language === 'he' ? 'דורש תשומת לב' : 'Requires attention';
+  const attentionDescription = attentionCount > 0
+    ? (language === 'he'
+        ? `${attentionCount} הזמנות ממתינות לאישור או דירוג`
+        : `${attentionCount} orders waiting for confirmation or rating`)
+    : (language === 'he'
+        ? 'כל ההזמנות מטופלות ✅'
+        : 'All orders are handled ✅');
+  const attentionCta = language === 'he' ? 'טפל עכשיו' : 'Handle now';
 
   // Get top 5 recent orders
   const recentOrders = useMemo(
@@ -234,6 +250,40 @@ const ClientDashboard: React.FC = () => {
             <Plus className="w-5 h-5 mr-2" />
             {t.createOrder}
           </Button>
+        </div>
+
+        {/* Requires Attention Widget */}
+        <div
+          className={cn(
+            "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm",
+            attentionCount > 0
+              ? "border-blue-200 bg-blue-50"
+              : "border-green-100 bg-green-50/50"
+          )}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <div
+              className={cn(
+                "p-2 rounded-full",
+                attentionCount > 0 ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"
+              )}
+            >
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">{attentionTitle}</h3>
+              <p className="text-sm text-gray-600">{attentionDescription}</p>
+            </div>
+          </div>
+          {attentionCount > 0 && (
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => navigate('/order-history')}
+            >
+              {attentionCta}
+            </Button>
+          )}
         </div>
 
         {/* Status Tiles Grid */}
