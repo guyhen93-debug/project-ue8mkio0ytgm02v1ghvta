@@ -303,7 +303,13 @@ const ManagerDashboard: React.FC = () => {
 
   // Calculate derived values
   const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 5);
-  const totalPendingCount = orders.filter(o => o.status === 'pending').length;
+  
+  const ordersNeedingAttention = orders.filter(o =>
+    o.status === 'pending' ||
+    (o.status === 'approved' && !o.is_delivered) ||
+    (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons < o.quantity_tons)
+  );
+  const attentionCount = ordersNeedingAttention.length;
 
   const partialOrders = orders.filter(o => 
     (o.status === 'approved' || o.status === 'completed') && 
@@ -340,16 +346,22 @@ const ManagerDashboard: React.FC = () => {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  const getUrgentPendingText = () => {
-    if (totalPendingCount === 0) return t.urgentNoPending;
-    
-    if (language === 'he') {
-      if (totalPendingCount === 1) return "הזמנה אחת ממתינה לאישור";
-      return `${totalPendingCount.toLocaleString('he-IL')} הזמנות ממתינות לאישור`;
+  const getUrgentText = () => {
+    if (attentionCount === 0) {
+      return language === 'he'
+        ? 'אין הזמנות הממתינות לטיפול ✅'
+        : 'No orders waiting for attention ✅';
     }
-    
-    if (totalPendingCount === 1) return "1 order waiting for approval";
-    return `${totalPendingCount.toLocaleString('en-US')} orders waiting for approval`;
+    if (attentionCount === 1) {
+      return language === 'he'
+        ? 'הזמנה אחת דורשת טיפול'
+        : 'One order requires attention';
+    }
+    // plural
+    if (language === 'he') {
+      return `${attentionCount.toLocaleString('he-IL')} הזמנות דורשות טיפול`;
+    }
+    return `${attentionCount.toLocaleString('en-US')} orders require attention`;
   };
 
   return (
@@ -370,25 +382,25 @@ const ManagerDashboard: React.FC = () => {
         {/* Urgent Card */}
         <div className={cn(
           "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300",
-          totalPendingCount > 0 
+          attentionCount > 0 
             ? "border-red-200 bg-red-50" 
             : "border-green-100 bg-green-50/50"
         )}>
           <div className="flex items-center gap-3 flex-1">
             <div className={cn(
               "p-2 rounded-full",
-              totalPendingCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
+              attentionCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
             )}>
               <AlertCircle className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-gray-900">{t.urgentTitle}</h3>
               <p className="text-sm text-gray-600">
-                {getUrgentPendingText()}
+                {getUrgentText()}
               </p>
             </div>
           </div>
-          {totalPendingCount > 0 && (
+          {attentionCount > 0 && (
             <div className="w-full sm:w-auto flex sm:justify-end">
               <Button 
                 size="sm"

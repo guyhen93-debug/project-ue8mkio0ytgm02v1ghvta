@@ -77,7 +77,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     
     const isRTL = language === 'he';
     const TimeIcon = order.delivery_window === 'morning' ? Sunrise : Sunset;
-    const effectiveStatus = (order.status === 'completed' || order.is_delivered)
+    const effectiveStatus = (order.status === 'completed' || order.is_delivered ||
+        (order.delivered_quantity_tons && order.quantity_tons && order.delivered_quantity_tons >= order.quantity_tons))
         ? 'completed'
         : order.status;
     const statusConfig = getStatusConfig(effectiveStatus, language);

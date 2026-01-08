@@ -101,31 +101,31 @@ export const formatOrderDateTime = (dateString: string, language: string = 'he')
  * Get status badge configuration
  */
 export const getStatusConfig = (status: string, language: string = 'he') => {
+    const baseClass = 'px-2.5 py-1 text-[11px] font-semibold rounded-full border ';
     const configs: Record<string, { label: string; className: string }> = {
         pending: {
             label: language === 'he' ? 'ממתין לאישור' : 'Pending',
-            className: 'bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+            className: baseClass + 'bg-orange-100 text-orange-700 border-orange-200',
         },
         approved: {
             label: language === 'he' ? 'מאושר' : 'Approved',
-            className: 'bg-green-100 text-green-700 border border-green-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
-        },
-        completed: {
-            label: language === 'he' ? 'הושלם' : 'Completed',
-            className: 'bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+            className: baseClass + 'bg-green-100 text-green-700 border-green-200', // lighter green
         },
         in_transit: {
             label: language === 'he' ? 'בדרך' : 'In Transit',
-            className: 'bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+            className: baseClass + 'bg-blue-100 text-blue-700 border-blue-200',
+        },
+        completed: {
+            label: language === 'he' ? 'הושלם' : 'Completed',
+            className: baseClass + 'bg-emerald-100 text-emerald-800 border-emerald-200', // darker emerald
         },
         rejected: {
             label: language === 'he' ? 'נדחה' : 'Rejected',
-            className: 'bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 text-[11px] font-semibold rounded-full',
+            className: baseClass + 'bg-red-100 text-red-700 border-red-200',
         },
     };
 
-    const config = configs[status] || configs.pending;
-    return config;
+    return configs[status] || configs.pending;
 };
 
 /**

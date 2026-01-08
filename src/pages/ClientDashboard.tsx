@@ -11,6 +11,8 @@ import { Plus, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
 import NotificationsCard from '@/components/NotificationsCard';
+import { getStatusConfig } from '@/lib/orderUtils';
+import { cn } from '@/lib/utils';
 
 const ClientDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -138,53 +140,6 @@ const ClientDashboard: React.FC = () => {
     return language === 'he'
       ? format(d, 'dd/MM/yyyy', { locale: heLocale })
       : format(d, 'dd/MM/yyyy');
-  };
-
-  const checkIsCompleted = (o: OrderType) => {
-    return (
-      o.status === 'completed' ||
-      (o as any).is_delivered === true ||
-      ((o as any).delivered_quantity_tons &&
-        o.quantity_tons &&
-        (o as any).delivered_quantity_tons >= o.quantity_tons)
-    );
-  };
-
-  const getStatusDisplay = (order: OrderType) => {
-    const baseStatus = checkIsCompleted(order) ? 'completed' : order.status;
-    const isHeb = language === 'he';
-
-    const labelsHe: Record<string, string> = {
-      pending: 'ממתין',
-      approved: 'אושר',
-      in_transit: 'בדרך',
-      'in-transit': 'בדרך',
-      completed: 'הושלם',
-      rejected: 'נדחה',
-    };
-    const labelsEn: Record<string, string> = {
-      pending: 'Pending',
-      approved: 'Approved',
-      in_transit: 'In transit',
-      'in-transit': 'In transit',
-      completed: 'Completed',
-      rejected: 'Rejected',
-    };
-
-    const label = (isHeb ? labelsHe : labelsEn)[baseStatus] || (isHeb ? 'ממתין' : 'Pending');
-
-    const classNameMap: Record<string, string> = {
-      pending: 'bg-orange-100 text-orange-700 border border-orange-200',
-      approved: 'bg-green-100 text-green-700 border border-green-200',
-      completed: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-      in_transit: 'bg-blue-100 text-blue-700 border border-blue-200',
-      'in-transit': 'bg-blue-100 text-blue-700 border border-blue-200',
-      rejected: 'bg-red-100 text-red-700 border border-red-200',
-    };
-
-    const className = classNameMap[baseStatus] || classNameMap.pending;
-
-    return { label, className };
   };
 
   useEffect(() => {
@@ -347,7 +302,11 @@ const ClientDashboard: React.FC = () => {
             ) : userClient && recentOrders.length > 0 ? (
               <div className="divide-y">
                 {recentOrders.map((order) => {
-                  const { label, className } = getStatusDisplay(order);
+                  const effectiveStatus = (order.status === 'completed' || (order as any).is_delivered ||
+                    ((order as any).delivered_quantity_tons && order.quantity_tons && (order as any).delivered_quantity_tons >= order.quantity_tons))
+                    ? 'completed'
+                    : order.status;
+                  const status = getStatusConfig(effectiveStatus, language);
                   const productName = getProductName((order as any).product_id);
 
                   return (
@@ -365,9 +324,12 @@ const ClientDashboard: React.FC = () => {
                         </div>
                       </div>
                       <div
-                        className={`px-2 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap border shadow-sm ${className}`}
+                        className={cn(
+                          "px-2 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap border shadow-sm",
+                          status.className
+                        )}
                       >
-                        {label}
+                        {status.label}
                       </div>
                     </div>
                   );

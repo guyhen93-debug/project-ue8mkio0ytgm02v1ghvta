@@ -525,6 +525,14 @@ export const OrderManagement: React.FC = () => {
         });
     }, [orders, debouncedSearch, statusFilter, dateRange, sitesMap, productsMap, language]);
 
+    const sortedOrders = useMemo(() => {
+        return [...filteredOrders].sort((a, b) => {
+            const dateA = new Date(a.updated_at || a.created_at || 0);
+            const dateB = new Date(b.updated_at || b.created_at || 0);
+            return dateB.getTime() - dateA.getTime(); // newest first
+        });
+    }, [filteredOrders]);
+
     if (loading || dataLoading) {
         return (
             <div className="space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -694,7 +702,7 @@ export const OrderManagement: React.FC = () => {
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    {filteredOrders.map((order) => (
+                    {sortedOrders.map((order) => (
                         <OrderCard
                             key={order.id}
                             order={order}
