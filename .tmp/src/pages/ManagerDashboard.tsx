@@ -620,7 +620,15 @@ const ManagerDashboard: React.FC = () => {
             <CardContent className="p-0">
               <div className="divide-y divide-gray-100">
                 {recentOrdersList.map(order => {
-                  const status = getStatusConfig(order.status, language);
+                  const isCompleted =
+                    order.status === 'completed' ||
+                    (order as any).is_delivered === true ||
+                    ((order as any).delivered_quantity_tons !== undefined &&
+                      order.quantity_tons !== undefined &&
+                      (order as any).delivered_quantity_tons >= order.quantity_tons);
+
+                  const effectiveStatus = isCompleted ? 'completed' : order.status;
+                  const status = getStatusConfig(effectiveStatus, language);
                   return (
                     <div 
                       key={order.id} 
@@ -629,9 +637,9 @@ const ManagerDashboard: React.FC = () => {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold text-gray-900">#{order.order_number}</span>
-                        <Badge className={cn("border-none px-2 py-0.5 text-[10px] font-bold", status.className)}>
+                        <div className={cn("px-2 py-1 rounded text-xs font-bold border shadow-sm", status.className)}>
                           {status.label}
-                        </Badge>
+                        </div>
                       </div>
                       <div className="text-sm text-gray-700 font-medium mb-1">
                         {getClientName(order, sitesMap, clientsMap)}

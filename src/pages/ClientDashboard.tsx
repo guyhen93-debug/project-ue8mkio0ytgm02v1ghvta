@@ -88,9 +88,13 @@ const ClientDashboard: React.FC = () => {
 
   const { openOrdersCount, inTransitCount, completedThisMonthCount } = useMemo(() => {
     const checkIsCompleted = (o: OrderType) => {
-      return o.status === 'completed' || 
-             o.is_delivered === true || 
-             (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
+      return (
+        o.status === 'completed' ||
+        (o as any).is_delivered === true ||
+        ((o as any).delivered_quantity_tons !== undefined &&
+          o.quantity_tons !== undefined &&
+          (o as any).delivered_quantity_tons >= o.quantity_tons)
+      );
     };
 
     const open = orders.filter(o => !checkIsCompleted(o) && (o.status === 'pending' || o.status === 'approved')).length;
@@ -347,10 +351,14 @@ const ClientDashboard: React.FC = () => {
               <>
                 <div className="divide-y divide-gray-100">
                   {recentOrders.map((order) => {
-                    const effectiveStatus = (order.status === 'completed' || (order as any).is_delivered === true ||
-                      ((order as any).delivered_quantity_tons && order.quantity_tons && (order as any).delivered_quantity_tons >= order.quantity_tons))
-                      ? 'completed'
-                      : order.status;
+                    const isCompleted =
+                      order.status === 'completed' ||
+                      (order as any).is_delivered === true ||
+                      ((order as any).delivered_quantity_tons !== undefined &&
+                        order.quantity_tons !== undefined &&
+                        (order as any).delivered_quantity_tons >= order.quantity_tons);
+
+                    const effectiveStatus = isCompleted ? 'completed' : order.status;
                     const statusConfig = getStatusConfig(effectiveStatus, language);
                     const productName = getProductName((order as any).product_id);
 
