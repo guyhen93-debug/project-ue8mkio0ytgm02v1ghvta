@@ -318,15 +318,6 @@ const ManagerDashboard: React.FC = () => {
   ).slice(0, 10);
 
   // Status counts calculations
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const isInCurrentMonth = (dateString?: string) => {
-    if (!dateString) return false;
-    const d = new Date(dateString);
-    return d >= startOfMonth && d <= now;
-  };
-
   const checkIsCompleted = (o: OrderType) => {
     return (
       o.status === 'completed' ||
@@ -337,10 +328,7 @@ const ManagerDashboard: React.FC = () => {
 
   const openOrdersCount = orders.filter(o => !checkIsCompleted(o) && (o.status === 'pending' || o.status === 'approved')).length;
   const inTransitCount = orders.filter(o => !checkIsCompleted(o) && (o.status === 'in_transit' || o.status === 'in-transit')).length;
-  const completedThisMonthCount = orders.filter(o =>
-    checkIsCompleted(o) &&
-    (isInCurrentMonth(o.delivery_date) || isInCurrentMonth(o.actual_delivery_date) || isInCurrentMonth(o.created_at))
-  ).length;
+  const completedThisMonthCount = orders.filter(o => checkIsCompleted(o)).length;
 
   const recentOrdersList = [...orders]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -455,7 +443,7 @@ const ManagerDashboard: React.FC = () => {
               </span>
             </Card>
 
-            {/* הושלמו / Completed this month */}
+            {/* הושלמו / Completed */}
             <Card className="p-4 flex flex-col gap-1 border-emerald-100 bg-emerald-50 shadow-none">
               <span className="text-xs font-medium text-emerald-800 uppercase tracking-wider">
                 {t.statusCompleted}
