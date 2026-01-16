@@ -109,7 +109,7 @@ export const getStatusConfig = (status: string, language: string = 'he') => {
         },
         approved: {
             label: language === 'he' ? 'מאושר' : 'Approved',
-            className: baseClass + 'bg-green-100 text-green-700 border-green-200', // lighter green
+            className: baseClass + 'bg-emerald-50 text-emerald-700 border-emerald-300',
         },
         in_transit: {
             label: language === 'he' ? 'בדרך' : 'In Transit',
@@ -117,7 +117,7 @@ export const getStatusConfig = (status: string, language: string = 'he') => {
         },
         completed: {
             label: language === 'he' ? 'הושלם' : 'Completed',
-            className: baseClass + 'bg-emerald-100 text-emerald-800 border-emerald-200', // darker emerald
+            className: baseClass + 'bg-emerald-600 text-white border-emerald-700 shadow-sm',
         },
         rejected: {
             label: language === 'he' ? 'נדחה' : 'Rejected',

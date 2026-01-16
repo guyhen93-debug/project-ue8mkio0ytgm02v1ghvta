@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { 
     Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, 
     Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock, 
-    MessageSquare, Box, Scale, User, ChevronDown, ChevronUp 
+    MessageSquare, Box, Scale, User, ChevronDown, ChevronUp, Globe2 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -161,7 +161,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             if (!regionType) return null;
                             return (
                                 <div className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
+                                    <Globe2 className="w-3 h-3 text-blue-500" />
                                     <span>{regionType === 'eilat' ? (language === 'he' ? 'אילת' : 'Eilat') : (language === 'he' ? 'מחוץ לאילת' : 'Outside Eilat')}</span>
                                 </div>
                             );
