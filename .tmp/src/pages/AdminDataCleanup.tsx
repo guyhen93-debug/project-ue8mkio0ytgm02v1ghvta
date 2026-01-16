@@ -9,7 +9,8 @@ import { orphanedReferencesFixer, OrphanedDataReport } from '@/utils/fixOrphaned
 
 export default function AdminDataCleanup() {
   const { isManager } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const tr = (en: string, he: string) => language === 'he' ? he : en;
   const [scanning, setScanning] = useState(false);
   const [fixing, setFixing] = useState(false);
   const [report, setReport] = useState<OrphanedDataReport | null>(null);
