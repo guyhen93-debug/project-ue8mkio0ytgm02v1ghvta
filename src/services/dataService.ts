@@ -156,6 +156,7 @@ export class DataService {
         let clientName = 'Unknown Client';
         let regionType = 'unknown';
         let unlinkedSite = order.unlinked_site || false;
+        let orphanedReference = false; // Track if this order has orphaned references
 
         // Try to get site information
         if (order.site_id && !order.unlinked_site) {
@@ -163,16 +164,38 @@ export class DataService {
           if (site) {
             siteName = site.site_name || 'Unknown Site';
             regionType = site.region_type || 'unknown';
-            
+
             // Try to get client information
             if (site.client_id) {
               const client = clientMap.get(site.client_id);
               if (client) {
                 clientName = client.name || 'Unknown Client';
+              } else {
+                // Site references a non-existent client (orphaned reference)
+                orphanedReference = true;
+                clientName = 'System (Orphaned)';
+                console.warn(`Order ${order.order_number || order.id} has site ${order.site_id} with orphaned client_id: ${site.client_id}`);
               }
             }
           } else {
+            // Order references a non-existent site (orphaned reference)
             unlinkedSite = true;
+            orphanedReference = true;
+            siteName = 'Unlinked (Orphaned)';
+            console.warn(`Order ${order.order_number || order.id} references non-existent site: ${order.site_id}`);
+          }
+        }
+
+        // Try to get client information directly from order if available
+        if (order.client_id && !orphanedReference) {
+          const client = clientMap.get(order.client_id);
+          if (client) {
+            clientName = client.name || 'Unknown Client';
+          } else {
+            // Order references a non-existent client directly (orphaned reference)
+            orphanedReference = true;
+            clientName = 'System (Orphaned)';
+            console.warn(`Order ${order.order_number || order.id} has orphaned client_id: ${order.client_id}`);
           }
         }
 
@@ -188,12 +211,19 @@ export class DataService {
           client_name: clientName,
           region_type: regionType,
           unlinked_site: unlinkedSite,
+          orphaned_reference: orphanedReference, // Flag for UI to show warning
           // Ensure we have the new field names with fallbacks
           quantity_tons: order.quantity_tons || order.quantity || 0,
           delivery_window: order.delivery_window || order.time_slot || 'morning',
           delivery_method: order.delivery_method || order.delivery_type || 'self'
         };
       });
+
+      // Log summary of orphaned references
+      const orphanedCount = enrichedOrders.filter(o => o.orphaned_reference).length;
+      if (orphanedCount > 0) {
+        console.warn(`⚠️  Found ${orphanedCount} orders with orphaned references. Consider using the Data Cleanup tool at /admin/data-cleanup`);
+      }
 
       return enrichedOrders;
     } catch (error) {
