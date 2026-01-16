@@ -39,6 +39,20 @@ const ManagerDashboard: React.FC = () => {
     notes: '',
   });
 
+  const [lastSyncDate, setLastSyncDate] = useState<string | null>(null);
+  const [isSyncedToday, setIsSyncedToday] = useState(false);
+  const SYNC_STORAGE_KEY = 'manager_dashboard_last_sync_date';
+
+  const isSameDay = (isoString: string) => {
+    const d = new Date(isoString);
+    const today = new Date();
+    return (
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    );
+  };
+
   const translations = {
     he: {
       title: 'דשבורד מנהל',
@@ -79,6 +93,9 @@ const ManagerDashboard: React.FC = () => {
       deliveryNoteRequired: 'יש להזין מספר תעודת משלוח',
       cancel: 'ביטול',
       quantity: 'כמות',
+      syncWarning: '⚠️ שים לב: טרם בוצע סנכרון תזכורות להיום!',
+      syncButton: 'סנכרון יום',
+      syncSyncedLabel: 'מסונכרן להיום',
     },
     en: {
       title: 'Manager Dashboard',
@@ -119,6 +136,9 @@ const ManagerDashboard: React.FC = () => {
       deliveryNoteRequired: 'Delivery note number is required',
       cancel: 'Cancel',
       quantity: 'Quantity',
+      syncWarning: '⚠️ Attention: Today\'s reminders have not been synced yet!',
+      syncButton: 'Sync day',
+      syncSyncedLabel: 'Synced for today',
     }
   };
 
@@ -129,6 +149,32 @@ const ManagerDashboard: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [retryCount]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SYNC_STORAGE_KEY);
+      if (stored) {
+        setLastSyncDate(stored);
+        setIsSyncedToday(isSameDay(stored));
+      }
+    } catch (err) {
+      console.error('Failed to read last sync date from storage:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!lastSyncDate) return;
+
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+    const msUntilMidnight = midnight.getTime() - now.getTime();
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSyncedToday(false);
+    }, msUntilMidnight);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [lastSyncDate]);
 
   const createManagerDashboardDeliveryNotification = async (order: OrderType, newDelivered: number, isCompleted: boolean) => {
     try {
@@ -301,6 +347,17 @@ const ManagerDashboard: React.FC = () => {
     setRetryCount(prev => prev + 1);
   };
 
+  const handleDailySync = () => {
+    try {
+      const nowIso = new Date().toISOString();
+      setLastSyncDate(nowIso);
+      setIsSyncedToday(true);
+      localStorage.setItem(SYNC_STORAGE_KEY, nowIso);
+    } catch (err) {
+      console.error('Failed to store last sync date:', err);
+    }
+  };
+
   // Calculate derived values
   const pendingOrders = orders.filter(o => o.status === 'pending').slice(0, 5);
   
@@ -377,6 +434,31 @@ const ManagerDashboard: React.FC = () => {
             {language === 'he' ? 'שלום,' : 'Hello,'}
             <span className="text-yellow-600">{managerDisplayName}</span>
           </h1>
+        </div>
+
+        {/* Daily Sync Control */}
+        <div className="mb-6">
+          {!isSyncedToday && (
+            <div className="mb-3 px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs sm:text-sm text-red-800 flex items-center justify-between gap-2">
+              <span>{t.syncWarning}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-gray-300 text-gray-800 hover:bg-gray-50"
+              onClick={handleDailySync}
+            >
+              {t.syncButton}
+            </Button>
+            {isSyncedToday && (
+              <div className="flex items-center gap-1 text-xs text-green-700">
+                <Check className="w-4 h-4 text-green-600" />
+                <span>{t.syncSyncedLabel}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Urgent Card */}
@@ -690,7 +772,7 @@ const ManagerDashboard: React.FC = () => {
               <Input
                 id="deliveryNoteNumber"
                 value={deliveryForm.deliveryNoteNumber}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_note_number: e.target.value })}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, deliveryNoteNumber: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
@@ -698,7 +780,7 @@ const ManagerDashboard: React.FC = () => {
               <Input
                 id="driverName"
                 value={deliveryForm.driverName}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, driver_name: e.target.value })}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, driverName: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
@@ -706,7 +788,7 @@ const ManagerDashboard: React.FC = () => {
               <Textarea
                 id="notes"
                 value={deliveryForm.notes}
-                onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_notes: e.target.value })}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, notes: e.target.value })}
                 rows={3}
               />
             </div>
