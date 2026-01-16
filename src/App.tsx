@@ -15,7 +15,6 @@ import OrderHistory from './pages/OrderHistory';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Reports from './pages/Reports';
-import AdminDataCleanup from './pages/AdminDataCleanup';
 
 const queryClient = new QueryClient();
 
@@ -155,14 +154,6 @@ const App = () => {
                                             element={
                                                 <ProtectedRoute requireAuth={true} requireManager={true}>
                                                     <AdminPanel />
-                                                </ProtectedRoute>
-                                            }
-                                        />
-                                        <Route
-                                            path="/admin/data-cleanup"
-                                            element={
-                                                <ProtectedRoute requireAuth={true} requireManager={true}>
-                                                    <AdminDataCleanup />
                                                 </ProtectedRoute>
                                             }
                                         />
