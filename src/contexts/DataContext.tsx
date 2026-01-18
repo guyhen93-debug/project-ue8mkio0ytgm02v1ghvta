@@ -30,31 +30,53 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setLoading(true);
             setError(null);
 
-            const [productsData, sitesData, clientsData] = await Promise.all([
-                Product.list('-created_at', 1000).catch(() => []),
-                Site.list('-created_at', 1000).catch(() => []),
-                Client.list('-created_at', 1000).catch(() => [])
+            const errors: string[] = [];
+
+            // Load all data with proper error tracking
+            const [productsResult, sitesResult, clientsResult] = await Promise.all([
+                Product.list('-created_at', 1000).catch((err) => {
+                    console.error('Error loading products:', err);
+                    errors.push('products');
+                    return [];
+                }),
+                Site.list('-created_at', 1000).catch((err) => {
+                    console.error('Error loading sites:', err);
+                    errors.push('sites');
+                    return [];
+                }),
+                Client.list('-created_at', 1000).catch((err) => {
+                    console.error('Error loading clients:', err);
+                    errors.push('clients');
+                    return [];
+                })
             ]);
+
+            // Report partial failures to user
+            if (errors.length > 0) {
+                const failedResources = errors.join(', ');
+                console.warn(`⚠️ Failed to load: ${failedResources}. Some features may be unavailable.`);
+                setError(`Failed to load: ${failedResources}. Please refresh to try again.`);
+            }
 
             // Create maps for quick lookup
             const pMap: Record<string, any> = {};
-            productsData.forEach(p => { pMap[p.id] = p; });
+            productsResult.forEach(p => { pMap[p.id] = p; });
 
             const sMap: Record<string, any> = {};
-            sitesData.forEach(s => { sMap[s.id] = s; });
+            sitesResult.forEach(s => { sMap[s.id] = s; });
 
             const cMap: Record<string, any> = {};
-            clientsData.forEach(c => { cMap[c.id] = c; });
+            clientsResult.forEach(c => { cMap[c.id] = c; });
 
-            setProducts(productsData);
-            setSites(sitesData);
-            setClients(clientsData);
+            setProducts(productsResult);
+            setSites(sitesResult);
+            setClients(clientsResult);
             setProductsMap(pMap);
             setSitesMap(sMap);
             setClientsMap(cMap);
         } catch (err) {
             console.error('Error loading data:', err);
-            setError('Failed to load data');
+            setError('Failed to load application data. Please refresh the page.');
         } finally {
             setLoading(false);
         }

@@ -66,37 +66,120 @@ function validateExternalDelivery(quantity: number): { valid: boolean; error?: s
 
 async function validateOutsideEilatDelivery(siteId: string, deliveryMethod: string, quantity: number): Promise<{ valid: boolean; error?: string }> {
   if (!siteId) return { valid: true };
-  
+
   try {
     const site = await superdev.entities.Site.get(siteId);
-    if (site && site.region_type === 'outside_eilat' && deliveryMethod === 'external' && quantity < 40) {
+    if (!site) {
+      return { valid: false, error: 'site_not_found' };
+    }
+    if (site.region_type === 'outside_eilat' && deliveryMethod === 'external' && quantity < 40) {
       return { valid: false, error: 'outside_eilat_min' };
     }
   } catch (error) {
     console.error('Error validating site:', error);
+    return { valid: false, error: 'site_validation_failed' };
   }
-  
+
   return { valid: true };
 }
 
-async function generateOrderNumber(): Promise<string> {
-  try {
-    // Get the latest order to determine next number
-    const orders = await superdev.entities.Order.list('-created_at', 1);
-    let nextNumber = 2001; // Start from 2001
-    
-    if (orders.length > 0 && orders[0].order_number) {
-      const lastNumber = parseInt(orders[0].order_number);
-      if (!isNaN(lastNumber)) {
-        nextNumber = lastNumber + 1;
+// Validate that referenced entities exist
+async function validateOrderReferences(orderData: { client_id?: string; product_id?: string; site_id?: string }): Promise<{ valid: boolean; error?: string }> {
+  // Validate client_id exists
+  if (orderData.client_id) {
+    try {
+      const client = await superdev.entities.Client.get(orderData.client_id);
+      if (!client) {
+        return { valid: false, error: 'client_not_found' };
       }
+    } catch (error) {
+      console.error('Error validating client:', error);
+      return { valid: false, error: 'client_not_found' };
     }
-    
-    return nextNumber.toString();
-  } catch (error) {
-    console.error('Error generating order number:', error);
-    return Date.now().toString(); // Fallback to timestamp
   }
+
+  // Validate product_id exists
+  if (orderData.product_id) {
+    try {
+      const product = await superdev.entities.Product.get(orderData.product_id);
+      if (!product) {
+        return { valid: false, error: 'product_not_found' };
+      }
+    } catch (error) {
+      console.error('Error validating product:', error);
+      return { valid: false, error: 'product_not_found' };
+    }
+  }
+
+  // Validate site_id exists (if provided)
+  if (orderData.site_id) {
+    try {
+      const site = await superdev.entities.Site.get(orderData.site_id);
+      if (!site) {
+        return { valid: false, error: 'site_not_found' };
+      }
+    } catch (error) {
+      console.error('Error validating site:', error);
+      return { valid: false, error: 'site_not_found' };
+    }
+  }
+
+  return { valid: true };
+}
+
+const ORDER_COUNTER_NAME = 'order_number';
+const INITIAL_ORDER_NUMBER = 2000;
+
+async function generateOrderNumber(): Promise<string> {
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // Try to get existing counter
+      let counters = await superdev.entities.Counter.filter({ name: ORDER_COUNTER_NAME });
+      let counter = counters.length > 0 ? counters[0] : null;
+
+      if (!counter) {
+        // Initialize counter - first check existing orders to find highest number
+        let highestNumber = INITIAL_ORDER_NUMBER;
+        const orders = await superdev.entities.Order.list('-order_number', 100);
+        for (const order of orders) {
+          if (order.order_number) {
+            const num = parseInt(order.order_number);
+            if (!isNaN(num) && num > highestNumber) {
+              highestNumber = num;
+            }
+          }
+        }
+
+        // Create counter with the highest found value
+        counter = await superdev.entities.Counter.create({
+          name: ORDER_COUNTER_NAME,
+          value: highestNumber,
+          last_updated: new Date().toISOString()
+        });
+      }
+
+      // Increment and save
+      const nextNumber = (counter.value || INITIAL_ORDER_NUMBER) + 1;
+      await superdev.entities.Counter.update(counter.id, {
+        value: nextNumber,
+        last_updated: new Date().toISOString()
+      });
+
+      return nextNumber.toString();
+    } catch (error) {
+      console.error(`Error generating order number (attempt ${attempt + 1}/${MAX_RETRIES}):`, error);
+      if (attempt === MAX_RETRIES - 1) {
+        // On final retry failure, throw error instead of using timestamp
+        throw new Error('Failed to generate order number after multiple attempts');
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+
+  throw new Error('Failed to generate order number');
 }
 
 Deno.serve(async (req) => {
@@ -116,11 +199,16 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const method = req.method;
-    const body = method !== 'GET' ? await req.json() : null;
+    const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await req.json() : null;
 
     // GET /orders - List orders with optional filters
     if (method === 'GET' && url.pathname === '/') {
-      const { filter, sort, limit, includeRelations } = body || {};
+      // Read parameters from query string for GET requests
+      const params = url.searchParams;
+      const filter = params.get('filter') ? JSON.parse(params.get('filter')!) : undefined;
+      const sort = params.get('sort') || '-created_at';
+      const limit = params.get('limit') ? parseInt(params.get('limit')!) : 50;
+      const includeRelations = params.get('includeRelations') === 'true';
       
       try {
         let orders;
@@ -175,6 +263,15 @@ Deno.serve(async (req) => {
       const orderData: OrderData = body;
 
       try {
+        // Validate that referenced entities (client, product, site) exist
+        const referencesValidation = await validateOrderReferences(orderData);
+        if (!referencesValidation.valid) {
+          return new Response(JSON.stringify({ success: false, error: referencesValidation.error }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
         // Validate delivery date and time
         const dateValidation = validateOrderDate(orderData.delivery_date, orderData.delivery_window);
         if (!dateValidation.valid) {

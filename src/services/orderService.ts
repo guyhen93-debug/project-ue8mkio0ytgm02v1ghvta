@@ -124,7 +124,7 @@ export class OrderService {
     return result.success ? result.data : [];
   }
 
-  static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<any[]> {
+  static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<{ success: boolean; data: any[]; error?: string }> {
     return await DataService.getOrdersWithRelations(userEmail, isAdmin);
   }
 

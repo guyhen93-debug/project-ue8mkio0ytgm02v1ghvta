@@ -38,11 +38,20 @@ const DEFAULT_CLIENTS = [
   }
 ];
 
+// Cache flag to avoid checking DB on every request
+let dataInitialized = false;
+
 async function initializeDefaultData() {
+  // Skip if already initialized in this process
+  if (dataInitialized) {
+    return;
+  }
+
   try {
     // Check if clients already exist
     const existingClients = await superdev.entities.Client.list('created_at', 1);
     if (existingClients.length > 0) {
+      dataInitialized = true;
       return; // Data already initialized
     }
 
@@ -92,7 +101,8 @@ async function initializeDefaultData() {
     for (const siteData of defaultSites) {
       await superdev.entities.Site.create(siteData);
     }
-    
+
+    dataInitialized = true;
     console.log('Default clients and sites initialized successfully');
   } catch (error) {
     console.error('Error initializing default data:', error);
@@ -116,17 +126,21 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const method = req.method;
-    const body = method !== 'GET' ? await req.json() : null;
+    const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await req.json() : null;
 
     // Initialize default data on first request
     await initializeDefaultData();
 
     // CLIENTS ENDPOINTS
-    
+
     // GET /clients - List all clients
     if (method === 'GET' && url.pathname === '/clients') {
       try {
-        const { filter, sort, limit } = body || {};
+        // Read parameters from query string for GET requests
+        const params = url.searchParams;
+        const filter = params.get('filter') ? JSON.parse(params.get('filter')!) : undefined;
+        const sort = params.get('sort') || '-created_at';
+        const limit = params.get('limit') ? parseInt(params.get('limit')!) : 100;
         
         let clients;
         if (filter) {
@@ -271,13 +285,17 @@ Deno.serve(async (req) => {
     // GET /sites - List all sites
     if (method === 'GET' && url.pathname === '/sites') {
       try {
-        const { filter, sort, limit } = body || {};
-        
+        // Read parameters from query string for GET requests
+        const params = url.searchParams;
+        const filter = params.get('filter') ? JSON.parse(params.get('filter')!) : undefined;
+        const sort = params.get('sort') || '-created_at';
+        const limit = params.get('limit') ? parseInt(params.get('limit')!) : 100;
+
         let sites;
         if (filter) {
-          sites = await superdev.entities.Site.filter(filter, sort || '-created_at', limit || 100);
+          sites = await superdev.entities.Site.filter(filter, sort, limit);
         } else {
-          sites = await superdev.entities.Site.list(sort || '-created_at', limit || 100);
+          sites = await superdev.entities.Site.list(sort, limit);
         }
 
         return new Response(JSON.stringify({ success: true, data: sites }), {
