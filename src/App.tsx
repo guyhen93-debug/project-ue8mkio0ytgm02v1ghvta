@@ -16,6 +16,7 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Reports from './pages/Reports';
 import AdminDataCleanup from './pages/AdminDataCleanup';
+import AdminAuditLogs from './pages/AdminAuditLogs';
 
 const queryClient = new QueryClient();
 
@@ -163,6 +164,14 @@ const App = () => {
                                             element={
                                                 <ProtectedRoute requireAuth={true} requireManager={true}>
                                                     <AdminDataCleanup />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/admin-audit-logs"
+                                            element={
+                                                <ProtectedRoute requireAuth={true} requireManager={true}>
+                                                    <AdminAuditLogs />
                                                 </ProtectedRoute>
                                             }
                                         />

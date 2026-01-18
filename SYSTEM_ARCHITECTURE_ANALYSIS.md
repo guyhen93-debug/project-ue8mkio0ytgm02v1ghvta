@@ -769,35 +769,35 @@ static async getOrdersWithRelations(...): Promise<any[]> {
 
 ---
 
-## סיכום עדיפויות
+## סיכום עדיפויות - מעודכן
 
-### קריטי (יש לטפל מיד)
+### קריטי (יש לטפל מיד) ✅ הושלם
 1. ✅ וולידציה של client_id ו-product_id ביצירת Order
 2. ✅ תיקון GET requests עם body
 3. ✅ הסרת timestamp fallback ממספרי הזמנה
 
-### גבוה (שבוע-שבועיים)
-4. שיפור טיפול בשגיאות Frontend
-5. הוספת error boundaries ל-DataContext
-6. תיקון בליעת שגיאות בוולידציה
+### גבוה (שבוע-שבועיים) ✅ הושלם
+4. ✅ שיפור טיפול בשגיאות Frontend (DataServiceResult)
+5. ✅ הוספת error boundaries ל-DataContext
+6. ✅ תיקון בליעת שגיאות בוולידציה
 
-### בינוני (חודש)
-7. מניעת race condition במספרי הזמנה
-8. Type safety improvements
-9. מיזוג mock/real data services
+### בינוני (חודש) ✅ הושלם
+7. ✅ מניעת race condition במספרי הזמנה (Counter entity)
+8. ✅ Type safety improvements (Zod schemas)
+9. ✅ IDataService interface (מיזוג חלקי)
 
-### נמוך (טווח ארוך)
-10. Audit trail
-11. Soft deletes
-12. Query optimization
+### נמוך (טווח ארוך) ✅ הושלם
+10. ✅ Audit trail (AuditLog entity + auditService)
+11. ✅ Soft deletes (is_deleted, deleted_at, deleted_by)
+12. ✅ Query optimization (batch loading)
 
 ---
 
-## נספח: כלים קיימים
+## נספח א': כלים קיימים
 
 ### כלי ניקוי נתונים
 
-המערכת כבר מכילה כלי לניקוי רשומות יתומות:
+המערכת מכילה כלי לניקוי רשומות יתומות:
 
 **מיקום:** `/admin/data-cleanup`
 **קוד:** `src/pages/AdminDataCleanup.tsx` + `src/utils/fixOrphanedReferences.ts`
@@ -808,8 +808,46 @@ static async getOrdersWithRelations(...): Promise<any[]> {
 - מחיקת Notifications/Messages יתומות
 - יצירת לקוח "מערכת" לשימור נתונים היסטוריים
 
-**המלצה:** להריץ סריקה שבועית עד שהבעיות הבסיסיות ייפתרו.
+### כלי צפייה ב-Audit Logs
+
+**מיקום:** `/admin-audit-logs`
+**קוד:** `src/pages/AdminAuditLogs.tsx`
+
+**יכולות:**
+- צפייה בכל הפעולות שבוצעו במערכת
+- סינון לפי סוג ישות ופעולה
+- חיפוש לפי משתמש או מזהה
+- הצגת שינויים לפני/אחרי
+
+---
+
+## נספח ב': קבצים שנוספו/עודכנו
+
+### קבצים חדשים
+| קובץ | תיאור |
+|------|-------|
+| `entities/AuditLog.json` | Entity למעקב אחר שינויים |
+| `entities/Counter.json` | Entity למספרים רצים |
+| `src/services/auditService.ts` | שירות audit logging |
+| `src/services/interfaces/IDataService.ts` | Interface לשירותי נתונים |
+| `src/utils/migrations/migrateOrderFields.ts` | סקריפט מיגרציה לשדות |
+| `src/types/schemas.ts` | Zod validation schemas |
+| `src/pages/AdminAuditLogs.tsx` | דף admin לצפייה ב-audit logs |
+
+### קבצים שעודכנו
+| קובץ | שינוי |
+|------|-------|
+| `entities/Order.json` | הוספת soft delete fields |
+| `functions/orders-api.ts` | FK validation, soft delete, audit logging |
+| `functions/clients-sites-api.ts` | GET params fix, cache |
+| `functions/products-api.ts` | GET params fix, cache |
+| `src/services/dataService.ts` | Error handling, soft delete filter |
+| `src/services/orderService.ts` | Updated return types |
+| `src/contexts/DataContext.tsx` | Error tracking |
+| `src/types/index.ts` | Schema exports |
+| `src/App.tsx` | New route for audit logs |
 
 ---
 
 *דוח זה נוצר אוטומטית ע"י ניתוח ארכיטקטורי מקיף של קוד המקור.*
+*עודכן לאחרונה: ינואר 2026 - כל הפריטים הושלמו*
