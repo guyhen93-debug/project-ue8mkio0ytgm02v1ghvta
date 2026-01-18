@@ -63,11 +63,20 @@ const DEFAULT_PRODUCTS = [
   }
 ];
 
+// Cache flag to avoid checking DB on every request
+let productsInitialized = false;
+
 async function initializeDefaultProducts() {
+  // Skip if already initialized in this process
+  if (productsInitialized) {
+    return;
+  }
+
   try {
     // Check if products already exist
     const existingProducts = await superdev.entities.Product.list('created_at', 1);
     if (existingProducts.length > 0) {
+      productsInitialized = true;
       return; // Products already initialized
     }
 
@@ -75,7 +84,8 @@ async function initializeDefaultProducts() {
     for (const productData of DEFAULT_PRODUCTS) {
       await superdev.entities.Product.create(productData);
     }
-    
+
+    productsInitialized = true;
     console.log('Default products initialized successfully');
   } catch (error) {
     console.error('Error initializing default products:', error);
@@ -99,7 +109,7 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const method = req.method;
-    const body = method !== 'GET' ? await req.json() : null;
+    const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await req.json() : null;
 
     // Initialize default products on first request
     await initializeDefaultProducts();
@@ -107,13 +117,17 @@ Deno.serve(async (req) => {
     // GET /products - List all products
     if (method === 'GET' && url.pathname === '/') {
       try {
-        const { filter, sort, limit } = body || {};
-        
+        // Read parameters from query string for GET requests
+        const params = url.searchParams;
+        const filter = params.get('filter') ? JSON.parse(params.get('filter')!) : undefined;
+        const sort = params.get('sort') || 'name';
+        const limit = params.get('limit') ? parseInt(params.get('limit')!) : 100;
+
         let products;
         if (filter) {
-          products = await superdev.entities.Product.filter(filter, sort || 'name', limit || 100);
+          products = await superdev.entities.Product.filter(filter, sort, limit);
         } else {
-          products = await superdev.entities.Product.list(sort || 'name', limit || 100);
+          products = await superdev.entities.Product.list(sort, limit);
         }
 
         return new Response(JSON.stringify({ success: true, data: products }), {

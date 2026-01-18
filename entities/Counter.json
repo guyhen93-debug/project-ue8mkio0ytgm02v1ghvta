@@ -1,0 +1,18 @@
+{
+  "name": "Counter",
+  "description": "Atomic counters for generating sequential IDs (e.g., order numbers)",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name/key of the counter (e.g., 'order_number')"
+    },
+    "value": {
+      "type": "number",
+      "description": "The current value of the counter"
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO timestamp of when the counter was last updated"
+    }
+  }
+}

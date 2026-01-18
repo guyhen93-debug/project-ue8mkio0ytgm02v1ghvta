@@ -41,14 +41,28 @@ export class DataService {
     };
   }
 
-  static async loadOrders(userEmail?: string, isAdmin: boolean = false): Promise<DataServiceResult<any[]>> {
+  static async loadOrders(
+    userEmail?: string,
+    isAdmin: boolean = false,
+    includeDeleted: boolean = false
+  ): Promise<DataServiceResult<any[]>> {
     return this.withRetry(async () => {
+      let orders: any[];
+
       if (isAdmin) {
-        return await Order.list('-created_at');
+        orders = await Order.list('-created_at');
       } else if (userEmail) {
-        return await Order.filter({ created_by: userEmail }, '-created_at');
+        orders = await Order.filter({ created_by: userEmail }, '-created_at');
+      } else {
+        return [];
       }
-      return [];
+
+      // Filter out soft-deleted orders by default
+      if (!includeDeleted) {
+        orders = orders.filter(order => !order.is_deleted);
+      }
+
+      return orders;
     });
   }
 
@@ -126,13 +140,21 @@ export class DataService {
   }
 
   // Enhanced method to get orders with relations that handles failures gracefully
-  static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<any[]> {
+  // Now returns DataServiceResult for proper error handling
+  static async getOrdersWithRelations(userEmail?: string, isAdmin: boolean = false): Promise<DataServiceResult<any[]>> {
     try {
       // Load orders
       const ordersResult = await this.loadOrders(userEmail, isAdmin);
-      if (!ordersResult.success || !ordersResult.data || ordersResult.data.length === 0) {
-        console.log('No orders found or failed to load orders');
-        return [];
+      if (!ordersResult.success) {
+        return {
+          success: false,
+          data: [],
+          error: ordersResult.error || 'Failed to load orders'
+        };
+      }
+
+      if (!ordersResult.data || ordersResult.data.length === 0) {
+        return { success: true, data: [] };
       }
 
       const orders = ordersResult.data;
@@ -225,10 +247,14 @@ export class DataService {
         console.warn(`⚠️  Found ${orphanedCount} orders with orphaned references. Consider using the Data Cleanup tool at /admin/data-cleanup`);
       }
 
-      return enrichedOrders;
+      return { success: true, data: enrichedOrders };
     } catch (error) {
       console.error('Error in getOrdersWithRelations:', error);
-      return [];
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Failed to load orders with relations'
+      };
     }
   }
 }

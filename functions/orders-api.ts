@@ -66,37 +66,120 @@ function validateExternalDelivery(quantity: number): { valid: boolean; error?: s
 
 async function validateOutsideEilatDelivery(siteId: string, deliveryMethod: string, quantity: number): Promise<{ valid: boolean; error?: string }> {
   if (!siteId) return { valid: true };
-  
+
   try {
     const site = await superdev.entities.Site.get(siteId);
-    if (site && site.region_type === 'outside_eilat' && deliveryMethod === 'external' && quantity < 40) {
+    if (!site) {
+      return { valid: false, error: 'site_not_found' };
+    }
+    if (site.region_type === 'outside_eilat' && deliveryMethod === 'external' && quantity < 40) {
       return { valid: false, error: 'outside_eilat_min' };
     }
   } catch (error) {
     console.error('Error validating site:', error);
+    return { valid: false, error: 'site_validation_failed' };
   }
-  
+
   return { valid: true };
 }
 
-async function generateOrderNumber(): Promise<string> {
-  try {
-    // Get the latest order to determine next number
-    const orders = await superdev.entities.Order.list('-created_at', 1);
-    let nextNumber = 2001; // Start from 2001
-    
-    if (orders.length > 0 && orders[0].order_number) {
-      const lastNumber = parseInt(orders[0].order_number);
-      if (!isNaN(lastNumber)) {
-        nextNumber = lastNumber + 1;
+// Validate that referenced entities exist
+async function validateOrderReferences(orderData: { client_id?: string; product_id?: string; site_id?: string }): Promise<{ valid: boolean; error?: string }> {
+  // Validate client_id exists
+  if (orderData.client_id) {
+    try {
+      const client = await superdev.entities.Client.get(orderData.client_id);
+      if (!client) {
+        return { valid: false, error: 'client_not_found' };
       }
+    } catch (error) {
+      console.error('Error validating client:', error);
+      return { valid: false, error: 'client_not_found' };
     }
-    
-    return nextNumber.toString();
-  } catch (error) {
-    console.error('Error generating order number:', error);
-    return Date.now().toString(); // Fallback to timestamp
   }
+
+  // Validate product_id exists
+  if (orderData.product_id) {
+    try {
+      const product = await superdev.entities.Product.get(orderData.product_id);
+      if (!product) {
+        return { valid: false, error: 'product_not_found' };
+      }
+    } catch (error) {
+      console.error('Error validating product:', error);
+      return { valid: false, error: 'product_not_found' };
+    }
+  }
+
+  // Validate site_id exists (if provided)
+  if (orderData.site_id) {
+    try {
+      const site = await superdev.entities.Site.get(orderData.site_id);
+      if (!site) {
+        return { valid: false, error: 'site_not_found' };
+      }
+    } catch (error) {
+      console.error('Error validating site:', error);
+      return { valid: false, error: 'site_not_found' };
+    }
+  }
+
+  return { valid: true };
+}
+
+const ORDER_COUNTER_NAME = 'order_number';
+const INITIAL_ORDER_NUMBER = 2000;
+
+async function generateOrderNumber(): Promise<string> {
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // Try to get existing counter
+      let counters = await superdev.entities.Counter.filter({ name: ORDER_COUNTER_NAME });
+      let counter = counters.length > 0 ? counters[0] : null;
+
+      if (!counter) {
+        // Initialize counter - first check existing orders to find highest number
+        let highestNumber = INITIAL_ORDER_NUMBER;
+        const orders = await superdev.entities.Order.list('-order_number', 100);
+        for (const order of orders) {
+          if (order.order_number) {
+            const num = parseInt(order.order_number);
+            if (!isNaN(num) && num > highestNumber) {
+              highestNumber = num;
+            }
+          }
+        }
+
+        // Create counter with the highest found value
+        counter = await superdev.entities.Counter.create({
+          name: ORDER_COUNTER_NAME,
+          value: highestNumber,
+          last_updated: new Date().toISOString()
+        });
+      }
+
+      // Increment and save
+      const nextNumber = (counter.value || INITIAL_ORDER_NUMBER) + 1;
+      await superdev.entities.Counter.update(counter.id, {
+        value: nextNumber,
+        last_updated: new Date().toISOString()
+      });
+
+      return nextNumber.toString();
+    } catch (error) {
+      console.error(`Error generating order number (attempt ${attempt + 1}/${MAX_RETRIES}):`, error);
+      if (attempt === MAX_RETRIES - 1) {
+        // On final retry failure, throw error instead of using timestamp
+        throw new Error('Failed to generate order number after multiple attempts');
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+
+  throw new Error('Failed to generate order number');
 }
 
 Deno.serve(async (req) => {
@@ -116,18 +199,34 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const method = req.method;
-    const body = method !== 'GET' ? await req.json() : null;
+    const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await req.json() : null;
 
     // GET /orders - List orders with optional filters
     if (method === 'GET' && url.pathname === '/') {
-      const { filter, sort, limit, includeRelations } = body || {};
-      
+      // Read parameters from query string for GET requests
+      const params = url.searchParams;
+      const filter = params.get('filter') ? JSON.parse(params.get('filter')!) : undefined;
+      const sort = params.get('sort') || '-created_at';
+      const limit = params.get('limit') ? parseInt(params.get('limit')!) : 50;
+      const includeRelations = params.get('includeRelations') === 'true';
+      const includeDeleted = params.get('includeDeleted') === 'true'; // Include soft-deleted orders
+
       try {
         let orders;
-        if (filter) {
-          orders = await superdev.entities.Order.filter(filter, sort || '-created_at', limit || 50);
+        // Build filter to exclude soft-deleted orders by default
+        const effectiveFilter = filter ? { ...filter } : {};
+        if (!includeDeleted) {
+          effectiveFilter.is_deleted = false;
+        }
+
+        if (Object.keys(effectiveFilter).length > 0) {
+          orders = await superdev.entities.Order.filter(effectiveFilter, sort, limit);
         } else {
-          orders = await superdev.entities.Order.list(sort || '-created_at', limit || 50);
+          orders = await superdev.entities.Order.list(sort, limit);
+          // Manual filter for soft deletes if no other filter applied
+          if (!includeDeleted) {
+            orders = orders.filter(o => !o.is_deleted);
+          }
         }
 
         // Include related data if requested
@@ -175,6 +274,15 @@ Deno.serve(async (req) => {
       const orderData: OrderData = body;
 
       try {
+        // Validate that referenced entities (client, product, site) exist
+        const referencesValidation = await validateOrderReferences(orderData);
+        if (!referencesValidation.valid) {
+          return new Response(JSON.stringify({ success: false, error: referencesValidation.error }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
         // Validate delivery date and time
         const dateValidation = validateOrderDate(orderData.delivery_date, orderData.delivery_window);
         if (!dateValidation.valid) {
@@ -304,9 +412,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // DELETE /orders/:id - Delete order
+    // DELETE /orders/:id - Soft delete order (sets is_deleted flag instead of physical delete)
     if (method === 'DELETE' && url.pathname.startsWith('/')) {
       const orderId = url.pathname.slice(1);
+      const params = url.searchParams;
+      const hardDelete = params.get('hard') === 'true'; // Only for special cases
 
       try {
         // Check if user has permission to delete this order
@@ -326,27 +436,125 @@ Deno.serve(async (req) => {
           });
         }
 
-        await superdev.entities.Order.delete(orderId);
-
-        // Clean up related notifications and messages
+        // Create audit log entry
         try {
-          const notifications = await superdev.entities.Notification.filter({ order_id: orderId });
-          const messages = await superdev.entities.Message.filter({ order_id: orderId });
-          
-          await Promise.all([
-            ...notifications.map(n => superdev.entities.Notification.delete(n.id)),
-            ...messages.map(m => superdev.entities.Message.delete(m.id))
-          ]);
-        } catch (cleanupError) {
-          console.error('Error cleaning up related data:', cleanupError);
+          await superdev.entities.AuditLog.create({
+            entity_type: 'Order',
+            entity_id: orderId,
+            action: hardDelete ? 'delete' : 'soft_delete',
+            user_email: user.email,
+            user_role: user.role,
+            changes: {},
+            metadata: {
+              order_number: existingOrder.order_number,
+              client_id: existingOrder.client_id,
+              status_at_deletion: existingOrder.status
+            },
+            timestamp: new Date().toISOString()
+          });
+        } catch (auditError) {
+          console.error('Error creating audit log:', auditError);
+          // Don't fail deletion if audit fails
         }
 
-        return new Response(JSON.stringify({ success: true }), {
+        if (hardDelete) {
+          // Physical delete - only for special cases (e.g., data cleanup)
+          await superdev.entities.Order.delete(orderId);
+
+          // Clean up related notifications and messages
+          try {
+            const notifications = await superdev.entities.Notification.filter({ order_id: orderId });
+            const messages = await superdev.entities.Message.filter({ order_id: orderId });
+
+            await Promise.all([
+              ...notifications.map(n => superdev.entities.Notification.delete(n.id)),
+              ...messages.map(m => superdev.entities.Message.delete(m.id))
+            ]);
+          } catch (cleanupError) {
+            console.error('Error cleaning up related data:', cleanupError);
+          }
+        } else {
+          // Soft delete - mark as deleted but keep data
+          await superdev.entities.Order.update(orderId, {
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+            deleted_by: user.email
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          soft_deleted: !hardDelete
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Error deleting order:', error);
+        return new Response(JSON.stringify({ success: false, error: error.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // POST /orders/:id/restore - Restore a soft-deleted order
+    if (method === 'POST' && url.pathname.match(/^\/[^/]+\/restore$/)) {
+      const orderId = url.pathname.split('/')[1];
+
+      try {
+        const existingOrder = await superdev.entities.Order.get(orderId);
+        if (!existingOrder) {
+          return new Response(JSON.stringify({ success: false, error: 'Order not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        if (!existingOrder.is_deleted) {
+          return new Response(JSON.stringify({ success: false, error: 'Order is not deleted' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Only managers can restore orders
+        if (user.role !== 'manager') {
+          return new Response(JSON.stringify({ success: false, error: 'Permission denied' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Restore the order
+        const restoredOrder = await superdev.entities.Order.update(orderId, {
+          is_deleted: false,
+          deleted_at: null,
+          deleted_by: null
+        });
+
+        // Create audit log entry
+        try {
+          await superdev.entities.AuditLog.create({
+            entity_type: 'Order',
+            entity_id: orderId,
+            action: 'restore',
+            user_email: user.email,
+            user_role: user.role,
+            changes: {},
+            metadata: { order_number: existingOrder.order_number },
+            timestamp: new Date().toISOString()
+          });
+        } catch (auditError) {
+          console.error('Error creating audit log:', auditError);
+        }
+
+        return new Response(JSON.stringify({ success: true, data: restoredOrder }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('Error restoring order:', error);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
