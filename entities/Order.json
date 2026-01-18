@@ -111,23 +111,6 @@
     "delivery_notes": {
       "type": "string",
       "description": "Notes related specifically to delivery (delays, behavior, etc.)"
-    },
-    "is_deleted": {
-      "type": "boolean",
-      "description": "Soft delete flag - if true, the order is considered deleted",
-      "default": false
-    },
-    "deleted_at": {
-      "type": "string",
-      "description": "Timestamp when the order was soft deleted (ISO string)"
-    },
-    "deleted_by": {
-      "type": "string",
-      "description": "Email of the user who deleted the order"
-    },
-    "created_by": {
-      "type": "string",
-      "description": "Email of the user who created the order"
     }
   }
 }

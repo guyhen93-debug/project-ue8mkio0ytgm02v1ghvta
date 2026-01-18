@@ -1,19 +1,3 @@
-// Re-export Zod schemas and validation helpers
-export {
-  // Schemas
-  OrderSchema,
-  CreateOrderSchema,
-  ClientSchema,
-  SiteSchema,
-  ProductSchema,
-  UserSchema,
-  NotificationSchema,
-  // Validation helpers
-  validateExternalDelivery,
-  validateDeliveryDate,
-  parseCreateOrderData
-} from './schemas';
-
 export interface Order {
   id: string;
   order_number: string;
@@ -41,10 +25,6 @@ export interface Order {
   rating_comment?: string;
   updated_at?: string;
   delivered_at?: string;
-  // Soft delete fields
-  is_deleted?: boolean;
-  deleted_at?: string;
-  deleted_by?: string;
 }
 
 export interface User {
