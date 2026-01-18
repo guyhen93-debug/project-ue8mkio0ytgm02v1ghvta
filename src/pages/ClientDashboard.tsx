@@ -4,6 +4,7 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Order, Site, Product, User, Client, Notification } from '@/entities';
 import type { Order as OrderType, User as UserType, Client as ClientType, Site as SiteType, Product as ProductType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -24,6 +25,8 @@ const ClientDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<UserType | null>(null);
   const [userClient, setUserClient] = useState<ClientType | null>(null);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<OrderType | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const translations = {
     he: {
@@ -45,9 +48,18 @@ const ClientDashboard: React.FC = () => {
       moreDetails: 'פרטים נוספים',
       hideDetails: 'הסתר פרטים',
       contactLabel: 'איש קשר:',
+      phoneLabel: 'טלפון:',
       notesLabel: 'הערות:',
       deliveryNoteLabel: 'תעודת משלוח:',
       driverLabel: 'נהג:',
+      siteLabel: 'אתר:',
+      orderDetails: 'פרטי הזמנה',
+      close: 'סגור',
+      attentionTitle: 'דורש תשומת לב',
+      attentionPlural: '{count} הזמנות מחכות לאישור או דירוג',
+      attentionSingle: 'הזמנה אחת מחכה לאישור או דירוג',
+      attentionNone: 'כל ההזמנות מטופלות ✅',
+      handleNow: 'טפל עכשיו',
     },
     en: {
       title: 'Client Dashboard',
@@ -68,9 +80,18 @@ const ClientDashboard: React.FC = () => {
       moreDetails: 'More details',
       hideDetails: 'Hide details',
       contactLabel: 'Contact:',
+      phoneLabel: 'Phone:',
       notesLabel: 'Notes:',
       deliveryNoteLabel: 'Delivery note:',
       driverLabel: 'Driver:',
+      siteLabel: 'Site:',
+      orderDetails: 'Order Details',
+      close: 'Close',
+      attentionTitle: 'Requires Attention',
+      attentionPlural: '{count} orders waiting for confirmation or rating',
+      attentionSingle: 'One order waiting for confirmation or rating',
+      attentionNone: 'All orders are handled ✅',
+      handleNow: 'Handle now',
     }
   };
 
@@ -122,15 +143,11 @@ const ClientDashboard: React.FC = () => {
   );
   const attentionCount = ordersNeedingAttention.length;
 
-  const attentionTitle = language === 'he' ? 'דורש תשומת לב' : 'Requires attention';
-  const attentionDescription = attentionCount > 0
-    ? (language === 'he'
-        ? `${attentionCount} הזמנות ממתינות לאישור או דירוג`
-        : `${attentionCount} orders waiting for confirmation or rating`)
-    : (language === 'he'
-        ? 'כל ההזמנות מטופלות ✅'
-        : 'All orders are handled ✅');
-  const attentionCta = language === 'he' ? 'טפל עכשיו' : 'Handle now';
+  const getAttentionDescription = () => {
+    if (attentionCount === 0) return t.attentionNone;
+    if (attentionCount === 1) return t.attentionSingle;
+    return t.attentionPlural.replace('{count}', attentionCount.toString());
+  };
 
   // Get top 5 recent orders
   const recentOrders = useMemo(
@@ -214,6 +231,12 @@ const ClientDashboard: React.FC = () => {
     }
   };
 
+  const getSiteName = (siteId?: string) => {
+    if (!siteId) return '';
+    const site = sites.find(s => s.id === siteId);
+    return site ? (language === 'he' ? (site as any).name_he || site.name : site.name) : '';
+  };
+
   return (
     <Layout title={t.title}>
       <div className="p-3 sm:p-4 md:p-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -261,7 +284,7 @@ const ClientDashboard: React.FC = () => {
         {/* Requires Attention Widget */}
         <div
           className={cn(
-            "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm",
+            "mb-6 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm transition-all",
             attentionCount > 0
               ? "border-blue-200 bg-blue-50"
               : "border-green-100 bg-green-50/50"
@@ -277,17 +300,17 @@ const ClientDashboard: React.FC = () => {
               <CheckCircle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">{attentionTitle}</h3>
-              <p className="text-sm text-gray-600">{attentionDescription}</p>
+              <h3 className="font-bold text-gray-900">{t.attentionTitle}</h3>
+              <p className="text-sm text-gray-600">{getAttentionDescription()}</p>
             </div>
           </div>
           {attentionCount > 0 && (
             <Button
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
               onClick={() => navigate('/order-history')}
             >
-              {attentionCta}
+              {t.handleNow}
             </Button>
           )}
         </div>
@@ -365,24 +388,31 @@ const ClientDashboard: React.FC = () => {
                     return (
                       <div
                         key={order.id}
-                        className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
-                        onClick={() => navigate('/order-history')}
+                        className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedOrderForDetails(order);
+                          setIsDetailsOpen(true);
+                        }}
                       >
-                        <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="font-bold text-gray-900 text-base truncate">
-                            #{order.order_number}
+                            #{order.order_number} – {productName}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5 truncate">
-                            {productName} • {order.quantity_tons}ט' • {formatOrderDate(order.delivery_date)}
+                          <div
+                            className={cn(
+                              'px-2 py-1 rounded text-xs font-bold border shadow-sm shrink-0 ml-2',
+                              statusConfig.className
+                            )}
+                          >
+                            {statusConfig.label}
                           </div>
                         </div>
-                        <div
-                          className={cn(
-                            'px-2 py-1 rounded text-xs font-bold border shadow-sm',
-                            statusConfig.className
-                          )}
-                        >
-                          {statusConfig.label}
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <div className="flex items-center gap-2">
+                            <span>{formatOrderDate(order.delivery_date)}</span>
+                            <span>•</span>
+                            <span>{order.quantity_tons}ט'</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -407,6 +437,80 @@ const ClientDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-[425px]" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.orderDetails}</DialogTitle>
+            <DialogDescription>
+              {selectedOrderForDetails && `#{selectedOrderForDetails.order_number}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrderForDetails && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 font-bold uppercase">{t.product}</p>
+                  <p className="font-medium">{getProductName(selectedOrderForDetails.product_id)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 font-bold uppercase">{t.quantity}</p>
+                  <p className="font-medium">{selectedOrderForDetails.quantity_tons}ט'</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 font-bold uppercase">{t.date}</p>
+                  <p className="font-medium">{formatOrderDate(selectedOrderForDetails.delivery_date)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 font-bold uppercase">{t.siteLabel}</p>
+                  <p className="font-medium">{getSiteName(selectedOrderForDetails.site_id)}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 space-y-3">
+                {selectedOrderForDetails.contact_name && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{t.contactLabel}</span>
+                    <span className="font-medium">{selectedOrderForDetails.contact_name}</span>
+                  </div>
+                )}
+                {selectedOrderForDetails.contact_phone && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{t.phoneLabel}</span>
+                    <span className="font-medium">{selectedOrderForDetails.contact_phone}</span>
+                  </div>
+                )}
+                {selectedOrderForDetails.delivery_note_number && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{t.deliveryNoteLabel}</span>
+                    <span className="font-medium">{selectedOrderForDetails.delivery_note_number}</span>
+                  </div>
+                )}
+                {selectedOrderForDetails.driver_name && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{t.driverLabel}</span>
+                    <span className="font-medium">{selectedOrderForDetails.driver_name}</span>
+                  </div>
+                )}
+                {selectedOrderForDetails.notes && (
+                  <div className="space-y-1 mt-2">
+                    <p className="text-xs text-gray-500 font-bold uppercase">{t.notesLabel}</p>
+                    <p className="text-sm bg-gray-50 p-2 rounded border">{selectedOrderForDetails.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold" onClick={() => setIsDetailsOpen(false)}>
+              {t.close}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

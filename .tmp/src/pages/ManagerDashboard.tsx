@@ -30,6 +30,7 @@ const ManagerDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<OrderType | null>(null);
   const [deliveryForm, setDeliveryForm] = useState({
@@ -44,13 +45,14 @@ const ManagerDashboard: React.FC = () => {
       title: 'דשבורד מנהל',
       recentOrders: 'הזמנות אחרונות',
       createOrder: 'צור הזמנה חדשה',
-      error: 'שגיאה בטעינת הזמנות',
+      error: 'לא הצלחנו לטעון את ההזמנות כרגע. נסה שוב, ואם זה חוזר – עדכן את פיטר',
       retry: 'נסו שוב',
       pendingSectionTitle: 'הזמנות ממתינות לאישור',
       partialSectionTitle: 'הזמנות באספקה חלקית',
       approve: 'אשר',
       reject: 'דחה',
       sendMessage: 'שלח הודעה',
+      details: 'פרטים',
       addDelivery: 'עדכן אספקה',
       deliveryAmountPlaceholder: 'טונות נוספים',
       remaining: 'נותר',
@@ -62,7 +64,7 @@ const ManagerDashboard: React.FC = () => {
       invalidAmount: 'נא להזין כמות תקינה',
       urgentTitle: 'דורש טיפול מיידי',
       urgentPendingText: '{count} הזמנות ממתינות לאישור',
-      urgentNoPending: 'אין הזמנות הממתינות לטיפול ✅',
+      urgentNoPending: 'כל ההזמנות מטופלות ✅',
       urgentButton: 'טפל עכשיו',
       statusTitle: '⚡ סטטוס הזמנות',
       statusOpen: 'פתוחות',
@@ -79,18 +81,26 @@ const ManagerDashboard: React.FC = () => {
       deliveryNoteRequired: 'יש להזין מספר תעודת משלוח',
       cancel: 'ביטול',
       quantity: 'כמות',
+      site: 'אתר',
+      timeSlot: 'חלון זמן',
+      deliveryType: 'סוג הובלה',
+      notes: 'הערות',
+      client: 'לקוח',
+      product: 'מוצר',
+      date: 'תאריך',
     },
     en: {
       title: 'Manager Dashboard',
       recentOrders: 'Recent Orders',
       createOrder: 'Create New Order',
-      error: 'Error loading orders',
+      error: "We couldn't load orders right now. Try again, and if it keeps happening – let Piter know",
       retry: 'Retry',
       pendingSectionTitle: 'Pending Orders',
       partialSectionTitle: 'Partially Delivered Orders',
       approve: 'Approve',
       reject: 'Reject',
       sendMessage: 'Send Message',
+      details: 'Details',
       addDelivery: 'Update Delivery',
       deliveryAmountPlaceholder: 'Add tons',
       remaining: 'Remaining',
@@ -102,7 +112,7 @@ const ManagerDashboard: React.FC = () => {
       invalidAmount: 'Please enter a valid amount',
       urgentTitle: 'Requires Immediate Attention',
       urgentPendingText: '{count} orders waiting for approval',
-      urgentNoPending: 'No orders waiting for attention ✅',
+      urgentNoPending: 'All orders are handled ✅',
       urgentButton: 'Handle now',
       statusTitle: '⚡ Order Status',
       statusOpen: 'Open',
@@ -119,6 +129,13 @@ const ManagerDashboard: React.FC = () => {
       deliveryNoteRequired: 'Delivery note number is required',
       cancel: 'Cancel',
       quantity: 'Quantity',
+      site: 'Site',
+      timeSlot: 'Time Slot',
+      deliveryType: 'Delivery Type',
+      notes: 'Notes',
+      client: 'Client',
+      product: 'Product',
+      date: 'Date',
     }
   };
 
@@ -467,51 +484,108 @@ const ManagerDashboard: React.FC = () => {
             <CardContent className="p-0">
               <div className="divide-y divide-gray-100">
                 {pendingOrders.map(order => (
-                  <div key={order.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900">#{order.order_number}</span>
-                        <Badge className="bg-orange-100 text-orange-700 border-none px-2 py-0.5 text-[10px] font-bold">
-                          {t.pendingSectionTitle}
-                        </Badge>
+                  <div key={order.id} className="flex flex-col border-b border-gray-100 last:border-0">
+                    <div 
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                    >
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900">#{order.order_number}</span>
+                          <Badge className="bg-orange-100 text-orange-700 border-none px-2 py-0.5 text-[10px] font-bold">
+                            {language === 'he' ? 'ממתין' : 'Pending'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-700 font-medium">
+                          {getClientName(order, sitesMap, clientsMap)}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            {getProductName(order.product_id, productsMap, language)}
+                          </span>
+                          <span>•</span>
+                          <span>{order.quantity_tons} {t.tons}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatOrderDate(order.delivery_date, language)}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-700 font-medium">
-                        {getClientName(order, sitesMap, clientsMap)}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Package className="w-3 h-3" />
-                          {getProductName(order.product_id, productsMap, language)}
-                        </span>
-                        <span>•</span>
-                        <span>{order.quantity_tons} {t.tons}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatOrderDate(order.delivery_date, language)}
-                        </span>
+                      <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          onClick={() => handleStatusUpdate(order.id, 'rejected')}
+                          disabled={isUpdating === order.id}
+                          title={t.reject}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-9 w-9 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          onClick={() => handleSendMessage(order)}
+                          title={t.sendMessage}
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="h-9 px-4 bg-green-600 hover:bg-green-700 text-white border-none gap-2 font-bold"
+                          onClick={() => handleStatusUpdate(order.id, 'approved')}
+                          disabled={isUpdating === order.id}
+                        >
+                          <Check className="w-4 h-4" />
+                          <span className="hidden sm:inline">{t.approve}</span>
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                        onClick={() => handleStatusUpdate(order.id, 'rejected')}
-                        disabled={isUpdating === order.id}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="h-9 px-4 bg-green-600 hover:bg-green-700 text-white border-none gap-2 font-bold"
-                        onClick={() => handleStatusUpdate(order.id, 'approved')}
-                        disabled={isUpdating === order.id}
-                      >
-                        <Check className="w-4 h-4" />
-                        {t.approve}
-                      </Button>
-                    </div>
+                    
+                    {/* Expanded Details */}
+                    {expandedOrderId === order.id && (
+                      <div className="px-4 pb-4 pt-0 bg-gray-50/50 animate-in slide-in-from-top-2 duration-200">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm text-sm">
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.client}</p>
+                            <p className="font-medium text-gray-900 truncate">{getClientName(order, sitesMap, clientsMap)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.site}</p>
+                            <p className="font-medium text-gray-900 truncate">{getSiteName(order.site_id, sitesMap, language)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.product}</p>
+                            <p className="font-medium text-gray-900 truncate">{getProductName(order.product_id, productsMap, language)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.quantity}</p>
+                            <p className="font-medium text-gray-900">{order.quantity_tons} {t.tons}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.date}</p>
+                            <p className="font-medium text-gray-900">{formatOrderDate(order.delivery_date, language)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.timeSlot}</p>
+                            <p className="font-medium text-gray-900">{order.delivery_time_slot || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.deliveryType}</p>
+                            <p className="font-medium text-gray-900">{order.delivery_type || '-'}</p>
+                          </div>
+                          {order.notes && (
+                            <div className="col-span-2 sm:col-span-4">
+                              <p className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">{t.notes}</p>
+                              <p className="font-medium text-gray-900">{order.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
