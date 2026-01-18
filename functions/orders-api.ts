@@ -209,13 +209,24 @@ Deno.serve(async (req) => {
       const sort = params.get('sort') || '-created_at';
       const limit = params.get('limit') ? parseInt(params.get('limit')!) : 50;
       const includeRelations = params.get('includeRelations') === 'true';
-      
+      const includeDeleted = params.get('includeDeleted') === 'true'; // Include soft-deleted orders
+
       try {
         let orders;
-        if (filter) {
-          orders = await superdev.entities.Order.filter(filter, sort || '-created_at', limit || 50);
+        // Build filter to exclude soft-deleted orders by default
+        const effectiveFilter = filter ? { ...filter } : {};
+        if (!includeDeleted) {
+          effectiveFilter.is_deleted = false;
+        }
+
+        if (Object.keys(effectiveFilter).length > 0) {
+          orders = await superdev.entities.Order.filter(effectiveFilter, sort, limit);
         } else {
-          orders = await superdev.entities.Order.list(sort || '-created_at', limit || 50);
+          orders = await superdev.entities.Order.list(sort, limit);
+          // Manual filter for soft deletes if no other filter applied
+          if (!includeDeleted) {
+            orders = orders.filter(o => !o.is_deleted);
+          }
         }
 
         // Include related data if requested
@@ -401,9 +412,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // DELETE /orders/:id - Delete order
+    // DELETE /orders/:id - Soft delete order (sets is_deleted flag instead of physical delete)
     if (method === 'DELETE' && url.pathname.startsWith('/')) {
       const orderId = url.pathname.slice(1);
+      const params = url.searchParams;
+      const hardDelete = params.get('hard') === 'true'; // Only for special cases
 
       try {
         // Check if user has permission to delete this order
@@ -423,27 +436,125 @@ Deno.serve(async (req) => {
           });
         }
 
-        await superdev.entities.Order.delete(orderId);
-
-        // Clean up related notifications and messages
+        // Create audit log entry
         try {
-          const notifications = await superdev.entities.Notification.filter({ order_id: orderId });
-          const messages = await superdev.entities.Message.filter({ order_id: orderId });
-          
-          await Promise.all([
-            ...notifications.map(n => superdev.entities.Notification.delete(n.id)),
-            ...messages.map(m => superdev.entities.Message.delete(m.id))
-          ]);
-        } catch (cleanupError) {
-          console.error('Error cleaning up related data:', cleanupError);
+          await superdev.entities.AuditLog.create({
+            entity_type: 'Order',
+            entity_id: orderId,
+            action: hardDelete ? 'delete' : 'soft_delete',
+            user_email: user.email,
+            user_role: user.role,
+            changes: {},
+            metadata: {
+              order_number: existingOrder.order_number,
+              client_id: existingOrder.client_id,
+              status_at_deletion: existingOrder.status
+            },
+            timestamp: new Date().toISOString()
+          });
+        } catch (auditError) {
+          console.error('Error creating audit log:', auditError);
+          // Don't fail deletion if audit fails
         }
 
-        return new Response(JSON.stringify({ success: true }), {
+        if (hardDelete) {
+          // Physical delete - only for special cases (e.g., data cleanup)
+          await superdev.entities.Order.delete(orderId);
+
+          // Clean up related notifications and messages
+          try {
+            const notifications = await superdev.entities.Notification.filter({ order_id: orderId });
+            const messages = await superdev.entities.Message.filter({ order_id: orderId });
+
+            await Promise.all([
+              ...notifications.map(n => superdev.entities.Notification.delete(n.id)),
+              ...messages.map(m => superdev.entities.Message.delete(m.id))
+            ]);
+          } catch (cleanupError) {
+            console.error('Error cleaning up related data:', cleanupError);
+          }
+        } else {
+          // Soft delete - mark as deleted but keep data
+          await superdev.entities.Order.update(orderId, {
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+            deleted_by: user.email
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          soft_deleted: !hardDelete
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
       } catch (error) {
         console.error('Error deleting order:', error);
+        return new Response(JSON.stringify({ success: false, error: error.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // POST /orders/:id/restore - Restore a soft-deleted order
+    if (method === 'POST' && url.pathname.match(/^\/[^/]+\/restore$/)) {
+      const orderId = url.pathname.split('/')[1];
+
+      try {
+        const existingOrder = await superdev.entities.Order.get(orderId);
+        if (!existingOrder) {
+          return new Response(JSON.stringify({ success: false, error: 'Order not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        if (!existingOrder.is_deleted) {
+          return new Response(JSON.stringify({ success: false, error: 'Order is not deleted' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Only managers can restore orders
+        if (user.role !== 'manager') {
+          return new Response(JSON.stringify({ success: false, error: 'Permission denied' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Restore the order
+        const restoredOrder = await superdev.entities.Order.update(orderId, {
+          is_deleted: false,
+          deleted_at: null,
+          deleted_by: null
+        });
+
+        // Create audit log entry
+        try {
+          await superdev.entities.AuditLog.create({
+            entity_type: 'Order',
+            entity_id: orderId,
+            action: 'restore',
+            user_email: user.email,
+            user_role: user.role,
+            changes: {},
+            metadata: { order_number: existingOrder.order_number },
+            timestamp: new Date().toISOString()
+          });
+        } catch (auditError) {
+          console.error('Error creating audit log:', auditError);
+        }
+
+        return new Response(JSON.stringify({ success: true, data: restoredOrder }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('Error restoring order:', error);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }

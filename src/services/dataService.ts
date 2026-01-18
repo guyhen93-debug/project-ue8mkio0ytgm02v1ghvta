@@ -41,14 +41,28 @@ export class DataService {
     };
   }
 
-  static async loadOrders(userEmail?: string, isAdmin: boolean = false): Promise<DataServiceResult<any[]>> {
+  static async loadOrders(
+    userEmail?: string,
+    isAdmin: boolean = false,
+    includeDeleted: boolean = false
+  ): Promise<DataServiceResult<any[]>> {
     return this.withRetry(async () => {
+      let orders: any[];
+
       if (isAdmin) {
-        return await Order.list('-created_at');
+        orders = await Order.list('-created_at');
       } else if (userEmail) {
-        return await Order.filter({ created_by: userEmail }, '-created_at');
+        orders = await Order.filter({ created_by: userEmail }, '-created_at');
+      } else {
+        return [];
       }
-      return [];
+
+      // Filter out soft-deleted orders by default
+      if (!includeDeleted) {
+        orders = orders.filter(order => !order.is_deleted);
+      }
+
+      return orders;
     });
   }
 

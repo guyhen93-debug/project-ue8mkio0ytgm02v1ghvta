@@ -1,0 +1,38 @@
+{
+  "name": "AuditLog",
+  "description": "Audit trail for tracking all changes to entities",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "description": "The type of entity (Order, Client, Site, Product, User)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "The ID of the affected entity"
+    },
+    "action": {
+      "type": "string",
+      "description": "The action performed (create, update, delete, soft_delete, restore)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who performed the action"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Role of the user (client, manager)"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Object containing the changes made (before/after values)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (IP address, user agent, etc.)"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of when the action occurred"
+    }
+  }
+}
