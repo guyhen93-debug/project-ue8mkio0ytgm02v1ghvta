@@ -15,7 +15,7 @@ import { OrderClientSection } from '@/components/order/OrderClientSection';
 import { OrderProductSection } from '@/components/order/OrderProductSection';
 import { OrderDeliverySection } from '@/components/order/OrderDeliverySection';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { FileText, Send } from 'lucide-react';
+import { FileText, Send, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { findUserClient } from '@/lib/orderUtils';
 
 const CreateOrder = () => {
@@ -24,6 +24,7 @@ const CreateOrder = () => {
     const { language } = useLanguage();
     const duplicateOrder = (location.state as { duplicateOrder?: OrderType })?.duplicateOrder;
     const [duplicateApplied, setDuplicateApplied] = useState(false);
+    const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
     const { user: currentUser } = useAuth();
 
     const translations = {
@@ -46,6 +47,26 @@ const CreateOrder = () => {
             submit: 'שלח הזמנה',
             submitting: 'שולח הזמנה...',
             createOrder: 'צור הזמנה חדשה',
+            // Step titles
+            step1Title: 'לקוח ואתר',
+            step2Title: 'מוצר וכמות',
+            step3Title: 'מועד ואספקה',
+            step4Title: 'הערות וסיכום',
+            next: 'המשך',
+            back: 'חזור',
+            reviewTitle: 'סיכום הזמנה',
+            summaryClient: 'לקוח',
+            summarySite: 'אתר',
+            summaryProduct: 'מוצר',
+            summaryQuantity: 'כמות',
+            summaryDate: 'תאריך',
+            summaryWindow: 'חלון זמן',
+            summaryDelivery: 'שיטת אספקה',
+            summaryNotes: 'הערות',
+            tons: 'טון',
+            cubicMeters: 'מ"ק',
+            selfDelivery: 'איסוף עצמי',
+            externalDelivery: 'הובלה חיצונית'
         },
         en: {
             title: 'Create Order',
@@ -66,6 +87,26 @@ const CreateOrder = () => {
             submit: 'Send Order',
             submitting: 'Sending order...',
             createOrder: 'Create New Order',
+            // Step titles
+            step1Title: 'Client & Site',
+            step2Title: 'Product & Quantity',
+            step3Title: 'Schedule & Delivery',
+            step4Title: 'Notes & Review',
+            next: 'Next',
+            back: 'Back',
+            reviewTitle: 'Order Summary',
+            summaryClient: 'Client',
+            summarySite: 'Site',
+            summaryProduct: 'Product',
+            summaryQuantity: 'Quantity',
+            summaryDate: 'Date',
+            summaryWindow: 'Time Window',
+            summaryDelivery: 'Delivery Method',
+            summaryNotes: 'Notes',
+            tons: 'Tons',
+            cubicMeters: 'm³',
+            selfDelivery: 'Self Pickup',
+            externalDelivery: 'External Delivery'
         },
     } as const;
 
@@ -252,6 +293,33 @@ const CreateOrder = () => {
         }
     };
 
+    const isStepValid = (step: number) => {
+        switch (step) {
+            case 1:
+                return !!formData.client_id && !!formData.site_id;
+            case 2:
+                return !!formData.supplier && !!formData.product_id && !!formData.quantity_tons && validation.valid;
+            case 3:
+                return !!formData.delivery_date && !!formData.delivery_window && !!formData.delivery_method;
+            default:
+                return true;
+        }
+    };
+
+    const goNext = () => {
+        if (isStepValid(currentStep) && currentStep < 4) {
+            setCurrentStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
+            window.scrollTo(0, 0);
+        }
+    };
+
+    const goBack = () => {
+        if (currentStep > 1) {
+            setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
+            window.scrollTo(0, 0);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -337,6 +405,100 @@ const CreateOrder = () => {
         }
     };
 
+    const ProgressIndicator = () => {
+        const steps = [
+            { id: 1, title: t.step1Title },
+            { id: 2, title: t.step2Title },
+            { id: 3, title: t.step3Title },
+            { id: 4, title: t.step4Title },
+        ];
+
+        return (
+            <div className="mb-10 mt-2 px-2">
+                <div className="flex items-center justify-between relative">
+                    <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 z-0" />
+                    <div 
+                        className={`absolute top-4 h-0.5 bg-yellow-500 z-0 transition-all duration-300 ${language === 'he' ? 'right-0' : 'left-0'}`} 
+                        style={{ 
+                            width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`
+                        }}
+                    />
+
+                    {steps.map((step) => {
+                        const isCompleted = currentStep > step.id;
+                        const isActive = currentStep === step.id;
+
+                        return (
+                            <div key={step.id} className="relative z-10 flex flex-col items-center">
+                                <div 
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
+                                        isCompleted 
+                                            ? 'bg-yellow-500 border-yellow-500 text-black' 
+                                            : isActive 
+                                                ? 'bg-white border-yellow-500 text-yellow-500 font-bold' 
+                                                : 'bg-white border-gray-300 text-gray-400'
+                                    }`}
+                                >
+                                    {isCompleted ? <Check className="h-4 w-4" /> : <span>{step.id}</span>}
+                                </div>
+                                <span 
+                                    className={`text-[10px] sm:text-xs mt-2 font-medium text-center absolute -bottom-7 w-20 ${
+                                        isActive ? 'text-black' : 'text-gray-400'
+                                    }`}
+                                >
+                                    {step.title}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    const SummaryCard = () => {
+        const selectedClient = (clients as unknown as ClientType[]).find(c => c.id === formData.client_id);
+        const selectedSite = getSelectedSite();
+        
+        const summaryItems = [
+            { label: t.summaryClient, value: selectedClient?.name || '—' },
+            { label: t.summarySite, value: selectedSite?.site_name || '—' },
+            { label: t.summaryProduct, value: formData.product_id || '—' },
+            { 
+                label: t.summaryQuantity, 
+                value: `${getDisplayQuantity()} ${useCubicMeters ? t.cubicMeters : t.tons}` 
+            },
+            { label: t.summaryDate, value: formData.delivery_date || '—' },
+            { label: t.summaryWindow, value: formData.delivery_window || '—' },
+            { 
+                label: t.summaryDelivery, 
+                value: formData.delivery_method === 'self' ? t.selfDelivery : t.externalDelivery 
+            },
+            { label: t.summaryNotes, value: formData.notes || '—', fullWidth: true },
+        ];
+
+        return (
+            <Card className="overflow-hidden border-yellow-200 bg-yellow-50/30 mb-6">
+                <CardHeader className="bg-yellow-50/50 border-b border-yellow-100 py-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <Check className="h-5 w-5 text-yellow-600" />
+                        {t.reviewTitle}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                        {summaryItems.map((item, idx) => (
+                            <div key={idx} className={`${item.fullWidth ? 'sm:col-span-2' : ''} border-b border-gray-100/50 pb-2 last:border-0`}>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">{item.label}</p>
+                                <p className="text-sm font-semibold text-gray-900">{item.value}</p>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
     const isManager = currentUser?.role === 'manager';
     const isMaavarRabin = formData.supplier === 'maavar_rabin';
     const selectedSite = getSelectedSite();
@@ -360,86 +522,126 @@ const CreateOrder = () => {
                         <p className="text-gray-600">{t.subtitle}</p>
                     </div>
 
+                    <ProgressIndicator />
+
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Client Section */}
-                        <OrderClientSection
-                            isManager={isManager}
-                            userClient={userClient}
-                            formData={formData}
-                            clients={(clients as unknown as ClientType[]).filter(c => c.is_active)}
-                            filteredSites={filteredSites}
-                            selectedSite={selectedSite}
-                            onClientChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
-                            onSiteChange={(siteId) => setFormData({ ...formData, site_id: siteId })}
-                        />
-
-                        {/* Product Section */}
-                        <OrderProductSection
-                            formData={formData}
-                            useCubicMeters={useCubicMeters}
-                            validation={validation}
-                            multipleRequirement={multipleRequirement}
-                            minQuantity={minQuantity}
-                            CUBIC_TO_TON_RATIO={CUBIC_TO_TON_RATIO}
-                            onSupplierChange={(supplier) => setFormData({ ...formData, supplier })}
-                            onProductChange={(productId) => setFormData({ ...formData, product_id: productId })}
-                            onQuantityChange={handleDisplayQuantityChange}
-                            onUnitToggle={setUseCubicMeters}
-                            getDisplayQuantity={getDisplayQuantity}
-                        />
-
-                        {/* Delivery Section */}
-                        <OrderDeliverySection
-                            formData={formData}
-                            truckAccessSpace={truckAccessSpace}
-                            isMaavarRabin={isMaavarRabin}
-                            shouldShowTruckAccessCheckbox={shouldShowTruckAccessCheckbox()}
-                            onDeliveryDateChange={(date) => setFormData({ ...formData, delivery_date: date })}
-                            onDeliveryWindowChange={(window) => setFormData({ ...formData, delivery_window: window })}
-                            onDeliveryMethodChange={(method) => setFormData({ ...formData, delivery_method: method })}
-                            onTruckAccessChange={setTruckAccessSpace}
-                        />
-
-                        {/* Notes */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-gray-500" />
-                                    {t.notes}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Textarea
-                                    id="notes"
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    placeholder={t.notesPlaceholder}
-                                    className="text-right min-h-[100px]"
-                                    rows={4}
+                        {currentStep === 1 && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <OrderClientSection
+                                    isManager={isManager}
+                                    userClient={userClient}
+                                    formData={formData}
+                                    clients={(clients as unknown as ClientType[]).filter(c => c.is_active)}
+                                    filteredSites={filteredSites}
+                                    selectedSite={selectedSite}
+                                    onClientChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
+                                    onSiteChange={(siteId) => setFormData({ ...formData, site_id: siteId })}
                                 />
-                            </CardContent>
-                        </Card>
+                            </div>
+                        )}
 
-                        {/* Submit Button */}
+                        {currentStep === 2 && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <OrderProductSection
+                                    formData={formData}
+                                    useCubicMeters={useCubicMeters}
+                                    validation={validation}
+                                    multipleRequirement={multipleRequirement}
+                                    minQuantity={minQuantity}
+                                    CUBIC_TO_TON_RATIO={CUBIC_TO_TON_RATIO}
+                                    onSupplierChange={(supplier) => setFormData({ ...formData, supplier })}
+                                    onProductChange={(productId) => setFormData({ ...formData, product_id: productId })}
+                                    onQuantityChange={handleDisplayQuantityChange}
+                                    onUnitToggle={setUseCubicMeters}
+                                    getDisplayQuantity={getDisplayQuantity}
+                                />
+                            </div>
+                        )}
+
+                        {currentStep === 3 && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <OrderDeliverySection
+                                    formData={formData}
+                                    truckAccessSpace={truckAccessSpace}
+                                    isMaavarRabin={isMaavarRabin}
+                                    shouldShowTruckAccessCheckbox={shouldShowTruckAccessCheckbox()}
+                                    onDeliveryDateChange={(date) => setFormData({ ...formData, delivery_date: date })}
+                                    onDeliveryWindowChange={(window) => setFormData({ ...formData, delivery_window: window })}
+                                    onDeliveryMethodChange={(method) => setFormData({ ...formData, delivery_method: method })}
+                                    onTruckAccessChange={setTruckAccessSpace}
+                                />
+                            </div>
+                        )}
+
+                        {currentStep === 4 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-gray-500" />
+                                            {t.notes}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Textarea
+                                            id="notes"
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                            placeholder={t.notesPlaceholder}
+                                            className="text-right min-h-[100px]"
+                                            rows={4}
+                                        />
+                                    </CardContent>
+                                </Card>
+                                
+                                <SummaryCard />
+                            </div>
+                        )}
+
+                        {/* Navigation Buttons */}
                         <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-30">
-                            <div className="max-w-7xl mx-auto">
-                                <Button
-                                    type="submit"
-                                    disabled={submitting || !validation.valid}
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
-                                            {t.submitting}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send className="h-5 w-5 ml-2" />
-                                            {t.submit}
-                                        </>
-                                    )}
-                                </Button>
+                            <div className="max-w-7xl mx-auto flex gap-3">
+                                {currentStep > 1 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={goBack}
+                                        className="flex-1 py-6 border-gray-300 flex items-center justify-center"
+                                    >
+                                        <ChevronRight className="h-5 w-5 ml-1 rtl:rotate-180" />
+                                        {t.back}
+                                    </Button>
+                                )}
+                                
+                                {currentStep < 4 ? (
+                                    <Button
+                                        type="button"
+                                        onClick={goNext}
+                                        disabled={!isStepValid(currentStep)}
+                                        className="flex-[2] bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6"
+                                    >
+                                        {t.next}
+                                        <ChevronLeft className="h-5 w-5 mr-1 rtl:rotate-180" />
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="submit"
+                                        disabled={submitting || !validation.valid}
+                                        className="flex-[2] bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6"
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black ml-2"></div>
+                                                {t.submitting}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send className="h-5 w-5 ml-2" />
+                                                {t.submit}
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </form>
