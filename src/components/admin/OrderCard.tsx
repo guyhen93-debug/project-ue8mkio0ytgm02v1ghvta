@@ -45,7 +45,7 @@ interface OrderCardProps {
     order: any;
     products: Record<string, any>;
     sites: Record<string, any>;
-    clients: Record<Record<string, any>, any> | any;
+    clients: Record<string, any> | any;
     language: string;
     translations: any;
     onEdit: (order: any) => void;
@@ -109,18 +109,25 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
     return (
         <Card 
-            className="industrial-card hover:border-yellow-300 transition-colors cursor-pointer overflow-hidden" 
+            className={cn(
+                "industrial-card hover:border-yellow-300 transition-all cursor-pointer overflow-hidden border-l-4",
+                effectiveStatus === 'pending' ? "border-l-yellow-400" : 
+                effectiveStatus === 'approved' ? "border-l-green-500" :
+                effectiveStatus === 'in_transit' ? "border-l-blue-400" :
+                effectiveStatus === 'completed' ? "border-l-blue-600" : "border-l-gray-300"
+            )}
             onClick={() => onEdit(order)}
         >
-            <CardContent className="p-3 sm:p-4">
-                <div className="space-y-3">
+            <CardContent className="p-2 sm:p-3">
+                <div className="space-y-2">
                     {/* Row 1: order number + status */}
                     <div className="flex items-center justify-between">
-                        <div className="font-bold text-gray-900 text-base">
+                        <div className="font-bold text-gray-900 text-sm sm:text-base">
                             #{order.order_number || order.id?.slice(-6)}
+                            {showReminder && <span className="ml-1 text-red-500">⏰</span>}
                         </div>
                         <span className={cn(
-                            'px-2 py-1 rounded text-xs font-bold',
+                            'px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider',
                             statusConfig.className,
                         )}
                         >
@@ -129,47 +136,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     </div>
 
                     {/* Row 2: client */}
-                    <div className="text-sm font-semibold text-gray-800">
+                    <div className="text-sm font-bold text-gray-800 leading-tight">
                         {clientName}
                     </div>
 
                     {/* Row 3: order details */}
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] sm:text-sm text-gray-600">
                         <div className="flex items-center gap-1.5 min-w-0">
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                            <span className="truncate">{siteName}</span>
+                            <span className="truncate font-medium">{siteName}</span>
                         </div>
                         <div className="flex items-center gap-1.5 min-w-0">
                             <Box className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                            <span className="truncate">{productName}</span>
+                            <span className="truncate font-medium">{productName}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Scale className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                            <span>{quantity} {language === 'he' ? 'טון' : 'tons'}</span>
+                            <span className="font-bold text-gray-900">{quantity} {language === 'he' ? 'טון' : 'tons'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                            <span>{formatDate(deliveryDate)}</span>
+                            <span className="font-medium">{formatDate(deliveryDate)}</span>
                         </div>
                     </div>
 
-                    {/* Row 4: operational details */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-xs text-gray-500 mt-1 pt-1 border-t border-gray-50">
+                    {/* Row 4: operational details (Metadata) */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-gray-400 mt-1 pt-1 border-t border-gray-50">
                         {(() => {
                             const site = sites[order.site_id];
                             const regionType = site?.region_type;
                             if (!regionType) return null;
                             return (
                                 <div className="flex items-center gap-1">
-                                    <Globe2 className="w-3 h-3 text-blue-500" />
+                                    <Globe2 className="w-3 h-3 text-blue-400" />
                                     <span>{regionType === 'eilat' ? (language === 'he' ? 'אילת' : 'Eilat') : (language === 'he' ? 'מחוץ לאילת' : 'Outside Eilat')}</span>
                                 </div>
                             );
                         })()}
 
-                        {/* Supplier */}
                         <div className="flex items-center gap-1">
-                            <span className="text-gray-300">•</span>
+                            <span className="text-gray-200">•</span>
                             <Factory className="w-3 h-3" />
                             <span>
                                 {order.supplier === 'shifuli_har'
@@ -178,16 +184,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             </span>
                         </div>
 
-                        {/* Time window */}
                         <div className="flex items-center gap-1">
-                            <span className="text-gray-300">•</span>
+                            <span className="text-gray-200">•</span>
                             <Clock className="w-3 h-3" />
                             <span>{order.delivery_window === 'morning' ? (language === 'he' ? 'בוקר' : 'Morning') : (language === 'he' ? 'אחר הצהריים' : 'Afternoon')}</span>
                         </div>
 
-                        {/* Delivery method */}
                         <div className="flex items-center gap-1">
-                            <span className="text-gray-300">•</span>
+                            <span className="text-gray-200">•</span>
                             <Truck className="w-3 h-3" />
                             <span>
                                 {order.delivery_method === 'self'
@@ -198,11 +202,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     </div>
 
                     {/* Expand/Collapse Controls */}
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-1">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="flex-1 h-8 text-[11px] font-medium"
+                            className="flex-1 h-7 text-[10px] font-bold text-gray-500 hover:bg-gray-50"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setShowDetails(!showDetails);
@@ -214,9 +218,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                         </Button>
 
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="flex-1 h-8 text-[11px] font-medium"
+                            className="flex-1 h-7 text-[10px] font-bold text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setShowActions(!showActions);
@@ -230,7 +234,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
                     {/* Expandable: Details */}
                     {showDetails && (
-                        <div className="mt-3 pt-3 border-t space-y-2 text-[13px] text-gray-700 fade-in">
+                        <div className="mt-2 pt-2 border-t space-y-1.5 text-[12px] text-gray-600 fade-in bg-gray-50/50 p-2 rounded-md">
                             {(() => {
                                 const site = sites[order.site_id];
                                 const contactName = order.site_contact || site?.contact_name;
@@ -240,9 +244,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     <div className="flex items-center gap-2">
                                         <User className="w-3.5 h-3.5 text-gray-400" />
                                         <span className="font-medium text-gray-500">{language === 'he' ? 'איש קשר:' : 'Contact:'}</span>
-                                        <span className="text-gray-900 font-medium">{contactName}</span>
+                                        <span className="text-gray-900 font-bold">{contactName}</span>
                                         {contactPhone && (
-                                            <span className="text-blue-600 font-medium">{contactPhone}</span>
+                                            <span className="text-blue-600 font-bold ml-auto">{contactPhone}</span>
                                         )}
                                     </div>
                                 );
@@ -253,7 +257,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                     <FileText className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                                     <div>
                                         <div className="font-medium text-gray-500">{language === 'he' ? 'הערות:' : 'Notes:'}</div>
-                                        <div className="text-gray-700 whitespace-pre-wrap leading-tight">{order.notes}</div>
+                                        <div className="text-gray-800 whitespace-pre-wrap leading-tight">{order.notes}</div>
                                     </div>
                                 </div>
                             )}
@@ -262,7 +266,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <div className="flex items-center gap-2">
                                     <Truck className="w-3.5 h-3.5 text-gray-400" />
                                     <span className="font-medium text-gray-500">{language === 'he' ? 'תעודת משלוח:' : 'Delivery note:'}</span>
-                                    <span className="text-gray-900 font-medium">{order.delivery_note_number}</span>
+                                    <span className="text-gray-900 font-bold">{order.delivery_note_number}</span>
                                 </div>
                             )}
 
@@ -270,17 +274,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <div className="flex items-center gap-2">
                                     <User className="w-3.5 h-3.5 text-gray-400" />
                                     <span className="font-medium text-gray-500">{language === 'he' ? 'נהג:' : 'Driver:'}</span>
-                                    <span className="text-gray-900 font-medium">{order.driver_name}</span>
-                                </div>
-                            )}
-                            
-                            {order.delivery_notes && (
-                                <div className="flex items-start gap-2">
-                                    <FileText className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
-                                    <div>
-                                        <div className="font-medium text-gray-500">{language === 'he' ? 'הערות אספקה:' : 'Delivery notes:'}</div>
-                                        <div className="text-gray-700 whitespace-pre-wrap leading-tight">{order.delivery_notes}</div>
-                                    </div>
+                                    <span className="text-gray-900 font-bold">{order.driver_name}</span>
                                 </div>
                             )}
                         </div>
@@ -288,17 +282,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
                     {/* Expandable: Actions */}
                     {showActions && (
-                        <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2 fade-in">
+                        <div className="mt-2 pt-2 border-t grid grid-cols-2 gap-2 fade-in">
                             {actions.approve && (
                                 <Button
                                     size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white h-9 text-xs"
+                                    className="bg-green-600 hover:bg-green-700 text-white h-9 text-xs font-bold"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onStatusChange(order.id, 'approved');
                                     }}
                                 >
-                                    {language === 'he' ? 'אשר' : 'Approve'}
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                                    {language === 'he' ? 'אשר הזמנה' : 'Approve Order'}
                                 </Button>
                             )}
 
@@ -306,41 +301,28 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Button
                                     size="sm"
                                     variant="destructive"
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs font-bold"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onStatusChange(order.id, 'rejected');
                                     }}
                                 >
-                                    {language === 'he' ? 'דחה' : 'Reject'}
-                                </Button>
-                            )}
-
-                            {actions.returnToPending && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-9 text-xs"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onStatusChange(order.id, 'pending');
-                                    }}
-                                >
-                                    {language === 'he' ? 'החזר לממתין' : 'Back to pending'}
+                                    <X className="w-3.5 h-3.5 mr-1.5" />
+                                    {language === 'he' ? 'דחה הזמנה' : 'Reject Order'}
                                 </Button>
                             )}
 
                             {actions.updateDelivery && onUpdateDelivery && (
                                 <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-blue-600 col-span-2"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onUpdateDelivery(order);
                                     }}
                                 >
-                                    {language === 'he' ? 'עדכן אספקה' : 'Update delivery'}
+                                    <Truck className="w-3.5 h-3.5 mr-1.5" />
+                                    {language === 'he' ? 'עדכן אספקה' : 'Update Delivery'}
                                 </Button>
                             )}
 
@@ -348,13 +330,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs font-medium border-gray-200"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onSendMessage(order);
                                     }}
                                 >
-                                    {language === 'he' ? 'שלח הודעה' : 'Send message'}
+                                    <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                                    {language === 'he' ? 'שלח הודעה' : 'Message'}
                                 </Button>
                             )}
 
@@ -362,13 +345,29 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs font-medium border-gray-200"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onDuplicate(order);
                                     }}
                                 >
-                                    {language === 'he' ? 'שכפל הזמנה' : 'Duplicate order'}
+                                    <Plus className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                                    {language === 'he' ? 'שכפל' : 'Duplicate'}
+                                </Button>
+                            )}
+
+                            {actions.returnToPending && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 text-xs font-medium border-gray-200"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onStatusChange(order.id, 'pending');
+                                    }}
+                                >
+                                    <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                                    {language === 'he' ? 'החזר לממתין' : 'To Pending'}
                                 </Button>
                             )}
 
@@ -376,12 +375,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="text-red-600 border-red-200 hover:bg-red-50 h-9 text-xs"
+                                    className="text-red-500 border-red-100 hover:bg-red-50 hover:text-red-600 h-9 text-xs font-medium"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onDelete(order.id);
                                     }}
                                 >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                                     {language === 'he' ? 'מחק' : 'Delete'}
                                 </Button>
                             )}

@@ -11,6 +11,7 @@ import { useData } from '@/contexts/DataContext';
 import { Package, Plus, Search, X, Calendar as CalendarIcon } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { OrderCard } from './OrderCard';
+import { OrderFilters } from './OrderFilters';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -494,6 +495,19 @@ export const OrderManagement: React.FC = () => {
         navigate('/create-order', { state: { duplicateOrder: order } });
     };
 
+    const counts = useMemo(() => {
+        const c: Record<string, number> = { all: orders.length };
+        ['pending', 'approved', 'in_transit', 'completed', 'rejected'].forEach(s => {
+            c[s] = orders.filter(o => {
+                if (s === 'completed') {
+                    return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
+                }
+                return o.status === s;
+            }).length;
+        });
+        return c;
+    }, [orders]);
+
     const filteredOrders = useMemo(() => {
         const search = debouncedSearch.toLowerCase();
 
@@ -546,135 +560,32 @@ export const OrderManagement: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Header: Title + Create Button */}
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                    <Package className="w-6 h-6 text-yellow-600" />
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t.title}</h1>
-                </div>
-                
-                <Button
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-6 shadow-sm"
-                    onClick={() => navigate('/create-order')}
-                >
-                    <Plus className="w-5 h-5 mr-2" />
-                    {t.createOrder}
-                </Button>
-            </div>
-
-            {/* Filters & Search */}
-            <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    {/* Search Bar */}
-                    <div className="relative flex-1">
-                        <Search className={cn(
-                            "absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10",
-                            isRTL ? "right-3" : "left-3"
-                        )} />
-                        <Input
-                            type="text"
-                            placeholder={t.search}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className={cn(
-                                "w-full border-gray-200 focus-visible:ring-yellow-500",
-                                isRTL ? "pr-10" : "pl-10"
-                            )}
-                        />
-                    </div>
-
-                    {/* Date Range Selector */}
+        <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
+            {/* Anchored Control Zone */}
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 -mx-4 px-4 pb-4 mb-2 shadow-sm pt-2">
+                <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={cn(
-                                        "w-full sm:w-[240px] justify-start text-left font-normal border-gray-200",
-                                        !dateRange?.from && "text-muted-foreground",
-                                        isRTL && "text-right flex-row-reverse"
-                                    )}
-                                >
-                                    <CalendarIcon className={cn("h-4 w-4", isRTL ? "ml-2" : "mr-2")} />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, "dd/MM/yyyy")} -{" "}
-                                                {format(dateRange.to, "dd/MM/yyyy")}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, "dd/MM/yyyy")
-                                        )
-                                    ) : (
-                                        <span>{t.dateRangeLabel}</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={1}
-                                    locale={isRTL ? he : undefined}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                        
-                        {dateRange?.from && (
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setDateRange({})}
-                                className="h-9 px-2 text-gray-500 hover:text-gray-700"
-                            >
-                                <X className="w-4 h-4 ml-1" />
-                                {t.clearFilter}
-                            </Button>
-                        )}
+                        <Package className="w-5 h-5 text-yellow-600" />
+                        <h1 className="text-lg font-bold text-gray-900">{t.title}</h1>
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                        {isRTL ? '* מבוסס על ההזמנות האחרונות' : '* Based on recent orders'}
                     </div>
                 </div>
 
-                {/* Status Filter Row */}
-                <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto no-scrollbar">
-                    {[
-                        { value: 'all', label: t.filterAll },
-                        { value: 'pending', label: t.filterPending },
-                        { value: 'approved', label: t.filterApproved },
-                        { value: 'in_transit', label: t.filterInTransit },
-                        { value: 'completed', label: t.filterCompleted },
-                        { value: 'rejected', label: t.filterRejected },
-                    ].map((filter) => {
-                        const count = filter.value === 'all' 
-                            ? orders.length 
-                            : orders.filter(o => {
-                                if (filter.value === 'completed') {
-                                    return o.status === 'completed' || o.is_delivered === true || (o.delivered_quantity_tons && o.quantity_tons && o.delivered_quantity_tons >= o.quantity_tons);
-                                }
-                                return o.status === filter.value;
-                            }).length;
-
-                        return (
-                            <Button
-                                key={filter.value}
-                                variant={statusFilter === filter.value ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setStatusFilter(filter.value)}
-                                className={cn(
-                                    "rounded-md px-4 h-9 whitespace-nowrap transition-all font-bold border-gray-200",
-                                    statusFilter === filter.value 
-                                        ? 'bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500 shadow-sm' 
-                                        : 'text-gray-700 hover:bg-gray-50'
-                                )}
-                            >
-                                {filter.label} ({count})
-                            </Button>
-                        );
-                    })}
-                </div>
+                <OrderFilters
+                    searchTerm={searchTerm}
+                    statusFilter={statusFilter}
+                    onSearchChange={setSearchTerm}
+                    onStatusChange={setStatusFilter}
+                    onRefresh={loadData}
+                    onAddNew={() => navigate('/create-order')}
+                    translations={t}
+                    isRTL={isRTL}
+                    dateRange={dateRange}
+                    onDateRangeChange={setDateRange}
+                    counts={counts}
+                />
             </div>
 
             {/* Orders List */}
