@@ -126,6 +126,18 @@ const OrderHistory: React.FC = () => {
             navigate('/orders', { replace: true });
             return;
         }
+
+        // Handle order search from URL
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const orderSearch = params.get('order') || params.get('highlight');
+            if (orderSearch) {
+                setSearchTerm(orderSearch);
+            }
+        } catch (e) {
+            console.warn('Could not read parameters from URL', e);
+        }
+
         loadOrders();
     }, [user, isManager, navigate]);
 
