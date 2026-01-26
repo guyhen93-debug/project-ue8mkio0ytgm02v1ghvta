@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { 
     Package, MapPin, Calendar, Sunrise, Sunset, Truck, FileText, 
     Edit, Trash2, Building2, Factory, Star, CheckCircle, Clock, 
-    MessageSquare, Box, Scale, User, ChevronDown, ChevronUp, Globe2 
+    MessageSquare, Box, Scale, User, ChevronDown, ChevronUp, Globe2,
+    Plus, X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
